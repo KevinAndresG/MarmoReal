@@ -63,6 +63,45 @@ Al pulir eliges 1 de 3 cartas **con riesgo/recompensa** (tipo Hades/Vampire Surv
 - Cambio visible por Pulido: canica con material nuevo ya existe; añadir **cambio de iluminación/cielo/música** por sala, banner de entrada a la sala y resumen "Esta vida: X estatuas, mejor golpe, tiempo".
 - Panel de "Qué ha cambiado este Pulido" (nuevas mejoras/topes desbloqueados) para que el jugador sienta que Pulir **abre** cosas, no resetea.
 
+## 3b. META FINAL, CAMPAÑA Y MODO INFINITO (pedido del jugador)
+Problema: hoy se juega "por jugar". Falta una **meta clara** con final y un después.
+
+### La meta: "El Gran Monumento"
+El santuario es el taller donde se esculpe una **obra maestra colosal**. Cada sala completa añade una pieza; al terminar las 7 piezas se corona el monumento y se **gana la campaña**.
+- **Progreso visible**: una barra/estatua en el HUD con 7 piezas (Base, Columnas, Torso, Brazos, Rostro, Corona, Alma). Cada pieza se consigue superando la **Prueba de su sala**.
+- **Prueba de sala** (al llegar a la Galería objetivo de esa sala): un **jefe colosal** (monolito de 3 fases, ver §3D) + objetivo del **contrato** de la sala. Superarla da la pieza, Ícor, un color de canica y desbloquea la sala siguiente.
+- Duración objetivo de la campaña: ~12-20 h de juego (7 salas × 1-3 h), ajustable con el simulador.
+
+### Salas de campaña (orden sugerido, une con los biomas de §3B)
+1. Santuario de Carrara → 2. Cantera Volcánica → 3. Gruta de Cristal → 4. Catedral de Hielo → 5. Forja de Hierro → 6. Jardín de Rosa → 7. **Panteón Dorado** (final: jefe "El Coloso de Mármol").
+Cada sala cambia materiales, luz, música y UNA regla. Se entra eligiendo la sala desbloqueada al Pulir (o rotación forzada en las primeras).
+
+### Colores de la canica (hitos coleccionables)
+Hoy hay 5 materiales (Carrara, Calacatta, Nero, Rosa, Verde) ligados al nº de pulidos. Propuesta: **ligar cada color a un logro concreto**, con límite alto para tener a dónde llegar:
+
+| Color | Cómo se consigue |
+|---|---|
+| Carrara (blanco) | inicio |
+| Rosa | 1.er Pulido |
+| Verde | superar la Prueba 1 |
+| Celeste (hielo) | Prueba 4 |
+| Violeta (cristal) | Prueba 3 |
+| Rojo (volcánico) | Prueba 2 |
+| Nero (obsidiana) | 25 pulidos |
+| Dorado | **completar la campaña** |
+| Cósmica (estrellas, solo infinito) | Galería 500 en modo infinito |
+Cada color puede dar un pequeño bono cosmético-funcional (estela distinta, color de las ondas, sonido del impacto) — nada de poder extra desbalanceante. Menú "Colección" para elegir canica y ver qué falta.
+
+### Final y Modo Infinito
+- Al coronar el monumento: pantalla/cinemática corta de victoria (cámara orbitando la obra, créditos del jugador con sus estadísticas: tiempo, estatuas, pulidos, mejor golpe) y desbloqueo del **Modo Infinito** ("Eterno").
+- **Modo Infinito**: sin final. Las 7 salas se mezclan y rotan, con mutadores (§3C) cada vez más duros, jefes con modificadores aleatorios, **tabla de récords personal** (galería máxima, tiempo, mejor golpe, polvo/s) y "rangos" (Aprendiz → Maestro → Leyenda → Deidad) por Galería alcanzada. Moneda propia opcional ("Fragmentos de Eternidad") para cosméticos y reliquias.
+- Un "**Nuevo Juego+**" opcional: reinicia la campaña conservando colores y reliquias, con dificultad ×N.
+
+### Cómo encaja con lo anterior
+- Los **Mecenazgos** pasan a incluir los hitos de campaña ("Pieza 3/7").
+- El **Ícor/Altar** y las **Reliquias** (§3E) son la progresión larga entre salas.
+- El simulador debe modelar la campaña: tiempo hasta cada Prueba ≈ 1.5-3 h, con la economía de la Sesión 1.
+
 ## 4. Balance: reglas nuevas propuestas
 1. Duración objetivo del Taller por vida: 8-12 min para completarlo, +30 % por cada 3 pulidos (más topes, no solo coste).
 2. Mantener "muro suave" pero con **dos muros**: HP de bloque (como hoy) **y** modificador de sala/mutador (se supera cambiando de estrategia, no solo esperando).
@@ -74,7 +113,8 @@ Al pulir eliges 1 de 3 cartas **con riesgo/recompensa** (tipo Hades/Vampire Surv
 1. **Sesión 1 — Economía/ritmo** (A): coste escalado, topes por pulido, ayudantes por hito, mejoras vivas. Simulador primero.
 2. **Sesión 2 — Salas/biomas** (B + F): `BiomeDef`, 3 salas jugables (Carrara, Volcánica, Cristal), transición al Pulir, ajuste de luz/materiales.
 3. **Sesión 3 — Mutadores + jefes + eventos + contratos** (C + D).
-4. **Sesión 4 — Reliquias / segunda capa** (E) y pulido general.
+4. **Sesión 4 — Meta de campaña** (§3b): Gran Monumento (7 piezas), Pruebas con jefe por sala, Colección de colores de canica, pantalla de victoria y **Modo Infinito** con récords.
+5. **Sesión 5 — Reliquias / segunda capa** (E) y pulido general.
 Verificar cada sesión en Play con el flujo del skill `marmoreal-dev` (guardado de prueba con backup).
 
 ## 6. Riesgos

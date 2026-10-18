@@ -33,4 +33,12 @@ imposible ni perder lo divertido que es ahora.
 ## Después (sesiones siguientes, ver el análisis §5)
 2. Salas/biomas por Pulido (`BiomeDef`, 3 salas: Carrara, Cantera Volcánica, Gruta de Cristal).
 3. Mutadores al pulir + jefe cada 10 galerías + eventos + contratos.
-4. Reliquias / segunda capa de prestigio.
+4. **Meta de campaña** (análisis §3b): "Gran Monumento" de 7 piezas, una Prueba con jefe por sala, colección de
+   colores de canica ligados a hitos (rosa, verde, celeste, violeta, rojo, nero, dorado, cósmica), pantalla de victoria y
+   **Modo Infinito** con tabla de récords y rangos.
+5. Reliquias / segunda capa de prestigio.
+
+## Nota sobre la meta
+El jugador quiere un **objetivo claro con final** (completar el Gran Monumento) y un **después** (modo infinito), además
+de más colores de canica y más biomas para tener a dónde llegar. Diseña la Sesión 1 sin cerrar puertas a esto: deja los
+topes y la economía parametrizables por "sala/etapa de campaña".
