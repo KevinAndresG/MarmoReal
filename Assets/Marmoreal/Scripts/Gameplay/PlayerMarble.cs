@@ -70,7 +70,7 @@ namespace Marmoreal
 
         [System.NonSerialized] GameManager subscribed;
 
-        void Start() { ApplyLook(); }
+        void Start() { if (!cameraRig) cameraRig = CameraRig.I; ApplyLook(); }
 
         void OnDestroy()
         {
@@ -132,7 +132,7 @@ namespace Marmoreal
                     if (g.buttonNorth.wasPressedThisFrame) Shockwave.I?.TryRelease();
                 }
                 var m = Mouse.current;
-                if (m != null && m.leftButton.wasPressedThisFrame && !(Hud.I && Hud.I.PointerOverUI)) Shockwave.I?.TryRelease();
+                if (m != null && m.leftButton.wasPressedThisFrame && ((cameraRig && cameraRig.locked) || !(Hud.I && Hud.I.PointerOverUI))) Shockwave.I?.TryRelease();
                 moveInput = Vector2.ClampMagnitude(moveInput, 1f);
             }
 
@@ -280,7 +280,9 @@ namespace Marmoreal
         void TryDash()
         {
             if (dashCooldown > 0 || !GameManager.I) return;
-            Vector3 dir = new Vector3(lastVel.x, 0, lastVel.z);
+            // Con la cámara bloqueada la Embestida sale hacia donde se mira; si no, sigue la inercia
+            Vector3 dir = cameraRig && cameraRig.locked ? cameraRig.transform.forward : new Vector3(lastVel.x, 0, lastVel.z);
+            dir.y = 0;
             if (moveInput.sqrMagnitude > 0.01f && cameraRig)
             {
                 Vector3 f = cameraRig.transform.forward; f.y = 0; f.Normalize();

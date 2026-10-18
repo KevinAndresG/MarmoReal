@@ -109,7 +109,7 @@ namespace Marmoreal
             if (debrisCount >= maxDebris) { debris[Random.Range(0, debrisCount)].age = debrisLife; return; }
             debris[debrisCount++] = new Debris
             {
-                pos = pos, rot = rot, scale = scale, vel = vel,
+                pos = pos, rot = Quaternion.Normalize(rot), scale = scale, vel = vel,
                 spin = new Vector3(Random.Range(-300f, 300f), Random.Range(-300f, 300f), Random.Range(-300f, 300f)),
                 age = 0, mat = (byte)Mathf.Clamp(matIndex, 0, debrisMaterials.Length - 1),
                 hot = true, owner = owner
@@ -245,7 +245,8 @@ namespace Marmoreal
                 if (d.age >= debrisLife) { debris[i] = debris[--debrisCount]; i--; continue; }
                 d.vel.y -= 20f * dt;
                 d.pos += d.vel * dt;
-                d.rot = Quaternion.Euler(d.spin * dt) * d.rot;
+                // Normalizar: multiplicar cada frame acumula error y TRS rechaza el cuaternión.
+                d.rot = Quaternion.Normalize(Quaternion.Euler(d.spin * dt) * d.rot);
                 float floor = ArenaShape.Height(d.pos) + d.scale.y * 0.35f;
                 if (d.pos.y < floor)
                 {

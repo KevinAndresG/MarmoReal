@@ -5,7 +5,8 @@ namespace Marmoreal
 {
     /// <summary>
     /// Cámara orbital que sigue a la canica. Clic derecho + arrastrar o Q/E para girar,
-    /// rueda para zoom. Incluye temblor (trauma²) y "kick" de FOV en la Embestida.
+    /// rueda para zoom. C bloquea la cámara (tercera persona: cursor oculto, el ratón gira siempre).
+    /// Incluye temblor (trauma²) y "kick" de FOV en la Embestida.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public class CameraRig : MonoBehaviour
@@ -30,6 +31,7 @@ namespace Marmoreal
         public float baseFov = 55f;
         [Tooltip("Vista del título: órbita lenta alrededor del santuario")]
         public bool attractMode = true;
+        [System.NonSerialized] public bool locked; // tercera persona (tecla C)
 
         Camera cam;
         Vector3 focus;
@@ -79,19 +81,26 @@ namespace Marmoreal
                 return;
             }
 
+            var kb = Keyboard.current;
+            if (!blocked && kb != null && kb.cKey.wasPressedThisFrame) locked = !locked;
+            // Los menús abiertos sueltan el cursor; al cerrarlos vuelve a bloquearse
+            bool cursorLocked = locked && !blocked;
+            Cursor.lockState = cursorLocked ? CursorLockMode.Locked : CursorLockMode.None;
+            Cursor.visible = !cursorLocked;
+
             if (!blocked)
             {
                 var m = Mouse.current;
                 if (m != null)
                 {
-                    if (m.rightButton.isPressed)
+                    if (locked || m.rightButton.isPressed)
                     {
                         Vector2 d = m.delta.ReadValue();
                         yaw += d.x * mouseSensitivity * sens;
                         pitch -= d.y * mouseSensitivity * sens;
                     }
                     float scroll = m.scroll.ReadValue().y;
-                    if (Mathf.Abs(scroll) > 0.01f && !(Hud.I && Hud.I.PointerOverUI))
+                    if (Mathf.Abs(scroll) > 0.01f && (locked || !(Hud.I && Hud.I.PointerOverUI)))
                         targetDistance = Mathf.Clamp(targetDistance - Mathf.Sign(scroll) * 1.5f, minDistance, maxDistance);
                 }
                 var k = Keyboard.current;

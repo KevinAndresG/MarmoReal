@@ -202,6 +202,24 @@ namespace Marmoreal
         static bool fontsLoaded;
         static FontAsset sym, body, head;
 
+        // DontSave: si Unity destruyera la fuente al salir de Play, el panel repinta con su material
+        // destruido (MissingReferenceException). Se reutiliza por nombre entre sesiones para no acumularlas.
+        static FontAsset LoadFont(string family)
+        {
+            if (string.IsNullOrEmpty(family)) return null;
+            string id = "Marmoreal_" + family;
+            foreach (var f in Resources.FindObjectsOfTypeAll<FontAsset>())
+                if (f && f.name == id) return f;
+            var fa = FontAsset.CreateFontAsset(family, "Regular");
+            if (!fa) return null;
+            fa.name = id;
+            fa.hideFlags = HideFlags.DontSave;
+            if (fa.material) fa.material.hideFlags = HideFlags.DontSave;
+            if (fa.atlasTextures != null)
+                foreach (var t in fa.atlasTextures) if (t) t.hideFlags = HideFlags.DontSave;
+            return fa;
+        }
+
         void ApplyFonts()
         {
             try
@@ -209,9 +227,9 @@ namespace Marmoreal
                 if (!fontsLoaded)
                 {
                     fontsLoaded = true;
-                    sym = string.IsNullOrEmpty(symbolFontFamily) ? null : FontAsset.CreateFontAsset(symbolFontFamily, "Regular");
-                    body = string.IsNullOrEmpty(bodyFontFamily) ? null : FontAsset.CreateFontAsset(bodyFontFamily, "Regular");
-                    head = string.IsNullOrEmpty(titleFontFamily) ? null : FontAsset.CreateFontAsset(titleFontFamily, "Regular");
+                    sym = LoadFont(symbolFontFamily);
+                    body = LoadFont(bodyFontFamily);
+                    head = LoadFont(titleFontFamily);
                 }
                 if (body)
                 {
