@@ -1,0 +1,121 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="Hud.uss" />
+    <ui:VisualElement name="root" class="root" picking-mode="Ignore">
+
+        <ui:VisualElement name="floaters" class="layer" picking-mode="Ignore" />
+
+        <ui:VisualElement name="hud" class="layer" picking-mode="Ignore">
+            <ui:VisualElement name="stats" class="panel stats" picking-mode="Ignore">
+                <ui:Label name="dust" class="dust" text="0" picking-mode="Ignore" />
+                <ui:Label class="caption" text="POLVO DE MÁRMOL" picking-mode="Ignore" />
+                <ui:Label name="dust-rate" class="small" text="+0 / s" picking-mode="Ignore" />
+                <ui:VisualElement class="row" picking-mode="Ignore" style="margin-top: 8px;">
+                    <ui:Label name="essence" class="essence" text="0" picking-mode="Ignore" />
+                    <ui:Label class="caption" text="  ESENCIA" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement name="icor-row" class="row hidden" picking-mode="Ignore" style="margin-top: 2px;">
+                    <ui:Label name="icor" class="icor" text="0" picking-mode="Ignore" />
+                    <ui:Label class="caption icor-caption" text="  ÍCOR ✶" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:Label name="stat-line" class="stat-line" text="" picking-mode="Ignore" />
+            </ui:VisualElement>
+
+            <ui:VisualElement name="gallery" class="gallery" picking-mode="Ignore">
+                <ui:Label name="gallery-title" class="gallery-title" text="GALERÍA I" picking-mode="Ignore" />
+                <ui:VisualElement class="bar" picking-mode="Ignore">
+                    <ui:VisualElement name="gallery-fill" class="bar-fill gold" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:Label name="gallery-text" class="small" text="0 / 8 estatuas liberadas" picking-mode="Ignore" />
+                <ui:VisualElement name="toasts" class="toasts" picking-mode="Ignore" />
+            </ui:VisualElement>
+
+            <ui:Label name="combo" class="combo" text="" picking-mode="Ignore" />
+            <ui:Label name="buffs" class="buffs hidden" text="" picking-mode="Ignore" />
+            <ui:Label name="banner" class="banner" text="" picking-mode="Ignore" />
+
+            <ui:VisualElement name="shop" class="panel shop">
+                <ui:Label class="panel-title" text="TALLER" />
+                <ui:ScrollView name="shop-list" class="shop-list" />
+                <ui:Button name="tree-btn" class="btn tree-btn" text="ÁRBOL DEL ESCULTOR  [T]" />
+                <ui:VisualElement class="row">
+                    <ui:Button name="altar-btn" class="btn altar-btn half" text="ALTAR  [G]" />
+                    <ui:Button name="logros-btn" class="btn logros-btn half" text="MECENAZGOS  [L]" style="margin-left: 6px;" />
+                </ui:VisualElement>
+                <ui:Button name="prestige-btn" class="btn prestige-btn" text="PULIR LA CANICA  [P]" />
+            </ui:VisualElement>
+
+            <ui:VisualElement name="powers" class="powers hidden" picking-mode="Ignore" />
+
+            <ui:VisualElement name="bottom" class="bottom" picking-mode="Ignore">
+                <ui:VisualElement class="meter" picking-mode="Ignore">
+                    <ui:Label class="meter-label" text="RESONANCIA  [F · CLIC]" picking-mode="Ignore" />
+                    <ui:VisualElement name="res-bar" class="bar wide" picking-mode="Ignore">
+                        <ui:VisualElement name="res-fill" class="bar-fill res" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="meter" picking-mode="Ignore">
+                    <ui:Label class="meter-label" text="EMBESTIDA  [SHIFT]" picking-mode="Ignore" />
+                    <ui:VisualElement class="bar wide" picking-mode="Ignore">
+                        <ui:VisualElement name="dash-fill" class="bar-fill dash" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:VisualElement name="settings" class="settings">
+                <ui:VisualElement class="row">
+                    <ui:Button name="quality-btn" class="btn small-btn" text="Calidad" />
+                    <ui:Button name="mute-btn" class="btn small-btn" text="Sonido" style="margin-left: 6px;" />
+                    <ui:Button name="reset-btn" class="btn small-btn" text="Borrar partida" style="margin-left: 6px;" />
+                </ui:VisualElement>
+                <ui:Label class="hint" text="WASD rodar · Espacio saltar · Shift embestida · F onda · 1-6 poderes · Ctrl+1-9 comprar · T árbol · G altar · L mecenazgos" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="tree" class="overlay hidden">
+            <ui:VisualElement class="tree-header">
+                <ui:Label name="tree-title" class="tree-title" text="ÁRBOL DEL ESCULTOR" />
+                <ui:Label name="tree-essence" class="essence big" text="0 Esencia" />
+                <ui:Button name="tree-close" class="btn" text="CERRAR  [ESC]" />
+            </ui:VisualElement>
+            <ui:VisualElement name="tree-canvas" class="tree-canvas" />
+            <ui:VisualElement name="tree-info" class="tree-info">
+                <ui:VisualElement class="ti-text">
+                    <ui:Label name="ti-name" class="ti-name" text="" />
+                    <ui:Label name="ti-desc" class="ti-desc" text="Elige un nodo. La Esencia se gana al Pulir la canica." />
+                    <ui:Label name="ti-effect" class="ti-effect" text="" />
+                </ui:VisualElement>
+                <ui:Button name="ti-buy" class="btn buy" text="DESBLOQUEAR" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="logros" class="overlay hidden">
+            <ui:VisualElement class="logros-box">
+                <ui:VisualElement class="tree-header-inline">
+                    <ui:Label class="tree-title logros-title" text="MECENAZGOS" />
+                    <ui:Button name="logros-close" class="btn" text="CERRAR  [ESC]" />
+                </ui:VisualElement>
+                <ui:Label name="logros-fame" class="logros-fame" text="FAMA" />
+                <ui:Label class="small" text="Cada mecenazgo da Ícor y Fama permanente (+% polvo). Nunca se pierden." />
+                <ui:ScrollView name="logros-list" class="logros-list" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="modal" class="overlay hidden">
+            <ui:VisualElement class="modal-box">
+                <ui:Label name="modal-title" class="modal-title" text="" />
+                <ui:Label name="modal-body" class="modal-body" text="" />
+                <ui:VisualElement class="row">
+                    <ui:Button name="modal-ok" class="btn buy" text="ACEPTAR" />
+                    <ui:Button name="modal-cancel" class="btn" text="CANCELAR" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="title" class="overlay title-screen">
+            <ui:Label class="title" text="MARMOREAL" />
+            <ui:Label class="subtitle" text="Dentro de cada bloque duerme una estatua. Libérala." />
+            <ui:Label name="press" class="press" text="PULSA CUALQUIER TECLA PARA RODAR" />
+            <ui:Label class="controls" text="WASD rodar  ·  ESPACIO saltar (2.º en el aire: picado)  ·  SHIFT embestida  ·  F onda  ·  1-6 poderes  ·  Clic derecho girar cámara&#10;La velocidad es daño: usa las laderas del cuenco para ganar inercia." />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

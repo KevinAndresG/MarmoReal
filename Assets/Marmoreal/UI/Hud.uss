@@ -1,0 +1,280 @@
+/* =========================================================
+   MARMOREAL — estilos de la HUD (editable en UI Builder)
+   Paleta: mármol oscuro + oro viejo
+   ========================================================= */
+:root {
+    --gold: #E8C77A;
+    --gold-dim: rgba(232, 199, 122, 0.35);
+    --ink: #F3EEE6;
+    --ink-dim: rgba(243, 238, 230, 0.6);
+    --panel: rgba(14, 12, 11, 0.74);
+    --panel-hi: rgba(30, 26, 22, 0.88);
+    --essence: #B9A6FF;
+    --res: #8FE3FF;
+    --divine: #FF9F5A;
+    --divine-dim: rgba(255, 159, 90, 0.4);
+}
+
+.root { flex-grow: 1; color: var(--ink); font-size: 15px; }
+.layer { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.hidden { display: none; }
+.row { flex-direction: row; align-items: center; }
+
+.panel {
+    background-color: var(--panel);
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: var(--gold-dim);
+    padding: 12px 16px;
+}
+
+/* ---------------- Arriba izquierda ---------------- */
+.stats { position: absolute; left: 18px; top: 18px; min-width: 250px; }
+.dust { font-size: 40px; -unity-font-style: bold; color: var(--ink); margin: 0; padding: 0; transition: scale 0.08s; }
+.dust.pulse { scale: 1.06 1.06; color: #FFF7E0; }
+.caption { font-size: 11px; color: var(--gold); letter-spacing: 3px; margin: 0; padding: 0; }
+.small { font-size: 13px; color: var(--ink-dim); margin-top: 2px; }
+.essence { font-size: 20px; color: var(--essence); -unity-font-style: bold; margin: 0; padding: 0; }
+.essence.big { font-size: 24px; }
+.stat-line { font-size: 12px; color: var(--ink-dim); margin-top: 6px; }
+
+/* ---------------- Arriba centro (galería) ---------------- */
+.gallery { position: absolute; top: 14px; left: 30%; right: 30%; align-items: center; }
+.gallery-title { font-size: 22px; letter-spacing: 6px; color: var(--gold); -unity-font-style: bold; margin-bottom: 4px; transition: scale 0.25s; }
+.gallery-title.up { scale: 1.35 1.35; color: #FFFFFF; }
+.bar { height: 8px; width: 100%; background-color: rgba(255, 255, 255, 0.08); border-radius: 4px; overflow: hidden; border-width: 1px; border-color: rgba(255,255,255,0.08); }
+.bar.wide { width: 340px; height: 10px; }
+.bar-fill { height: 100%; width: 0%; border-radius: 4px; }
+.bar-fill.gold { background-color: var(--gold); }
+.bar-fill.res { background-color: var(--res); }
+.bar-fill.res.full { background-color: #FFFFFF; }
+.bar-fill.dash { background-color: #FFB27A; }
+.bar.flash { border-color: #FF6B6B; }
+
+.toasts { margin-top: 10px; align-items: center; }
+.toast {
+    background-color: var(--panel-hi);
+    border-radius: 8px; border-width: 1px; border-color: var(--gold-dim);
+    padding: 6px 14px; margin-top: 6px; font-size: 15px;
+    transition: opacity 0.4s, translate 0.4s;
+}
+.toast.gold { border-color: #FFD34D; color: #FFE7A0; }
+.toast.gallery { border-color: var(--gold); color: var(--gold); font-size: 17px; -unity-font-style: bold; }
+.toast.prestige { border-color: var(--essence); color: var(--essence); }
+.toast.out { opacity: 0; translate: 0 -12px; }
+
+.combo {
+    position: absolute; top: 120px; left: 0; right: 0;
+    -unity-text-align: middle-center; font-size: 26px; -unity-font-style: bold;
+    color: #FFD9A0; letter-spacing: 2px; transition: scale 0.08s, opacity 0.3s;
+    -unity-text-outline-width: 1px; -unity-text-outline-color: rgba(0,0,0,0.6);
+}
+.combo.pop { scale: 1.25 1.25; }
+
+/* ---------------- Tienda (derecha) ---------------- */
+.shop { position: absolute; right: 18px; top: 18px; bottom: 18px; width: 360px; }
+.panel-title { font-size: 14px; letter-spacing: 5px; color: var(--gold); -unity-font-style: bold; margin-bottom: 8px; -unity-text-align: middle-center; }
+.shop-list { flex-grow: 1; }
+.shop-row {
+    flex-direction: row; align-items: center;
+    background-color: rgba(255, 255, 255, 0.035);
+    border-radius: 8px; border-width: 1px; border-color: rgba(255, 255, 255, 0.06);
+    margin: 0 0 6px 0; padding: 8px 10px;
+    transition: background-color 0.12s, scale 0.08s, border-color 0.12s;
+}
+.shop-row:hover { background-color: rgba(232, 199, 122, 0.12); border-color: var(--gold-dim); }
+.shop-row:active { scale: 0.97 0.97; }
+.shop-row.affordable { border-color: rgba(232, 199, 122, 0.55); }
+.shop-row.affordable .cost { color: var(--gold); }
+.shop-row.maxed { opacity: 0.55; }
+.shop-row.bought { background-color: rgba(232, 199, 122, 0.3); }
+.glyph { font-size: 22px; width: 34px; -unity-text-align: middle-center; color: var(--gold); }
+.shop-text { flex-grow: 1; flex-shrink: 1; margin-left: 6px; }
+.shop-name { font-size: 15px; -unity-font-style: bold; margin: 0; padding: 0; }
+.shop-desc { font-size: 11px; color: var(--ink-dim); white-space: normal; margin: 0; padding: 0; }
+.shop-effect { font-size: 12px; color: #CFE7D0; margin: 0; padding: 0; }
+.shop-right { align-items: flex-end; min-width: 70px; }
+.level { font-size: 11px; color: var(--ink-dim); margin: 0; padding: 0; }
+.cost { font-size: 15px; -unity-font-style: bold; color: rgba(243, 238, 230, 0.45); margin: 0; padding: 0; }
+.key { font-size: 10px; color: rgba(243,238,230,0.35); margin: 0; padding: 0; }
+
+.btn {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 8px; border-width: 1px; border-color: var(--gold-dim);
+    color: var(--ink); font-size: 13px; letter-spacing: 2px; -unity-font-style: bold;
+    padding: 10px 12px; margin: 6px 0 0 0;
+    transition: background-color 0.12s, scale 0.08s;
+}
+.btn:hover { background-color: rgba(232, 199, 122, 0.18); }
+.btn:active { scale: 0.97 0.97; }
+.btn.buy { background-color: rgba(232, 199, 122, 0.25); color: #FFF2CF; }
+.btn.disabled { opacity: 0.4; }
+.tree-btn { color: var(--essence); border-color: rgba(185, 166, 255, 0.45); }
+.prestige-btn { color: #FFF2CF; }
+.prestige-btn.ready { background-color: rgba(185, 166, 255, 0.28); border-color: var(--essence); }
+
+/* ---------------- Abajo ---------------- */
+.bottom { position: absolute; bottom: 22px; left: 0; right: 0; flex-direction: row; justify-content: center; }
+.meter { margin: 0 14px; align-items: center; }
+.meter-label { font-size: 11px; letter-spacing: 3px; color: var(--ink-dim); margin-bottom: 4px; }
+.settings { position: absolute; left: 18px; bottom: 18px; }
+.small-btn { font-size: 11px; padding: 5px 10px; letter-spacing: 1px; }
+.hint { font-size: 11px; color: rgba(243,238,230,0.4); margin-top: 6px; }
+
+/* ---------------- Números flotantes ---------------- */
+.floater {
+    position: absolute; font-size: 18px; -unity-font-style: bold; color: #FFFFFF;
+    -unity-text-outline-width: 1px; -unity-text-outline-color: rgba(0, 0, 0, 0.75);
+    -unity-text-align: middle-center; width: 200px; margin-left: -100px;
+}
+.floater.crit { font-size: 30px; color: #FFD34D; }
+.floater.acolyte { font-size: 13px; color: #CFE9FF; }
+.floater.wave { font-size: 22px; color: var(--res); }
+.floater.statue { font-size: 26px; color: var(--gold); letter-spacing: 2px; }
+.floater.golden { font-size: 34px; color: #FFE58A; }
+
+/* ---------------- Overlays ---------------- */
+.overlay {
+    position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+    background-color: rgba(6, 5, 7, 0.94);
+    align-items: center; justify-content: center;
+}
+
+.title-screen { background-color: rgba(6, 5, 5, 0.25); justify-content: flex-end; padding-bottom: 12%; transition: opacity 0.8s; }
+.title-screen.out { opacity: 0; }
+.title { font-size: 104px; letter-spacing: 26px; color: #FBF6EC; -unity-font-style: bold; -unity-text-outline-width: 1px; -unity-text-outline-color: rgba(120, 95, 50, 0.6); }
+.subtitle { font-size: 20px; color: var(--gold); letter-spacing: 4px; margin-top: 4px; }
+.press { font-size: 16px; color: var(--ink); margin-top: 40px; letter-spacing: 3px; transition: opacity 0.9s; }
+.press.dim { opacity: 0.25; }
+.controls { font-size: 13px; color: var(--ink-dim); margin-top: 14px; -unity-text-align: middle-center; }
+
+.modal-box {
+    background-color: var(--panel-hi); border-radius: 14px; border-width: 1px; border-color: var(--gold);
+    padding: 26px 32px; width: 560px; align-items: center;
+}
+.modal-title { font-size: 26px; letter-spacing: 6px; color: var(--gold); -unity-font-style: bold; margin-bottom: 12px; -unity-text-align: middle-center; }
+.modal-body { font-size: 16px; white-space: normal; -unity-text-align: middle-center; margin-bottom: 14px; }
+.modal-box .btn { margin: 6px 8px 0 8px; min-width: 160px; }
+
+/* ---------------- Árbol ---------------- */
+.tree-header { position: absolute; top: 24px; left: 40px; right: 40px; flex-direction: row; align-items: center; justify-content: space-between; }
+.tree-title { font-size: 30px; letter-spacing: 10px; color: var(--essence); -unity-font-style: bold; }
+.tree-canvas { position: absolute; left: 0; right: 0; top: 90px; bottom: 150px; }
+.node {
+    position: absolute; width: 78px; height: 78px; margin-left: -39px; margin-top: -39px;
+    border-radius: 39px; border-width: 2px; border-color: rgba(255,255,255,0.15);
+    background-color: rgba(20, 18, 24, 0.95);
+    align-items: center; justify-content: center; padding: 0;
+    transition: scale 0.1s, border-color 0.15s, background-color 0.15s;
+}
+.node:hover { scale: 1.1 1.1; }
+.node .node-glyph { font-size: 28px; color: rgba(255,255,255,0.35); margin: 0; padding: 0; }
+.node .node-level { position: absolute; bottom: -20px; font-size: 11px; color: var(--ink-dim); width: 120px; -unity-text-align: middle-center; }
+.node.available { border-color: rgba(185,166,255,0.7); }
+.node.available .node-glyph { color: #DCD3FF; }
+.node.affordable { border-color: #FFFFFF; background-color: rgba(70, 58, 120, 0.95); }
+.node.owned { border-color: var(--gold); background-color: rgba(84, 66, 30, 0.95); }
+.node.owned .node-glyph { color: #FFE7A8; }
+.node.maxed { border-color: #FFE7A8; background-color: rgba(140, 108, 40, 0.95); }
+.node.mechanic { border-radius: 10px; }
+.node.capstone { width: 104px; height: 104px; margin-left: -52px; margin-top: -52px; border-radius: 52px; }
+.node.selected { border-width: 4px; }
+.tree-info {
+    position: absolute; bottom: 24px; left: 25%; right: 25%; height: 112px;
+    background-color: var(--panel-hi); border-radius: 12px; border-width: 1px; border-color: var(--essence);
+    padding: 12px 18px; flex-direction: row; align-items: center;
+}
+.ti-text { flex-grow: 1; flex-shrink: 1; }
+.ti-name { font-size: 20px; color: var(--essence); -unity-font-style: bold; }
+.ti-desc { font-size: 14px; white-space: normal; color: var(--ink); }
+.ti-effect { font-size: 13px; color: #CFE7D0; }
+.tree-info .btn { min-width: 170px; margin-left: 14px; }
+
+/* ---------------- Ícor / poderes / buffs (Altar de los Dioses) ---------------- */
+.icor { font-size: 18px; color: var(--divine); -unity-font-style: bold; margin: 0; padding: 0; }
+.icor-caption { color: var(--divine); }
+.half { flex-grow: 1; flex-basis: 0; font-size: 12px; letter-spacing: 1px; padding: 8px 4px; }
+.altar-btn { color: var(--divine); border-color: var(--divine-dim); }
+.logros-btn { color: #FFE7A8; }
+.logros-btn.flash { background-color: rgba(255, 215, 120, 0.45); }
+
+.powers { position: absolute; bottom: 74px; left: 0; right: 0; flex-direction: row; justify-content: center; }
+.power-slot {
+    width: 62px; height: 62px; margin: 0 5px; padding: 0;
+    border-radius: 12px; border-width: 2px; border-color: var(--divine-dim);
+    background-color: rgba(30, 18, 12, 0.85); overflow: hidden;
+    align-items: center; justify-content: center;
+    transition: scale 0.1s, border-color 0.15s, background-color 0.15s;
+}
+.power-slot:hover { scale: 1.08 1.08; }
+.power-slot:active { scale: 0.94 0.94; }
+.power-slot.ready { border-color: var(--divine); background-color: rgba(110, 52, 20, 0.9); }
+.power-slot.locked { opacity: 0.35; border-color: rgba(255,255,255,0.12); }
+.power-glyph { font-size: 28px; color: #FFE1C2; margin: 0; padding: 0; }
+.power-slot.ready .power-glyph { color: #FFFFFF; }
+.power-cd { position: absolute; left: 0; right: 0; bottom: 0; height: 0%; background-color: rgba(0, 0, 0, 0.62); }
+.power-time { position: absolute; left: 0; right: 0; top: 0; bottom: 0; -unity-text-align: middle-center; font-size: 20px; -unity-font-style: bold; color: #FFFFFF; -unity-text-outline-width: 1px; -unity-text-outline-color: rgba(0,0,0,0.8); }
+.power-key { position: absolute; left: 4px; top: 1px; font-size: 11px; color: rgba(255, 230, 200, 0.75); margin: 0; padding: 0; }
+
+.buffs {
+    position: absolute; bottom: 146px; left: 0; right: 0;
+    -unity-text-align: middle-center; font-size: 17px; -unity-font-style: bold; letter-spacing: 3px;
+    color: var(--divine); -unity-text-outline-width: 1px; -unity-text-outline-color: rgba(0,0,0,0.7);
+}
+.banner {
+    position: absolute; top: 34%; left: 0; right: 0;
+    -unity-text-align: middle-center; font-size: 54px; -unity-font-style: bold; letter-spacing: 12px;
+    color: #FFF1DC; -unity-text-outline-width: 2px; -unity-text-outline-color: rgba(150, 70, 20, 0.85);
+    opacity: 0; scale: 0.6 0.6;
+    transition: opacity 0.25s, scale 0.25s;
+}
+.banner.show { opacity: 1; scale: 1 1; }
+.banner.out { opacity: 0; scale: 1.25 1.25; transition: opacity 0.5s, scale 0.5s; }
+
+.toast.divine { border-color: var(--divine); color: #FFD2AE; }
+.floater.power { font-size: 24px; color: var(--divine); }
+.bar-fill.divine { background-color: var(--divine); }
+.musa-marker {
+    position: absolute; width: 160px; margin-left: -80px; margin-top: -14px;
+    -unity-text-align: middle-center; font-size: 17px; -unity-font-style: bold; color: #FFF4C8;
+    -unity-text-outline-width: 1px; -unity-text-outline-color: rgba(120, 80, 0, 0.8);
+}
+
+/* Altar: misma vista del árbol con otra paleta */
+.overlay.altar { background-color: rgba(14, 6, 3, 0.94); }
+.overlay.altar .tree-title { color: var(--divine); }
+.overlay.altar .essence { color: var(--divine); }
+.overlay.altar .tree-info { border-color: var(--divine); }
+.overlay.altar .ti-name { color: var(--divine); }
+.overlay.altar .node.available { border-color: rgba(255, 159, 90, 0.7); }
+.overlay.altar .node.available .node-glyph { color: #FFE1C2; }
+.overlay.altar .node.affordable { border-color: #FFFFFF; background-color: rgba(120, 56, 22, 0.95); }
+
+/* ---------------- Mecenazgos ---------------- */
+.logros-box {
+    background-color: var(--panel-hi); border-radius: 14px; border-width: 1px; border-color: var(--gold);
+    padding: 20px 26px; width: 760px; height: 82%;
+}
+.tree-header-inline { flex-direction: row; align-items: center; justify-content: space-between; }
+.logros-title { color: var(--gold); font-size: 26px; }
+.logros-fame { font-size: 18px; color: #FFE7A8; -unity-font-style: bold; margin-top: 4px; }
+.logros-list { flex-grow: 1; margin-top: 10px; }
+.logro-row {
+    flex-direction: row; align-items: center;
+    background-color: rgba(255,255,255,0.035); border-radius: 8px; border-width: 1px; border-color: rgba(255,255,255,0.06);
+    margin-bottom: 6px; padding: 8px 12px;
+}
+.logro-row.done { border-color: var(--gold-dim); background-color: rgba(232, 199, 122, 0.10); }
+.logro-text { flex-grow: 1; flex-shrink: 1; }
+.logro-name { font-size: 15px; -unity-font-style: bold; margin: 0; padding: 0; }
+.logro-row.done .logro-name { color: var(--gold); }
+.logro-desc { font-size: 12px; color: var(--ink-dim); margin: 0; padding: 0; }
+.logro-bar { margin-top: 4px; height: 6px; }
+.logro-right { align-items: flex-end; min-width: 120px; }
+.logro-reward { font-size: 14px; color: var(--divine); -unity-font-style: bold; margin: 0; padding: 0; }
+.logro-progress { font-size: 12px; color: var(--ink-dim); margin: 0; padding: 0; }
+
+/* Mejoras de poderes en el Taller (aparecen al desbloquear el poder en el Altar) */
+.shop-row.power-up { border-left-width: 3px; border-left-color: var(--divine-dim); }
+.shop-row.power-up .glyph { color: var(--divine); }
+.shop-row.power-up.affordable { border-color: var(--divine-dim); border-left-color: var(--divine); }
