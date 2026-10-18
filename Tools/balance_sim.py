@@ -31,6 +31,9 @@ DUST = {
     "acolitos":   (150, 3.0, 12, "lin", 0, 1, 2),
     "cincel":     (220, 1.6, 500, "exp", 1.6, 1.28, 2),
     "resonancia": (300, 1.7, 60, "lin", 1, 0.35, 3),
+    "cargas":     (600, 6, 3, "lin", 1, 1, 2),          # cargas de Embestida
+    "gemelas":    (2500, 3.2, 8, "lin", 0, 1, 4),       # Discípulas (canicas aliadas)
+    "vinculo":    (4000, 1.85, 14, "lin", 0.3, 0.05, 4),  # % de tu daño que copian (requiere gemelas)
     # Mejoras de poderes: solo aparecen con el poder desbloqueado en el Altar (se pierden al pulir)
     "pw_supernova":  (400, 2.2, 20, "exp", 0.25, 1.1, 0),
     "pw_ingravidez": (900, 2.2, 20, "exp", 0.25, 1.1, 0),
@@ -38,15 +41,16 @@ DUST = {
     "pw_coloso":     (2500, 2.1, 15, "lin", 4, 0.6, 0),
     "pw_vortice":    (4000, 2.2, 20, "exp", 0.25, 1.1, 0),
     "pw_midas":      (20000, 8, 4, "lin", 1, 1, 0),
+    "pw_rayo":       (6000, 2.2, 20, "exp", 0.25, 1.1, 0),
 }
 # id: (baseCost, growth, max, mode, base, per, requires)
 TREE = {
     "brillo":   (1, 1.55, 300, "exp", 1, 1.25, []),
     "fuerza":   (2, 1.7, 60, "exp", 1, 1.4, ["brillo"]),
     "ojo":      (3, 2.2, 5, "lin", 0, 1, ["fuerza"]),
-    "rebote":   (4, 1, 1, "lin", 0, 1, ["fuerza"]),
-    "sismo":    (8, 1, 1, "lin", 0, 1, ["rebote"]),
-    "metralla": (12, 1, 1, "lin", 0, 1, ["rebote"]),
+    "rebote":   (4, 2.5, 4, "lin", 0.3, 0.1, ["fuerza"]),
+    "sismo":    (8, 2.5, 4, "lin", 0, 3, ["rebote"]),
+    "metralla": (12, 2.5, 4, "lin", 0, 0.4, ["rebote"]),
     "veta":     (2, 1.8, 100, "exp", 1, 1.5, ["brillo"]),
     "fiebre":   (3, 1.9, 8, "lin", 0, 0.015, ["veta"]),
     "memoria":  (5, 2.0, 10, "lin", 0, 1, ["fiebre"]),
@@ -54,8 +58,8 @@ TREE = {
     "coro":     (3, 1.75, 60, "exp", 1, 1.4, ["eterno"]),
     "paciencia":(2, 2.0, 5, "lin", 0.25, 0.15, ["eterno"]),
     "impulso":  (3, 2.0, 5, "lin", 2.4, -0.3, ["paciencia"]),
-    "eco":      (10, 1, 1, "lin", 0, 1, ["paciencia"]),
-    "perpetua": (14, 1, 1, "lin", 0, 1, ["eco"]),
+    "eco":      (10, 2.5, 4, "lin", 1, 1, ["paciencia"]),
+    "perpetua": (14, 2.5, 4, "lin", 0.75, 0.25, ["eco"]),
     "obra":     (30, 3.0, 50, "exp", 1, 2, ["metralla", "memoria", "eco"]),
 }
 
@@ -82,6 +86,9 @@ ALTAR = {
     "midas":      (40, 1, 1, "lin", 0, 1, []),
     "reymidas":   (8, 2.0, 6, "lin", 0, 1, ["midas"]),
     "midas_cd":   (10, 1.9, 6, "lin", 1, -0.07, ["reymidas"]),
+    "rayo":       (25, 1, 1, "lin", 0, 1, []),
+    "cadena":     (5, 1.8, 6, "lin", 0, 1, ["rayo"]),
+    "rayo_cd":    (7, 1.9, 6, "lin", 1, -0.07, ["cadena"]),
     "favor":      (2, 1.9, 5, "lin", 1, -0.1, []),
     "inspiracion":(3, 1.8, 6, "lin", 1, 0.25, ["favor"]),
     "ira":        (4, 1.6, 200, "exp", 1, 1.25, []),
@@ -91,10 +98,11 @@ ALTAR = {
 POWERS = {
     "supernova":  (120, 45, 0.45),
     "ingravidez": (150, 60, 1.0),
-    "meteoros":   (90, 20, 0.8),     # 10 meteoros repartidos
+    "meteoros":   (90, 35, 0.9),     # 12 meteoros repartidos (uno por bloque) + Gran Meteoro 150 en área
     "coloso":     (80, 0, 0),        # ×3 daño de impacto durante 10 s
-    "vortice":    (120, 15 * 6, 0.35),  # 20/s durante 6 s
+    "vortice":    (120, 25 * 6 + 60, 0.4),  # 25/s durante 6 s (errante) + implosión 60
     "midas":      (140, 0, 0),       # 2 bloques dorados
+    "rayo":       (100, 30, 0.6),    # 6 rayos × (3 + Conductor) saltos, -15 % por salto
 }
 ICOR = dict(statueChance=0.02, goldenChance=0.3, golden=1, musa=1, musaInterval=90, musaCatch=0.6,
             prestigeBase=2, prestigeDiv=10, fame=0.02)
@@ -142,14 +150,15 @@ class Sim:
         kills = 0.0; dust_mult = 1.0; casts = 0.0
         for k, (cd, pot, frac) in POWERS.items():
             if not s.al[k]: continue
-            c = cd * cdm * max(0.4, s.V("nova_cd" if k == "supernova" else k + "_cd"))
+            c = cd * cdm * max(0.4, s.V("nova_cd" if k == "supernova" else k + "_cd") if (("nova_cd" if k == "supernova" else k + "_cd") in ALTAR) else 1)
             casts += 1 / c
             if k == "supernova": pot_k, fr = pot, min(1, frac * s.V("nova_radio") ** 2)
             elif k == "ingravidez": pot_k, fr = pot * s.V("caida"), frac
             elif k == "meteoros": pot_k, fr = pot * (10 + s.V("enjambre")) / 10, frac
             elif k == "vortice": pot_k, fr = pot * s.V("horizonte"), min(1, frac * s.V("horizonte") ** 0.5)
+            elif k == "rayo": pot_k, fr = pot, min(1, frac * (3 + s.V("cadena")) / 3)
             else: pot_k, fr = 0, 0
-            if k in ("supernova", "ingravidez", "meteoros", "vortice"): pot_k *= s.V("pw_" + k)
+            if k in ("supernova", "ingravidez", "meteoros", "vortice", "rayo"): pot_k *= s.V("pw_" + k)
             if pot_k: kills += active * fr * min(1, pot_k * dmg / hp) / c
             if k == "supernova": dust_mult += (max(2, s.V("codicia")) - 1) * 6 / c
             if k == "coloso": dust_mult += (s.V("pw_coloso") + s.V("titan")) / c          # ×3 daño ≈ +100 % de ritmo mientras dura
@@ -160,8 +169,11 @@ class Sim:
         if s.g < 1 and s.prest == 0: return 1.0, 0.0
         interval = ICOR["musaInterval"] * max(0.3, s.V("favor"))
         rate = ICOR["musaCatch"] / interval
-        frenzy = (1 / 5) * rate * 15 * s.V("inspiracion") * 2   # 1/5 de bendiciones = Frenesí ×3 15 s
-        return 1 + frenzy, rate
+        insp = s.V("inspiracion")
+        frenzy = (1 / 8) * rate * 20 * insp * 4      # 1/8 de bendiciones = Frenesí ×5 20 s
+        cornu = (1 / 8) * rate * 90 * insp           # 1/8 = Cornucopia (90 s de polvo al instante)
+        legion = (1 / 8) * rate * 20 * insp * 0.3    # 1/8 = Legión (≈ +30 % de ritmo 20 s)
+        return 1 + frenzy + cornu + legion, rate
 
     def add_icor(s, n):
         s.icor += n; s.icor_life += n
@@ -192,16 +204,20 @@ class Sim:
         cc = min(1, s.V("fortuna")); cm = CFG["critMult"] + s.V("ojo")
         critF = 1 + cc * (cm - 1)
         speedF = min(1.3, (s.V("inercia") / 11) ** 2 * 0.85)  # (v/vref)^2 medio
-        hps = 0.55 + 0.03 * s.V("cantera") + (0.15 if s.tr["rebote"] else 0)
-        combo = 1.25 + (0.15 if s.tr["rebote"] else 0)
+        reb = 0.15 * s.V("rebote") / 0.4 if s.tr["rebote"] else 0
+        hps = 0.55 + 0.03 * s.V("cantera") + reb + 0.08 * (s.V("cargas") - 1)
+        combo = 1.25 + reb
         player = dmg * hps * speedF * combo * critF
-        if s.tr["sismo"]: player *= 1.25
-        if s.tr["metralla"]: player *= 1.35
+        if s.tr["sismo"]: player *= 1 + 0.25 * s.V("sismo") / 3
+        if s.tr["metralla"]: player *= 1 + 0.35 * s.V("metralla") / 0.4
         shock = dmg * CFG["shockMult"] * s.V("resonancia") * 2 * hps * CFG["resPerImpact"] * combo
-        if s.tr["eco"]: shock *= 2.2
-        if s.tr["perpetua"]: shock *= 1.15
+        if s.tr["eco"]:
+            n = int(s.V("eco")); shock *= 1 + sum(max(0.25, 0.6 - 0.1 * k) for k in range(1, n + 1)) * 1.3
+        if s.tr["perpetua"]: shock *= 1.15 * s.V("perpetua")
+        # Discípulas: embisten ~0,35 veces/s con tu daño × Vínculo (sin combo)
+        allies = s.V("gemelas") * dmg * s.V("vinculo") * 0.35 * speedF * critF
         aco = (s.V("acolitos") + s.V("eterno")) * s.V("cincel") * s.V("coro") * G / CFG["acolyteInterval"] * (1 + cc * 0.5 * (cm - 1))
-        return player + shock + aco
+        return player + shock + aco + allies
 
     def block_hp(s):
         c = CFG; gold = c["goldenChance"] + s.V("fiebre")

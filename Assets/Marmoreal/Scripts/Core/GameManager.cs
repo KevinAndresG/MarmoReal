@@ -48,15 +48,21 @@ namespace Marmoreal
         public float FameMult { get; private set; } = 1f;
         public float PowerMult { get; private set; } = 1f;
         public float PowerCooldownMult { get; private set; } = 1f;
+        public int DashCharges { get; private set; } = 1;
+        public int AllyCount { get; private set; }
+        public float AllyFraction { get; private set; }
+        public float ResonanceGain { get; private set; } = 1f;
 
         // ---- Buffs temporales (poderes y Musas) ----
         public float FrenzyMult => frenzyTimer > 0 ? frenzyMult : 1f;
         public float FrenzyTimeLeft => Mathf.Max(0, frenzyTimer);
         public bool FuryActive => furyTimer > 0;
         public float FuryTimeLeft => Mathf.Max(0, furyTimer);
+        /// <summary>Onda Infinita (bendición): la Resonancia se rellena sola.</summary>
+        public float OverflowTimeLeft => Mathf.Max(0, overflowTimer);
         [Tooltip("Multiplicador de daño de impacto temporal (lo pone el poder Coloso)")]
         [System.NonSerialized] public float colossusMult = 1f;
-        float frenzyTimer, frenzyMult = 1f, furyTimer, achievementTimer;
+        float frenzyTimer, frenzyMult = 1f, furyTimer, overflowTimer, achievementTimer;
 
         // ---- Estado volátil ----
         public int Combo { get; private set; }
@@ -119,6 +125,8 @@ namespace Marmoreal
 
             frenzyTimer -= dt;
             furyTimer -= dt;
+            overflowTimer -= dt;
+            if (overflowTimer > 0) Resonance = 1f;
 
             achievementTimer -= dt;
             if (achievementTimer <= 0) { achievementTimer = 1f; CheckAchievements(); }
@@ -189,6 +197,10 @@ namespace Marmoreal
             DashCooldown = Mathf.Max(0.6f, Value("impulso"));
             CritMult = config.critMult + Value("ojo");
             GoldenChance = config.goldenChance + Value("fiebre");
+            DashCharges = Mathf.Max(1, Mathf.RoundToInt(Value("cargas")));
+            AllyCount = Mathf.RoundToInt(Value("gemelas"));
+            AllyFraction = Value("vinculo");
+            ResonanceGain = Has("perpetua") ? Mathf.Max(1f, Value("perpetua")) : 1f;
             StatsChanged?.Invoke();
         }
 
@@ -281,6 +293,17 @@ namespace Marmoreal
             return AcolyteDamage * (crit ? CritMult : 1f);
         }
 
+        /// <summary>Embestida de una Discípula: tu daño de impacto (sin combo) × Vínculo.</summary>
+        public float AllyHitDamage(float speed, float fraction, out bool crit)
+        {
+            crit = false;
+            if (speed < config.minImpactSpeed) return 0f;
+            float k = speed / config.referenceSpeed;
+            float dmg = ImpactDamage * k * k * fraction;
+            if (FuryActive || UnityEngine.Random.value < CritChance) { crit = true; dmg *= CritMult; }
+            return dmg;
+        }
+
         public float ShockwaveDamage => ImpactDamage * config.shockwaveDamageMult * ResonanceMult * ComboMult;
 
         public void RegisterImpact(double damage)
@@ -292,7 +315,7 @@ namespace Marmoreal
             if (damage > S.bestHit) S.bestHit = damage;
         }
 
-        public void AddResonance(float v) => Resonance = Mathf.Clamp01(Resonance + v);
+        public void AddResonance(float v) => Resonance = Mathf.Clamp01(Resonance + v * ResonanceGain);
         public bool ConsumeResonance()
         {
             if (Resonance < 1f) return false;
@@ -364,6 +387,7 @@ namespace Marmoreal
         }
 
         public void StartFury(float seconds) => furyTimer = Mathf.Max(furyTimer, seconds);
+        public void StartOverflow(float seconds) { overflowTimer = Mathf.Max(overflowTimer, seconds); Resonance = 1f; }
         public void FillResonance() => Resonance = 1f;
 
         public void RegisterPowerUse() => S.powersUsed++;

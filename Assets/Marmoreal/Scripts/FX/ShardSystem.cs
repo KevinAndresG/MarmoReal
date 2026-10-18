@@ -128,10 +128,16 @@ namespace Marmoreal
         }
 
         Vector3 attractorPos;
-        float attractorTimer;
+        float attractorTimer, attractorDebrisRadius;
 
-        /// <summary>Todo el polvo vuela hacia un punto (Vórtice) y se cobra al llegar.</summary>
-        public void AttractTo(Vector3 pos, float seconds) { attractorPos = pos; attractorTimer = seconds; }
+        /// <summary>
+        /// Todo el polvo vuela en espiral hacia un punto (Vórtice) y se cobra al llegar.
+        /// debrisRadius > 0: también se traga los escombros dentro de ese radio. Se puede llamar cada frame (punto móvil).
+        /// </summary>
+        public void AttractTo(Vector3 pos, float seconds, float debrisRadius = 0f)
+        {
+            attractorPos = pos; attractorTimer = seconds; attractorDebrisRadius = debrisRadius;
+        }
 
         /// <summary>Destellos sin valor (solo visuales) para bendiciones, Midas, etc.</summary>
         public void SpawnSparkle(Vector3 pos, int count, int matIndex, float burst = 6f)
@@ -199,7 +205,9 @@ namespace Marmoreal
                 {
                     float d = Mathf.Sqrt(dSq);
                     float speed = Mathf.Lerp(30f, 12f, Mathf.Clamp01(d / 20f)) + s.age * 3f;
-                    s.vel = Vector3.Lerp(s.vel, to / Mathf.Max(d, 0.001f) * speed, 1f - Mathf.Exp(-dt * 9f));
+                    Vector3 dir = to / Mathf.Max(d, 0.001f);
+                    if (toAttractor) dir = (dir + Vector3.Cross(Vector3.up, dir) * Mathf.Clamp01(d / 6f) * 0.9f).normalized; // espiral hacia el Vórtice
+                    s.vel = Vector3.Lerp(s.vel, dir * speed, 1f - Mathf.Exp(-dt * 9f));
                     s.pos += s.vel * dt;
                     if (d < 0.9f)
                     {
@@ -236,13 +244,33 @@ namespace Marmoreal
         {
             var gm = GameManager.I;
             bool metralla = gm && gm.Has("metralla");
+            float metrallaDmg = metralla ? gm.ImpactDamage * gm.Value("metralla") : 0f;
             var sp = MonolithSpawner.I;
+            bool vortex = attractorTimer > 0 && attractorDebrisRadius > 0;
+            float vortexSq = attractorDebrisRadius * attractorDebrisRadius;
 
             for (int i = 0; i < debrisCount; i++)
             {
                 ref Debris d = ref debris[i];
                 d.age += dt;
                 if (d.age >= debrisLife) { debris[i] = debris[--debrisCount]; i--; continue; }
+                if (vortex)
+                {
+                    Vector3 to = attractorPos - d.pos;
+                    float dsq = to.sqrMagnitude;
+                    if (dsq < vortexSq)
+                    {
+                        float dist = Mathf.Sqrt(dsq);
+                        if (dist < 1.1f) { debris[i] = debris[--debrisCount]; i--; continue; } // tragado
+                        Vector3 dir = to / dist;
+                        Vector3 swirl = Vector3.Cross(Vector3.up, dir) * Mathf.Clamp01(dist / 5f);
+                        d.vel = Vector3.Lerp(d.vel, (dir + swirl).normalized * Mathf.Lerp(26f, 10f, dist / attractorDebrisRadius), 1f - Mathf.Exp(-dt * 6f));
+                        d.pos += d.vel * dt;
+                        d.rot = Quaternion.Normalize(Quaternion.Euler(d.spin * dt * 2f) * d.rot);
+                        d.age = Mathf.Min(d.age, debrisLife - 0.7f);
+                        continue;
+                    }
+                }
                 d.vel.y -= 20f * dt;
                 d.pos += d.vel * dt;
                 // Normalizar: multiplicar cada frame acumula error y TRS rechaza el cuaternión.
@@ -263,7 +291,7 @@ namespace Marmoreal
                     {
                         d.hot = false;
                         d.vel *= -0.3f;
-                        hit.TakeDamage(gm.ImpactDamage * 0.4f, d.pos, HitSource.Debris, false);
+                        hit.TakeDamage(metrallaDmg, d.pos, HitSource.Debris, false);
                     }
                 }
             }

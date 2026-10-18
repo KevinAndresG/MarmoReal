@@ -13,7 +13,9 @@ el builder para "rehacer"**). Diseño completo en `Docs/GDD.md`.
 |---|---|
 | `Core/GameManager.cs` | Estado, economía, combo, resonancia, galerías, prestigio, guardado (PlayerPrefs `marmoreal.save.v1`), offline, Ícor (`AddIcor`), buffs (`StartFrenzy`/`StartFury`, `colossusMult`), `PowerDamage(potencia)`, Mecenazgos (`CheckAchievements` cada 1 s, `StatValue`). Eventos: `StatsChanged`, `GalleryUp`, `Prestiged`, `Toast`, `OfflineEarned`, `AchievementUnlocked`. |
 | `Core/EconomyConfig.cs` | ScriptableObject `Config/Economy.asset`: TODAS las cifras + listas `upgrades` (Taller = `Currency.Dust`; Árbol = `Currency.Essence`; Altar = `Currency.Icor`, ambos con `treePos`/`requires`/`branch`), `powers` (`PowerDef`) y `achievements` (`AchievementDef`). `FillDefaults()` solo al crear el asset; `EnsureDefaults()` añade por id lo que falte (lo llama `GameManager.Awake` en memoria y el paso de editor en disco). **Los valores del asset mandan**: cambiar un default en código no cambia el asset. |
-| `Gameplay/PowerSystem.cs` | Poderes 1-6 (Supernova, Ingravidez, Meteoros, Coloso, Vórtice, Midas): recargas, pools de prefabs `Bomb`/`Meteor`/`Vortex`, luz "Destello". `TryCast(i)`, `ResetCooldowns`, `FreeMeteorShower`, `FreeGolden`. |
+| `Gameplay/PowerSystem.cs` | Poderes 1-7 (Supernova, Ingravidez, Meteoros+Gran Meteoro, Coloso, Vórtice errante+implosión, Midas, Cadena de Rayos): recargas, pools de prefabs `Bomb`/`Meteor`/`Vortex`/`Lightning`, luz "Destello" (`FlashAt`). `TryCast(i)`, `ResetCooldowns`, `FreeMeteorShower`, `FreeGolden`. |
+| `Gameplay/AllySquad.cs` + `AllyMarble.cs` | Discípulas (canicas aliadas del Taller `gemelas`/`vinculo`) y Legión temporal de las Musas (`SummonLegion`). Prefab `Ally`. |
+| `Editor/ContentV2Builder.cs` | Menú *Marmoreal/Añadir Discípulas, Rayo y Volcánicos (aditivo)*: materiales, prefabs Ally/Lightning/JumpRune, disco del Vórtice y AllySquad en escena. Seguro de repetir. |
 | `Gameplay/MusaSpawner.cs` | Musas: orbe (prefab `Musa`) cada 60-120 s × Favor; al tocarlo, 1 Ícor + bendición aleatoria. |
 | `World/Spinner.cs` | Giro/flotación/pulso decorativo (anillos de vórtice, musa, bomba). |
 | `Core/GameState.cs`, `Core/Num.cs` | Datos guardados; formateo (`Num.F`, `Num.Roman`). |
@@ -53,6 +55,10 @@ Escena: `Assets/Marmoreal/Scenes/Marmoreal.unity` (`--- ILUMINACIÓN ---`, `--- 
    `using (var e = NavigationSubmitEvent.GetPooled()) { e.target = btn; btn.SendEvent(e); }` sobre `modal-ok`.
 
 ## Trampas conocidas
+- **No edites `.cs` con el juego en Play**: cada `Unity_RunCommand` refresca el AssetDatabase, recompila y hace una
+  recarga de dominio a mitad de partida (corrutinas cortadas, clips de audio nulos). Para → edita → compila → Play.
+- El puente Unity MCP habla con **el último editor abierto**: si hay otro proyecto abierto, comprueba
+  `Unity_ManageEditor GetProjectRoot` antes de ejecutar nada.
 - Desde `Unity_RunCommand` los **estáticos** (`GameManager.I`, etc.) pueden verse `null`: usa
   `Object.FindFirstObjectByType<T>()` y miembros de instancia (`gm.S`, `gm.DebugState`, `hud.DebugState`).
 - Las recargas de dominio en Play borran estáticos, listas `readonly` y suscripciones a eventos.

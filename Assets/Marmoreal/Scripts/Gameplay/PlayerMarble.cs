@@ -45,14 +45,27 @@ namespace Marmoreal
         public bool Dashing => dashTimer > 0;
         public bool Slamming { get; private set; }
         public bool Grounded => grounded;
-        public float DashReady01 => GameManager.I ? 1f - Mathf.Clamp01(dashCooldown / GameManager.I.DashCooldown) : 1f;
+        /// <summary>Cargas de Embestida disponibles (mejora Doble Embestida).</summary>
+        public int DashChargesLeft => dashCharges;
+        public float DashReady01
+        {
+            get
+            {
+                var gm = GameManager.I;
+                if (!gm) return 1f;
+                if (gm.FuryActive) return 1f;
+                float partial = dashCharges >= gm.DashCharges ? 0f : 1f - Mathf.Clamp01(dashCooldown / gm.DashCooldown);
+                return Mathf.Clamp01((dashCharges + partial) / gm.DashCharges);
+            }
+        }
         public float Speed => rb ? rb.linearVelocity.magnitude : 0f;
         public Vector3 Velocity => rb ? rb.linearVelocity : Vector3.zero;
 
         Rigidbody rb;
         Vector2 moveInput;
         Vector3 lastVel;
-        float dashTimer, dashCooldown;
+        float dashTimer, dashCooldown, dashGap;
+        int dashCharges = 1;
         bool grounded;
         float impactCooldown;
         float coyoteTimer, jumpBufferTimer, jumpGrace;
@@ -142,7 +155,8 @@ namespace Marmoreal
             if (autopilot && !blocked) Autopilot();
 
             dashTimer -= Time.deltaTime;
-            dashCooldown -= Time.deltaTime;
+            dashGap -= Time.deltaTime;
+            RechargeDash();
             jumpBufferTimer -= Time.deltaTime;
             jumpGrace -= Time.deltaTime;
             impactCooldown -= Time.deltaTime;
@@ -277,9 +291,24 @@ namespace Marmoreal
 
         float autoBuyTimer;
 
+        /// <summary>Recarga las cargas de Embestida de una en una.</summary>
+        void RechargeDash()
+        {
+            var gm = GameManager.I;
+            if (!gm) return;
+            int max = gm.DashCharges;
+            if (dashCharges > max) dashCharges = max;
+            if (dashCharges >= max) { dashCooldown = gm.DashCooldown; return; }
+            dashCooldown -= Time.deltaTime;
+            if (dashCooldown <= 0f) { dashCharges++; dashCooldown = gm.DashCooldown; }
+        }
+
         void TryDash()
         {
-            if (dashCooldown > 0 || !GameManager.I) return;
+            var gm0 = GameManager.I;
+            if (!gm0 || dashGap > 0) return;
+            bool fury = gm0.FuryActive; // Furia Divina: Embestidas sin recarga
+            if (!fury && dashCharges <= 0) return;
             // Con la cámara bloqueada la Embestida sale hacia donde se mira; si no, sigue la inercia
             Vector3 dir = cameraRig && cameraRig.locked ? cameraRig.transform.forward : new Vector3(lastVel.x, 0, lastVel.z);
             dir.y = 0;
@@ -296,7 +325,8 @@ namespace Marmoreal
             float keep = Mathf.Max(0, Vector3.Dot(new Vector3(v.x, 0, v.z), dir));
             rb.linearVelocity = dir * Mathf.Max(dashSpeed, keep + dashSpeed * 0.5f) + Vector3.up * Mathf.Max(0, v.y);
             dashTimer = dashTime;
-            dashCooldown = GameManager.I.DashCooldown;
+            dashGap = fury ? 0.12f : 0.18f;
+            if (!fury) dashCharges--;
             AudioFX.I?.Play(Sfx.Dash, 0.7f, Random.Range(0.95f, 1.1f));
             cameraRig?.Kick(8f);
         }
@@ -344,12 +374,12 @@ namespace Marmoreal
             if (gm.Has("rebote"))
             {
                 Vector3 n = cp.normal; n.y = Mathf.Max(0.05f, n.y * 0.3f);
-                rb.AddForce(n.normalized * approach * 0.4f, ForceMode.VelocityChange);
+                rb.AddForce(n.normalized * approach * gm.Value("rebote"), ForceMode.VelocityChange);
             }
             bool slam = Slamming;
             if (slam) { Slamming = false; cameraRig?.Shake(0.35f); }
             if ((Dashing || slam) && gm.Has("sismo"))
-                Shockwave.I?.Mini(cp.point, gm.ImpactDamage * 3f);
+                Shockwave.I?.Mini(cp.point, gm.ImpactDamage * gm.Value("sismo"), 3.25f + 0.75f * gm.Level("sismo"));
         }
     }
 }

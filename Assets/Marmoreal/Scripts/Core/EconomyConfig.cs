@@ -22,6 +22,8 @@ namespace Marmoreal
         public float radius = 10f;
         public float duration = 0f;
         public int count = 0;
+        [Tooltip("Remate final (Gran Meteoro, implosión del Vórtice) en múltiplos del daño de impacto. 0 = sin remate")]
+        public float finale = 0f;
     }
 
     /// <summary>Mecenazgo (logro): al superar el umbral de una estadística da Ícor y Fama permanente.</summary>
@@ -137,10 +139,27 @@ namespace Marmoreal
         public int musaUnlockGallery = 1;
         public float musaIntervalMin = 60f, musaIntervalMax = 120f;
         public float musaLifetime = 18f;
-        public float frenzyMult = 3f, frenzyDuration = 15f;
-        public float furyDuration = 10f;
+        public float frenzyMult = 5f, frenzyDuration = 20f;
+        public float furyDuration = 12f;
         [Tooltip("Frenesí que deja la Supernova (polvo ×Codicia durante unos segundos)")]
         public float bombFrenzyDuration = 6f;
+        [Tooltip("Onda Infinita: la Resonancia se rellena sola durante estos segundos")]
+        public float overflowDuration = 8f;
+        [Tooltip("Legión: Discípulas fantasma temporales")]
+        public int legionCount = 4;
+        public float legionDuration = 20f;
+        [Tooltip("Cornucopia: polvo instantáneo = segundos de tu polvo/s actual (mínimo 30 bloques)")]
+        public float cornucopiaSeconds = 90f;
+
+        [Header("Bloques volcánicos (estallan al romperse)")]
+        public float volatileChance = 0.06f;
+        public int volatileUnlockGallery = 2;
+        [Tooltip("Daño de la explosión en múltiplos del daño de impacto")]
+        public float volatileBlastMult = 12f;
+        public float volatileBlastRadius = 7f;
+
+        [Header("Discípulas (canicas aliadas)")]
+        public float allyResonancePerHit = 0.03f;
 
         [Header("Mecenazgos")]
         [Tooltip("Fama: +X polvo por cada mecenazgo conseguido (aditivo)")]
@@ -203,6 +222,9 @@ namespace Marmoreal
                 U("acolitos", "Acólitos", "Esferas que tallan por ti, incluso sin mirar.", "○", 150, 3.0, 12, EffectMode.Linear, 0f, 1f, "{0} acólitos", 2),
                 U("cincel", "Cincel", "Daño de los acólitos.", "⚒", 220, 1.6, 500, EffectMode.Exponential, 1.6f, 1.28f, "{0} daño", 2),
                 U("resonancia", "Resonancia", "Poder y radio de la onda [F].", "≋", 300, 1.7, 60, EffectMode.Linear, 1f, 0.35f, "×{0}", 3),
+                U("cargas", "Doble Embestida", "Cargas de Embestida [Shift]: encadena varias seguidas antes de recargar.", "»", 600, 6, 3, EffectMode.Linear, 1f, 1f, "{0} cargas", 2),
+                U("gemelas", "Discípulas", "Canicas de mármol que ruedan solas y embisten bloques con una parte de TU daño de impacto.", "◐", 2500, 3.2, 8, EffectMode.Linear, 0f, 1f, "{0} discípulas", 4),
+                P(U("vinculo", "Vínculo", "Parte de tu daño de impacto que copian las Discípulas.", "∾", 4000, 1.85, 14, EffectMode.Linear, 0.3f, 0.05f, "{0} de tu daño", 4), "gemelas"),
 
                 // ---------- MEJORAS DE PODERES (Polvo; aparecen al desbloquear el poder en el Altar y se pierden al Pulir) ----------
                 P(U("pw_supernova", "Pólvora Divina", "Daño de la Supernova [1]. Empieza flojo: súbelo en cada vida.", "✹", 400, 2.2, 20, EffectMode.Exponential, 0.25f, 1.1f, "×{0} daño"), "supernova"),
@@ -211,6 +233,7 @@ namespace Marmoreal
                 P(U("pw_coloso", "Gigantismo", "Duración del Coloso [4].", "⬤", 2500, 2.1, 15, EffectMode.Linear, 4f, 0.6f, "{0} s"), "coloso"),
                 P(U("pw_vortice", "Singularidad", "Daño del Vórtice [5].", "◎", 4000, 2.2, 20, EffectMode.Exponential, 0.25f, 1.1f, "×{0} daño"), "vortice"),
                 P(U("pw_midas", "Alquimia", "Bloques que dora el Toque de Midas [6].", "♛", 20000, 8f, 4, EffectMode.Linear, 1f, 1f, "{0} bloques"), "midas"),
+                P(U("pw_rayo", "Ira de Zeus", "Daño de cada rayo de la Cadena de Rayos [7].", "↯", 6000, 2.2, 20, EffectMode.Exponential, 0.25f, 1.1f, "×{0} daño"), "rayo"),
 
                 // ---------- ÁRBOL DE HABILIDADES (Esencia) ----------
                 // Raíz
@@ -218,9 +241,9 @@ namespace Marmoreal
                 // Rama MASA (izquierda)
                 E("fuerza", "Fuerza Ancestral", "Daño de impacto de la canica.", "●", 2, 1.7, 60, EffectMode.Exponential, 1f, 1.4f, "×{0}", -1.3f, 1, 1, "brillo"),
                 E("ojo", "Ojo Clínico", "Los críticos multiplican más.", "✧", 3, 2.2, 5, EffectMode.Linear, 0f, 1f, "+{0} crítico", -2.5f, 1.5f, 1, "fuerza"),
-                E("rebote", "Rebote Vivo", "MECÁNICA: al chocar un bloque sales despedida con +40% de velocidad. Encadena golpes como un pinball.", "↯", 4, 1, 1, EffectMode.Linear, 0f, 1f, "{0}", -1.3f, 2, 1, "fuerza"),
-                E("sismo", "Embestida Sísmica", "MECÁNICA: los impactos durante la Embestida liberan una mini-onda que talla los bloques cercanos.", "✺", 8, 1, 1, EffectMode.Linear, 0f, 1f, "{0}", -2.5f, 2.6f, 1, "rebote"),
-                E("metralla", "Metralla", "MECÁNICA: los trozos que saltan dañan a otros bloques al chocar. Reacciones en cadena.", "⁂", 12, 1, 1, EffectMode.Linear, 0f, 1f, "{0}", -1.3f, 3, 1, "rebote"),
+                E("rebote", "Rebote Vivo", "MECÁNICA: al chocar un bloque sales despedida. Encadena golpes como un pinball. Cada nivel rebota más fuerte.", "↯", 4, 2.5, 4, EffectMode.Linear, 0.3f, 0.1f, "+{0} rebote", -1.3f, 2, 1, "fuerza"),
+                E("sismo", "Embestida Sísmica", "MECÁNICA: los impactos de la Embestida y del Golpe en Picado liberan una mini-onda. Cada nivel: más daño y radio.", "✺", 8, 2.5, 4, EffectMode.Linear, 0f, 3f, "×{0} daño", -2.5f, 2.6f, 1, "rebote"),
+                E("metralla", "Metralla", "MECÁNICA: los trozos que saltan dañan a otros bloques al chocar. Reacciones en cadena. Cada nivel: trozos más letales.", "⁂", 12, 2.5, 4, EffectMode.Linear, 0f, 0.4f, "×{0} daño", -1.3f, 3, 1, "rebote"),
                 // Rama ORO (centro)
                 E("veta", "Veta de Oro", "Estatuas y bloques dorados valen más.", "♛", 2, 1.8, 100, EffectMode.Exponential, 1f, 1.5f, "×{0}", 0, 1, 0, "brillo"),
                 E("fiebre", "Fiebre Dorada", "Más bloques dorados.", "✪", 3, 1.9, 8, EffectMode.Linear, 0f, 0.015f, "+{0}", 0, 2, 0, "veta"),
@@ -230,8 +253,8 @@ namespace Marmoreal
                 E("coro", "Coro de Acólitos", "Daño de los acólitos.", "♫", 3, 1.75, 60, EffectMode.Exponential, 1f, 1.4f, "×{0}", 2.5f, 1.5f, 2, "eterno"),
                 E("paciencia", "Paciencia", "Progreso offline más eficiente.", "⌛", 2, 2.0, 5, EffectMode.Linear, 0.25f, 0.15f, "{0}", 1.3f, 2, 2, "eterno"),
                 E("impulso", "Impulso", "Recarga de la Embestida más rápida.", "»", 3, 2.0, 5, EffectMode.Linear, 2.4f, -0.3f, "{0}s", 2.5f, 2.6f, 2, "paciencia"),
-                E("eco", "Eco Resonante", "MECÁNICA: la onda [F] se repite dos veces más, cada eco más amplio.", "≋", 10, 1, 1, EffectMode.Linear, 0f, 1f, "{0}", 1.3f, 3, 2, "paciencia"),
-                E("perpetua", "Resonancia Perpetua", "MECÁNICA: la onda se libera sola al llenarse.", "∞", 14, 1, 1, EffectMode.Linear, 0f, 1f, "{0}", 2.5f, 3.6f, 2, "eco"),
+                E("eco", "Eco Resonante", "MECÁNICA: la onda [F] se repite en ecos cada vez más amplios. Nivel 1: 2 ecos · nivel 4: 5 ecos.", "≋", 10, 2.5, 4, EffectMode.Linear, 1f, 1f, "{0} ecos", 1.3f, 3, 2, "paciencia"),
+                E("perpetua", "Resonancia Perpetua", "MECÁNICA: la onda se libera sola al llenarse. Cada nivel: la Resonancia se carga más rápido.", "∞", 14, 2.5, 4, EffectMode.Linear, 0.75f, 0.25f, "×{0} carga", 2.5f, 3.6f, 2, "eco"),
                 // Cumbre
                 E("obra", "Obra Maestra", "La cumbre del escultor: duplica TODO por nivel.", "♜", 30, 3.0, 50, EffectMode.Exponential, 1f, 2f, "×{0}", 0, 4.3f, 3, "metralla", "memoria", "eco"),
 
@@ -248,7 +271,7 @@ namespace Marmoreal
                 G("caida", "Caída Celestial", "Daño de la Ingravidez.", "⇣", 4, 1.8, 10, EffectMode.Exponential, 1f, 1.35f, "×{0}", -2f, 1.25f, 1, "ingravidez"),
                 G("ingravidez_cd", "Levedad", "Recarga de la Ingravidez.", "⧗", 4, 1.9, 6, EffectMode.Linear, 1f, -0.07f, "×{0}", -2f, 2.5f, 1, "caida"),
                 // Meteoros (x −1)
-                G("meteoros", "Lluvia de Meteoros", "PODER [3]: meteoritos de mármol caen sobre los bloques.", "☄", 7, 1, 1, EffectMode.Linear, 0, 1, "{0}", -1f, 0, 3),
+                G("meteoros", "Lluvia de Meteoros", "PODER [3]: meteoritos caen sobre todos los bloques y la lluvia termina con un GRAN METEORO.", "☄", 7, 1, 1, EffectMode.Linear, 0, 1, "{0}", -1f, 0, 3),
                 G("enjambre", "Enjambre", "Más meteoritos por lluvia.", "⁘", 4, 1.8, 8, EffectMode.Linear, 0f, 3f, "+{0}", -1f, 1.25f, 2, "meteoros"),
                 G("meteoros_cd", "Cielo Abierto", "Recarga de la Lluvia de Meteoros.", "⧗", 4, 1.9, 6, EffectMode.Linear, 1f, -0.07f, "×{0}", -1f, 2.5f, 2, "enjambre"),
                 // Coloso (x 0)
@@ -256,16 +279,20 @@ namespace Marmoreal
                 G("titan", "Titán", "El Coloso dura más.", "♚", 5, 1.8, 8, EffectMode.Linear, 0f, 2f, "+{0}s", 0f, 1.25f, 1, "coloso"),
                 G("coloso_cd", "Crecimiento Veloz", "Recarga del Coloso.", "⧗", 6, 1.9, 6, EffectMode.Linear, 1f, -0.07f, "×{0}", 0f, 2.5f, 1, "titan"),
                 // Vórtice (x 1)
-                G("vortice", "Vórtice", "PODER [5]: un agujero negro tritura los bloques cercanos y absorbe todo el polvo.", "◎", 20, 1, 1, EffectMode.Linear, 0, 1, "{0}", 1f, 0, 3),
+                G("vortice", "Vórtice", "PODER [5]: un agujero negro que viaja de bloque en bloque, se traga trozos y polvo, y al final IMPLOSIONA.", "◎", 20, 1, 1, EffectMode.Linear, 0, 1, "{0}", 1f, 0, 3),
                 G("horizonte", "Horizonte de Sucesos", "Fuerza y radio del Vórtice.", "◍", 5, 1.8, 10, EffectMode.Exponential, 1f, 1.3f, "×{0}", 1f, 1.25f, 2, "vortice"),
                 G("vortice_cd", "Colapso", "Recarga del Vórtice.", "⧗", 7, 1.9, 6, EffectMode.Linear, 1f, -0.07f, "×{0}", 1f, 2.5f, 2, "horizonte"),
                 // Midas (x 2)
                 G("midas", "Toque de Midas", "PODER [6]: convierte bloques en ORO macizo.", "♛", 40, 1, 1, EffectMode.Linear, 0, 1, "{0}", 2f, 0, 3),
                 G("reymidas", "Rey Midas", "El Toque de Midas dora más bloques.", "♕", 8, 2.0, 6, EffectMode.Linear, 0f, 1f, "+{0}", 2f, 1.25f, 0, "midas"),
                 G("midas_cd", "Avaricia", "Recarga del Toque de Midas.", "⧗", 10, 1.9, 6, EffectMode.Linear, 1f, -0.07f, "×{0}", 2f, 2.5f, 0, "reymidas"),
-                // Musas (x 3)
-                G("favor", "Favor de las Musas", "Las Musas aparecen más a menudo.", "♪", 2, 1.9, 5, EffectMode.Linear, 1f, -0.1f, "×{0} espera", 3f, 0, 0),
-                G("inspiracion", "Inspiración", "Las bendiciones de las Musas duran más.", "❦", 3, 1.8, 6, EffectMode.Linear, 1f, 0.25f, "×{0}", 3f, 1.25f, 0, "favor"),
+                // Rayo (x 3)
+                G("rayo", "Cadena de Rayos", "PODER [7]: Zeus descarga rayos que saltan de bloque en bloque, cada salto algo más débil.", "↯", 25, 1, 1, EffectMode.Linear, 0, 1, "{0}", 3f, 0, 3),
+                G("cadena", "Conductor", "Cada rayo salta a más bloques.", "⇝", 5, 1.8, 6, EffectMode.Linear, 0f, 1f, "+{0} saltos", 3f, 1.25f, 2, "rayo"),
+                G("rayo_cd", "Tormenta Perpetua", "Recarga de la Cadena de Rayos.", "⧗", 7, 1.9, 6, EffectMode.Linear, 1f, -0.07f, "×{0}", 3f, 2.5f, 2, "cadena"),
+                // Musas (fila inferior derecha)
+                G("favor", "Favor de las Musas", "Las Musas aparecen más a menudo.", "♪", 2, 1.9, 5, EffectMode.Linear, 1f, -0.1f, "×{0} espera", 2f, 3.9f, 0),
+                G("inspiracion", "Inspiración", "Las bendiciones de las Musas duran más.", "❦", 3, 1.8, 6, EffectMode.Linear, 1f, 0.25f, "×{0}", 3f, 3.9f, 0, "favor"),
                 // Generales (afectan a todos los poderes)
                 G("ira", "Ira Divina", "Daño de TODOS los poderes. Sin límite.", "ϟ", 4, 1.6, 200, EffectMode.Exponential, 1f, 1.25f, "×{0}", -0.75f, 3.9f, 0),
                 G("eternidad", "Eternidad", "Recarga de TODOS los poderes.", "∞", 20, 2.2, 8, EffectMode.Linear, 1f, -0.05f, "×{0}", 0.75f, 3.9f, 0),
@@ -275,10 +302,11 @@ namespace Marmoreal
             {
                 new PowerDef { id = "supernova", displayName = "Supernova", glyph = "✹", description = "Bomba de mármol: arrasa en área y desata un Frenesí de polvo.", cooldown = 120, potency = 45, radius = 12, duration = 1.6f },
                 new PowerDef { id = "ingravidez", displayName = "Ingravidez", glyph = "⇡", description = "Todos los bloques levitan y se estrellan.", cooldown = 150, potency = 60, radius = 60, duration = 2.2f },
-                new PowerDef { id = "meteoros", displayName = "Meteoros", glyph = "☄", description = "Meteoritos sobre los bloques.", cooldown = 90, potency = 20, count = 10, duration = 3f },
+                new PowerDef { id = "meteoros", displayName = "Meteoros", glyph = "☄", description = "Meteoritos sobre todos los bloques y un Gran Meteoro final.", cooldown = 90, potency = 35, radius = 4.5f, count = 12, duration = 3f, finale = 150 },
                 new PowerDef { id = "coloso", displayName = "Coloso", glyph = "⬤", description = "Canica gigante, ×3 daño.", cooldown = 80, potency = 3, radius = 2.2f, duration = 10 },
-                new PowerDef { id = "vortice", displayName = "Vórtice", glyph = "◎", description = "Agujero negro que tritura y absorbe.", cooldown = 120, potency = 15, radius = 9, duration = 6 },
+                new PowerDef { id = "vortice", displayName = "Vórtice", glyph = "◎", description = "Agujero negro errante que tritura, absorbe e implosiona.", cooldown = 120, potency = 25, radius = 9, duration = 6, finale = 60 },
                 new PowerDef { id = "midas", displayName = "Midas", glyph = "♛", description = "Convierte bloques en oro.", cooldown = 140, count = 2 },
+                new PowerDef { id = "rayo", displayName = "Cadena de Rayos", glyph = "↯", description = "Rayos que saltan de bloque en bloque.", cooldown = 100, potency = 30, radius = 14, count = 6, duration = 2.4f },
             };
 
             achievements = new List<AchievementDef>

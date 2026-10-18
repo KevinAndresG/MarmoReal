@@ -4,7 +4,7 @@ namespace Marmoreal
 {
     /// <summary>
     /// MUSAS: orbes de luz que aparecen al azar en el santuario. Al tocarlos dan una bendición aleatoria
-    /// (Frenesí, Furia, Recarga Divina, Lluvia Dorada, Tormenta, Resonancia Plena) y algo de Ícor.
+    /// (Frenesí, Furia, Recarga Divina, Lluvia Dorada, Tormenta, Onda Infinita, Legión, Cornucopia) y algo de Ícor.
     /// Prefab: Assets/Marmoreal/Prefabs/Musa. Cifras en Economy.asset (sección Musas).
     /// </summary>
     public class MusaSpawner : MonoBehaviour
@@ -19,7 +19,18 @@ namespace Marmoreal
         [Tooltip("Primera Musa tras desbloquearlas (s)")]
         public float firstDelay = 25f;
 
-        static readonly string[] Names = { "FRENESÍ", "FURIA DIVINA", "RECARGA DIVINA", "LLUVIA DORADA", "TORMENTA", "RESONANCIA PLENA" };
+        static readonly string[] Names = { "FRENESÍ", "FURIA DIVINA", "RECARGA DIVINA", "LLUVIA DORADA", "TORMENTA", "ONDA INFINITA", "LEGIÓN", "CORNUCOPIA" };
+        static readonly string[] Descs =
+        {
+            "Todo el polvo que recojas vale ×{0} durante {1} s",
+            "{1} s: TODOS tus golpes son críticos y la Embestida no tiene recarga",
+            "Todos tus poderes están listos otra vez",
+            "Medio santuario se convierte en ORO macizo",
+            "Una tormenta de meteoritos con Gran Meteoro final",
+            "{1} s de Resonancia infinita: ¡pulsa F sin parar!",
+            "{1} s: un ejército de Discípulas fantasma embiste por ti",
+            "Lluvia instantánea de polvo: +{2}",
+        };
 
         GameObject musa;
         float timer = -1f, life;
@@ -88,20 +99,37 @@ namespace Marmoreal
             if (gm.config.icorMusa > 0) gm.AddIcor(gm.config.icorMusa, "musa");
 
             float insp = Mathf.Max(1f, gm.Value("inspiracion"));
-            int pick = Random.Range(0, Names.Length);
             var ps = PowerSystem.I;
-            // Recarga Divina sin poderes desbloqueados no sirve: se cambia por Frenesí
-            if (pick == 2 && (!ps || !gm.Has("supernova"))) pick = 0;
+            bool anyPower = false;
+            if (ps) for (int i = 0; i < ps.Count; i++) anyPower |= ps.Unlocked(i);
+            int pick = Random.Range(0, Names.Length);
+            // Recarga Divina sin poderes desbloqueados no sirve: se cambia por otra
+            while (pick == 2 && !anyPower) pick = Random.Range(0, Names.Length);
 
+            float secs = 0f, mult = 0f;
+            double bonus = 0;
             switch (pick)
             {
-                case 0: gm.StartFrenzy(gm.config.frenzyMult, gm.config.frenzyDuration * insp); break;
-                case 1: gm.StartFury(gm.config.furyDuration * insp); break;
+                case 0: mult = gm.config.frenzyMult; secs = gm.config.frenzyDuration * insp; gm.StartFrenzy(mult, secs); break;
+                case 1: secs = gm.config.furyDuration * insp; gm.StartFury(secs); break;
                 case 2: ps.ResetCooldowns(); break;
-                case 3: ps?.FreeGolden(2); break;
-                case 4: ps?.FreeMeteorShower(8); break;
-                case 5: gm.FillResonance(); Shockwave.I?.TryRelease(); break;
+                case 3:
+                {
+                    int n = MonolithSpawner.I ? MonolithSpawner.I.Active.Count : 0;
+                    ps?.FreeGolden(Mathf.Max(3, Mathf.CeilToInt(n * 0.5f)));
+                    break;
+                }
+                case 4: ps?.FreeMeteorShower(Mathf.RoundToInt(18 * insp)); break;
+                case 5: secs = gm.config.overflowDuration * insp; gm.StartOverflow(secs); Shockwave.I?.TryRelease(); gm.StartOverflow(secs); break;
+                case 6: secs = gm.config.legionDuration * insp; AllySquad.I?.SummonLegion(gm.config.legionCount, secs); break;
+                case 7:
+                    bonus = System.Math.Max(gm.DustPerSecond * gm.config.cornucopiaSeconds, gm.BaseBlockReward * 30) * insp;
+                    gm.AddDust(bonus);
+                    ShardSystem.I?.SpawnSparkle(p, 80, MonolithSpawner.I ? MonolithSpawner.I.ShardIndexFor(0, true) : 0, 14f);
+                    Hud.I?.PulseDust();
+                    break;
             }
+            Hud.I?.ShowToast($"✧ {Names[pick]}: " + string.Format(Descs[pick], mult.ToString("0.#"), secs.ToString("0"), Num.F(bonus)), ToastKind.Divine);
 
             ShardSystem.I?.SpawnSparkle(p, 40, MonolithSpawner.I ? MonolithSpawner.I.ShardIndexFor(0, true) : 0, 8f);
             AudioFX.I?.Play(Sfx.Statue, 1f, 1.2f);

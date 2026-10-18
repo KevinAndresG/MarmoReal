@@ -366,7 +366,7 @@ namespace Marmoreal
                 if (d.currency != Currency.Dust) continue;
                 var row = new Row { def = d, el = new Button() };
                 row.el.AddToClassList("shop-row");
-                if (d.requires != null && d.requires.Length > 0) row.el.AddToClassList("power-up"); // mejora de un poder del Altar
+                if (d.requires != null && d.requires.Length > 0 && GameManager.I.config.GetPower(d.requires[0]) != null) row.el.AddToClassList("power-up"); // mejora de un poder del Altar
                 row.el.Add(Lbl("glyph", d.glyph));
                 var text = new VisualElement(); text.AddToClassList("shop-text");
                 text.Add(Lbl("shop-name", d.displayName));
@@ -432,7 +432,7 @@ namespace Marmoreal
             RefreshPrestige();
         }
 
-        static readonly HashSet<string> PercentIds = new HashSet<string> { "fortuna", "paciencia", "fiebre" };
+        static readonly HashSet<string> PercentIds = new HashSet<string> { "fortuna", "paciencia", "fiebre", "rebote", "vinculo" };
 
         public static string FormatEffect(UpgradeDef d, int level)
         {
@@ -712,7 +712,9 @@ namespace Marmoreal
             if (buffs == null) return;
             string t = "";
             if (gm.FrenzyTimeLeft > 0) t += $"FRENESÍ ×{gm.FrenzyMult:0.#}  {gm.FrenzyTimeLeft:0}s";
-            if (gm.FuryActive) t += (t.Length > 0 ? "     " : "") + $"FURIA DIVINA  {gm.FuryTimeLeft:0}s";
+            if (gm.FuryActive) t += (t.Length > 0 ? "     " : "") + $"FURIA: CRÍTICOS + EMBESTIDA LIBRE  {gm.FuryTimeLeft:0}s";
+            if (gm.OverflowTimeLeft > 0) t += (t.Length > 0 ? "     " : "") + $"ONDA INFINITA [F]  {gm.OverflowTimeLeft:0}s";
+            if (AllySquad.I && AllySquad.I.LegionTimeLeft > 0) t += (t.Length > 0 ? "     " : "") + $"LEGIÓN  {AllySquad.I.LegionTimeLeft:0}s";
             if (gm.colossusMult > 1f) t += (t.Length > 0 ? "     " : "") + $"COLOSO ×{gm.colossusMult:0} daño";
             buffs.text = t;
             buffs.EnableInClassList("hidden", t.Length == 0);
@@ -1002,7 +1004,7 @@ namespace Marmoreal
 
         public void DamageNumber(Vector3 pos, float dmg, bool crit, HitSource src)
         {
-            string cls = crit ? "crit" : src == HitSource.Acolyte ? "acolyte" : (src == HitSource.Shockwave || src == HitSource.Seismic) ? "wave" : src == HitSource.Power ? "power" : null;
+            string cls = crit ? "crit" : (src == HitSource.Acolyte || src == HitSource.Ally) ? "acolyte" : (src == HitSource.Shockwave || src == HitSource.Seismic) ? "wave" : src == HitSource.Power ? "power" : null;
             string text = crit ? Num.F(dmg) + "!" : Num.F(dmg);
             Vector3 v = new Vector3(Random.Range(-1f, 1f), 2.5f, Random.Range(-1f, 1f));
             Spawn(pos, text, cls, crit ? 1.1f : 0.8f, v);

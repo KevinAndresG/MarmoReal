@@ -28,11 +28,11 @@ ascendentes, la estatua se revela con un acorde. Primera mejora comprable en ~15
 | Rodar | WASD / Flechas | Stick izq. |
 | Saltar (suelo o encima de bloques) | Espacio | A |
 | Golpe en Picado (2.º salto en el aire: cae en vertical; daño normal según la velocidad de caída) | Espacio en el aire | A en el aire |
-| Embestida (dash, ×2 daño) | Shift | B / RB |
+| Embestida (dash, ×2 daño; varias cargas con *Doble Embestida*) | Shift | B / RB |
 | Onda de Resonancia | F / Clic izq. | Y |
 | Girar cámara | Clic der. + arrastrar / Q-E | Stick der. |
 | Zoom | Rueda | — |
-| Poder n (Supernova, Ingravidez, Meteoros, Coloso, Vórtice, Midas) | 1-6 / clic en la barra | Cruceta (4 primeros) |
+| Poder n (Supernova, Ingravidez, Meteoros, Coloso, Vórtice, Midas, Rayos) | 1-7 / clic en la barra | Cruceta (4 primeros) |
 | Comprar mejora n del Taller | Ctrl + 1-9 | — |
 | Árbol del Escultor | T / Tab | — |
 | Altar de los Dioses | G | — |
@@ -103,14 +103,22 @@ Calacatta Oro) y se llega más lejos.
 | Acólitos | 150 | ×3.0 | +1 acólito (máx. 12) | Galería III |
 | Cincel | 220 | ×1.6 | daño acólito 1.6 × 1.28^n | Galería III |
 | Resonancia | 300 | ×1.7 | onda × (1 + 0.35n) (máx. 60) | Galería IV |
+| Doble Embestida | 600 | ×6 | cargas de Embestida 1 + n (máx. 3 → 4 cargas) | Galería III |
+| Discípulas | 2 500 | ×3.2 | +1 canica aliada (máx. 8) | Galería V |
+| Vínculo | 4 000 | ×1.85 | las Discípulas copian 30 % + 5 %/n de tu daño (máx. 14 → 100 %) | 1.ª Discípula |
 | Pólvora Divina | 400 | ×2.2 | daño Supernova × 0.25·1.1^n (máx. 20 → ×1.68) | poder Supernova |
 | Gravedad Rota | 900 | ×2.2 | daño Ingravidez × 0.25·1.1^n | poder Ingravidez |
 | Núcleo Ígneo | 900 | ×2.2 | daño Meteoros × 0.25·1.1^n | poder Meteoros |
 | Gigantismo | 2 500 | ×2.1 | duración Coloso 4 + 0.6n s (máx. 15) | poder Coloso |
 | Singularidad | 4 000 | ×2.2 | daño Vórtice × 0.25·1.1^n | poder Vórtice |
 | Alquimia | 20 000 | ×8 | bloques de Midas 1 + n (máx. 4) | poder Midas |
+| Ira de Zeus | 6 000 | ×2.2 | daño Cadena de Rayos × 0.25·1.1^n | poder Rayos |
 
-Las 6 últimas (borde naranja) son las **mejoras de poderes**: aparecen al desbloquear el poder en el
+**Discípulas** (`Gameplay/AllySquad.cs` + `AllyMarble.cs`, prefab `Prefabs/Ally`): canicas físicas que eligen uno
+de los 3 bloques más cercanos, toman carrerilla y lo embisten. Daño = tu daño de impacto × (v/9)² × Vínculo (sin
+combo; críticos y Furia sí). No usan poderes. No chocan con la canica ni entre ellas. Dan algo de Resonancia.
+
+Las 7 últimas (borde naranja) son las **mejoras de poderes**: aparecen al desbloquear el poder en el
 Altar y, como todo el Taller, se pierden al Pulir. Así cada vida empieza con poderes flojos
 (×0.25) y se vuelven devastadores a medida que inviertes polvo.
 
@@ -128,12 +136,13 @@ Altar y, como todo el Taller, se pierden al Pulir. Así cada vida empieza con po
                             └──────────── ♜ OBRA MAESTRA (cumbre, ×2 todo/nivel) ─┘
 ```
 
-Nodos en MAYÚSCULAS = **mecánicas nuevas** (cambian cómo se juega, no solo números):
-- **Rebote Vivo:** salir despedida tras cada choque (+40 % vel.) → estilo pinball.
-- **Embestida Sísmica:** los choques durante el dash liberan mini-ondas (daño ×3, radio 4 m).
-- **Metralla:** los trozos que saltan dañan otros bloques → reacciones en cadena.
-- **Eco Resonante:** la onda se repite 2 veces (×0.5 y ×0.35, radios ×1.3 y ×1.6).
-- **Resonancia Perpetua:** la onda se dispara sola al llenarse.
+Nodos en MAYÚSCULAS = **mecánicas nuevas** (cambian cómo se juega, no solo números). Todas tienen **4 niveles**
+(coste ×2.5 por nivel): el nivel 1 desbloquea la mecánica y los siguientes la potencian.
+- **Rebote Vivo:** salir despedida tras cada choque (+40/50/60/70 % de la velocidad de impacto) → estilo pinball.
+- **Embestida Sísmica:** los choques del dash y del Picado liberan mini-ondas (daño ×3/6/9/12, radio 4-6.25 m).
+- **Metralla:** los trozos que saltan dañan otros bloques (×0.4/0.8/1.2/1.6 del daño) → reacciones en cadena.
+- **Eco Resonante:** la onda se repite en 2/3/4/5 ecos (×0.5, 0.4, 0.3, 0.25…; radio +30 % por eco).
+- **Resonancia Perpetua:** la onda se dispara sola al llenarse y la Resonancia carga ×1/1.25/1.5/1.75.
 
 ### 4.7 Prestigio (Pulir)
 - Requiere Galería IX (índice 8). Esencia = ⌊0.3 · (galería − 8 + 3)^1.6⌋.
@@ -146,21 +155,21 @@ Nunca se pierde al Pulir. Fuentes (cifras en `Economy.asset`, sección *Ícor*):
 - 1 por Musa atrapada · 2 + ⌊Esencia ganada / 10⌋ al Pulir · el premio de cada Mecenazgo.
 
 ### 4.9 Altar de los Dioses (Ícor) — tecla G
-Segundo árbol permanente (misma vista que el del Escultor, en paleta fuego). 23 nodos.
+Segundo árbol permanente (misma vista que el del Escultor, en paleta fuego). 26 nodos.
 **Cada poder es una columna independiente**: se compra en cualquier orden (sin requisitos entre poderes) y debajo tiene
-su propia rama de mejoras. A la derecha, la rama de las Musas; abajo, dos nodos generales que afectan a todos los poderes.
+su propia rama de mejoras. Abajo, dos nodos generales que afectan a todos los poderes y, a la derecha, la rama de las Musas.
 
 ```
- ✹ SUPERNOVA (6)  ⇡ INGRAVIDEZ (7)  ☄ METEOROS (7)  ⬤ COLOSO (15)   ◎ VÓRTICE (20)   ♛ MIDAS (40)   ♪ Favor Musas
- └ ◉ Onda Exp.    └ ⇣ Caída Cel.    └ ⁘ Enjambre    └ ♚ Titán       └ ◍ Horizonte    └ ♕ Rey Midas  └ ❦ Inspiración
-   └ ⧗ Mecha C.     └ ⧗ Levedad       └ ⧗ Cielo Ab.   └ ⧗ Crec. Vel.  └ ⧗ Colapso      └ ⧗ Avaricia
+ ✹ SUPERNOVA (6)  ⇡ INGRAVIDEZ (7)  ☄ METEOROS (7)  ⬤ COLOSO (15)   ◎ VÓRTICE (20)   ♛ MIDAS (40)   ↯ RAYOS (25)
+ └ ◉ Onda Exp.    └ ⇣ Caída Cel.    └ ⁘ Enjambre    └ ♚ Titán       └ ◍ Horizonte    └ ♕ Rey Midas  └ ⇝ Conductor
+   └ ⧗ Mecha C.     └ ⧗ Levedad       └ ⧗ Cielo Ab.   └ ⧗ Crec. Vel.  └ ⧗ Colapso      └ ⧗ Avaricia   └ ⧗ Tormenta P.
      └ ₪ Codicia
-                          ϟ Ira Divina (×1.25 daño de poderes, sin límite)   ∞ Eternidad (−5 % recarga de todos)
+                  ϟ Ira Divina (×1.25 daño de poderes)   ∞ Eternidad (−5 % recarga)   ♪ Favor Musas ─ ❦ Inspiración
 ```
 Los nodos ⧗ reducen −7 %/nivel la recarga de su poder (máx. 6 niveles, mínimo ×0.4). Se leen como `<id>_cd`
 (`nova_cd` para la Supernova) en `PowerSystem.CooldownTotal`.
 
-### 4.10 Poderes (teclas 1-6)
+### 4.10 Poderes (teclas 1-7)
 El daño de cada poder = **daño de impacto actual × potencia × mejora del Taller × Ira Divina**: escala con tu progreso y no
 rompe el muro. Cifras en `Economy.asset → powers`; código en `Gameplay/PowerSystem.cs`.
 
@@ -168,17 +177,29 @@ rompe el muro. Cifras en `Economy.asset → powers`; código en `Gameplay/PowerS
 |---|---|---|
 | ✹ Supernova | 120 s (×Mecha Corta) | Planta una bomba con mecha (1.6 s), explota en 12 m (×Onda Expansiva) con ×45 de daño (× Pólvora Divina), destello, empuja la canica y deja **Frenesí** ×2 (×Codicia) 6 s. |
 | ⇡ Ingravidez | 150 s | Todos los bloques cercanos flotan girando y se estrellan contra el suelo (×60 × Caída Celestial). |
-| ☄ Meteoros | 90 s | 10 (+Enjambre) meteoritos de fuego caen sobre los bloques (×20 cada uno, área 3.4 m). |
+| ☄ Meteoros | 90 s | 12 (+Enjambre) meteoritos repartidos (uno por bloque antes de repetir; ×35, área 4.5 m) y un **Gran Meteoro** final (×150, área ~10 m) donde más bloques hay juntos. |
 | ⬤ Coloso | 80 s | La canica crece ×2.2 durante 4 s (+Gigantismo, +Titán): ×3 daño de impacto, cámara más lejos. |
-| ◎ Vórtice | 120 s | Agujero negro de 6 s: ×15 daño/s en 9 m (×Horizonte) y absorbe todo el polvo. |
+| ◎ Vórtice | 120 s | Agujero negro **errante** de 6 s: viaja de bloque en bloque, ×25 daño/s creciente en 9 m (×Horizonte), se traga escombros y polvo en espiral y al final **implosiona** (×60 en 13 m). |
 | ♛ Toque de Midas | 140 s | Convierte 1 (+Alquimia, +Rey Midas) bloques en oro macizo (×12 polvo). |
+| ↯ Cadena de Rayos | 100 s | 6 rayos del cielo en 2.4 s; cada uno salta a 3 (+Conductor) bloques cercanos (14 m), ×30 y −15 % por salto; el primer golpe es crítico. |
 
 ### 4.11 Musas (bendiciones aleatorias)
 Desde la Galería II aparece un orbe de luz (con haz y marcador en pantalla) cada 60-120 s
 (× *Favor de las Musas*); dura 18 s. Al tocarlo: 1 Ícor y una bendición al azar
-(duración × *Inspiración*): **Frenesí** (polvo ×3, 15 s), **Furia Divina** (todo crítico, 10 s),
-**Recarga Divina** (reinicia los poderes), **Lluvia Dorada** (2 bloques de oro),
-**Tormenta** (8 meteoritos gratis), **Resonancia Plena** (onda inmediata).
+(duración × *Inspiración*), explicada en un aviso al recogerla:
+- **Frenesí:** polvo ×5 durante 20 s.
+- **Furia Divina:** 12 s de golpes siempre críticos y Embestida sin recarga.
+- **Recarga Divina:** reinicia los poderes (solo sale si tienes alguno).
+- **Lluvia Dorada:** la mitad de los bloques (mín. 3) se vuelven oro.
+- **Tormenta:** 18 meteoritos y Gran Meteoro.
+- **Onda Infinita:** 8 s de Resonancia que se rellena sola (F sin parar).
+- **Legión:** 4 Discípulas fantasma durante 20 s (copian ≥50 % de tu daño).
+- **Cornucopia:** polvo instantáneo = 90 s de tu polvo/s (mínimo 30 bloques).
+
+### 4.11b Arena: interacciones
+- **Mármol volcánico** (desde la Galería III, 6 %): bloque de vetas incandescentes que al romperse del todo
+  **estalla** (×12 del daño en 7 m) y puede encadenar otros volcánicos. Material `M_Chunk_Volcanic`, cifras en
+  `Economy.asset` (sección *Bloques volcánicos*).
 
 ### 4.12 Mecenazgos (logros)
 28 hitos (estatuas, dorados, galería, pulidos, combo, poderes, Musas, polvo total). Cada uno da Ícor

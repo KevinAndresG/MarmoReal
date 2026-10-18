@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Marmoreal
 {
-    public enum HitSource { Player, Acolyte, Shockwave, Debris, Seismic, Power }
+    public enum HitSource { Player, Acolyte, Shockwave, Debris, Seismic, Power, Ally }
 
     /// <summary>
     /// Bloque de mármol en bruto formado por trozos (hijos de "Block"). Cada golpe arranca los trozos
@@ -29,6 +29,8 @@ namespace Marmoreal
         public State CurrentState { get; private set; }
         public bool IsTargetable => CurrentState == State.Active;
         public bool Golden { get; private set; }
+        /// <summary>Mármol volcánico: al romperse del todo estalla y daña a los bloques vecinos.</summary>
+        public bool Volatile { get; private set; }
         public double HP { get; private set; }
         public double HPLeft => System.Math.Max(0, HP - dealt);
         public Bounds WorldBounds => col.bounds;
@@ -86,6 +88,7 @@ namespace Marmoreal
             owner = spawner;
             HP = hp; dealt = 0; pending = 0;
             Golden = golden;
+            Volatile = false;
             transmuted = false;
             tierIndex = tier;
             chunkHP = hp / chunks.Length;
@@ -134,6 +137,12 @@ namespace Marmoreal
             stateTime = 0;
             block.localPosition = baseBlockPos + Vector3.down * BlockHeight;
             if (statueAnchor) statueAnchor.localPosition = Vector3.down * BlockHeight;
+        }
+
+        public void SetVolatile(Material mat)
+        {
+            Volatile = true;
+            foreach (int i in alive) chunks[i].sharedMaterial = mat;
         }
 
         float BlockHeight => col ? col.size.y + 0.2f : 4f;
@@ -306,6 +315,23 @@ namespace Marmoreal
             AudioFX.I?.Play(Sfx.Statue, 0.8f, Golden ? 1.25f : Random.Range(0.95f, 1.05f));
             if (Golden) AudioFX.I?.Play(Sfx.Golden, 0.8f);
             CameraRig.I?.Shake(0.15f);
+            if (Volatile) Erupt();
+        }
+
+        /// <summary>Explosión del mármol volcánico: puede encadenar otros volcánicos cercanos.</summary>
+        void Erupt()
+        {
+            var gm = GameManager.I;
+            if (!gm) return;
+            Vector3 c = transform.position + Vector3.up * 1.2f;
+            Shockwave.I?.Blast(c, gm.config.volatileBlastRadius, gm.ImpactDamage * gm.config.volatileBlastMult, HitSource.Debris);
+            for (int i = 0; i < 10; i++)
+                ShardSystem.I?.SpawnDebris(c + Random.insideUnitSphere * 0.8f, Random.rotation, Vector3.one * Random.Range(0.3f, 0.6f),
+                    Random.insideUnitSphere * 11f + Vector3.up * 8f, owner ? owner.DebrisIndexFor(tierIndex, false) : 0, GetInstanceID());
+            PowerSystem.I?.FlashAt(c, new Color(1f, 0.45f, 0.15f), 0.6f);
+            AudioFX.I?.Play(Sfx.Boom, 0.9f, Random.Range(1.05f, 1.2f));
+            CameraRig.I?.Shake(0.45f);
+            Hud.I?.HitStop(0.04f);
         }
 
         void Shatter()

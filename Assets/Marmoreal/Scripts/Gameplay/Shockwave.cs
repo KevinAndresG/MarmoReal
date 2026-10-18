@@ -58,20 +58,19 @@ namespace Marmoreal
             float r = gm.ShockwaveRadius;
             float dmg = gm.ShockwaveDamage;
             Add(o, r, dmg, 0f, false);
-            if (gm.Has("eco"))
-            {
-                Add(o, r * 1.3f, dmg * 0.5f, 0.35f, false);
-                Add(o, r * 1.6f, dmg * 0.35f, 0.7f, false);
-            }
+            // Eco Resonante: nivel L → L+1 ecos, cada uno más amplio y algo más débil
+            int echoes = gm.Has("eco") ? Mathf.RoundToInt(gm.Value("eco")) : 0;
+            for (int k = 1; k <= echoes; k++)
+                Add(o, r * (1f + 0.3f * k), dmg * Mathf.Max(0.25f, 0.6f - 0.1f * k), 0.35f * k, false);
             AudioFX.I?.Play(Sfx.Boom, 1f);
             CameraRig.I?.Shake(0.6f);
             CameraRig.I?.Kick(6f);
-            ShardSystem.I?.ForceCollect(3f, gm.Has("eco") ? r * 1.6f : r); // la onda arrastra el polvo de su radio
+            ShardSystem.I?.ForceCollect(3f + 0.35f * echoes, r * (1f + 0.3f * echoes)); // la onda arrastra el polvo de su radio
         }
 
-        public void Mini(Vector3 at, float damage)
+        public void Mini(Vector3 at, float damage, float radius = 4f)
         {
-            Add(at, 4f, damage, 0f, true, HitSource.Seismic);
+            Add(at, radius, damage, 0f, true, HitSource.Seismic);
             AudioFX.I?.Play(Sfx.Boom, 0.4f, 1.6f);
         }
 

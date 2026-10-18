@@ -21,6 +21,8 @@ namespace Marmoreal
         [Tooltip("Material de los trozos por tier (cicla con la galería)")]
         public Material[] tierMaterials;
         public Material goldenMaterial;
+        [Tooltip("Material del mármol volcánico (bloques que estallan al romperse). Vacío = sin volcánicos")]
+        public Material volatileMaterial;
 
         public Transform spawnPointsRoot;
         public float respawnDelay = 0.9f;
@@ -36,6 +38,7 @@ namespace Marmoreal
         readonly List<Transform> points = new List<Transform>();
         readonly HashSet<int> busy = new HashSet<int>();
         float cooldown;
+        [System.NonSerialized] bool volatileHintShown;
 
         public IReadOnlyList<Monolith> Active => active;
         public string DebugState => $"pts={points.Count} active={active.Count} busy={busy.Count} cd={cooldown:0.0}";
@@ -102,6 +105,11 @@ namespace Marmoreal
             var pool = golden && goldenStatuePrefabs != null && goldenStatuePrefabs.Length > 0 ? goldenStatuePrefabs : statuePrefabs;
             var fab = pool != null && pool.Length > 0 ? pool[Random.Range(0, pool.Length)] : null;
             m.Init(this, hp, reward, statue, golden ? goldenMaterial : tierMaterials[tier], tier, fab, golden);
+            if (!golden && volatileMaterial && gm.S.galleryLevel >= gm.config.volatileUnlockGallery && Random.value < gm.config.volatileChance)
+            {
+                m.SetVolatile(volatileMaterial);
+                if (!volatileHintShown) { volatileHintShown = true; Hud.I?.ShowToast("Bloque VOLCÁNICO: al romperlo estalla y daña a sus vecinos", ToastKind.Info); }
+            }
 
             active.Add(m);
             occupied[m] = idx;

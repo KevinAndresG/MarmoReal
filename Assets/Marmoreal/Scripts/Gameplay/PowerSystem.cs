@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 namespace Marmoreal
 {
     /// <summary>
-    /// Poderes activables (teclas 1-6, o clic en la barra de poderes). Se desbloquean y mejoran en el
+    /// Poderes activables (teclas 1-7, o clic en la barra de poderes). Se desbloquean y mejoran en el
     /// ALTAR DE LOS DIOSES con Ícor. Sus cifras base están en Economy.asset → powers.
     /// El daño escala con el daño de impacto actual (GameManager.PowerDamage), así nunca rompen el muro suave.
     /// </summary>
@@ -20,6 +20,9 @@ namespace Marmoreal
         public GameObject bombPrefab;
         public GameObject meteorPrefab;
         public GameObject vortexPrefab;
+        [Tooltip("Prefab con LineRenderer para la Cadena de Rayos")]
+        public GameObject lightningPrefab;
+        public Color lightningColor = new Color(0.65f, 0.85f, 1f);
         [Tooltip("Luz puntual que destella en explosiones")]
         public Light flash;
         public float flashLumens = 350000f;
@@ -29,6 +32,8 @@ namespace Marmoreal
 
         [System.NonSerialized] float[] cooldownLeft;
         readonly List<GameObject> meteorPool = new List<GameObject>();
+        readonly List<LineRenderer> boltPool = new List<LineRenderer>();
+        Color flashBaseColor = new Color(-1, 0, 0);
         GameObject bomb, vortex;
         float basePlayerRadius = -1f, basePlayerMass = -1f;
         bool colossusRunning;
@@ -52,7 +57,7 @@ namespace Marmoreal
         public float Ready01(int i) => 1f - Mathf.Clamp01(CooldownLeft(i) / CooldownTotal(i));
         public bool IsReady(int i) => Unlocked(i) && CooldownLeft(i) <= 0f;
 
-        void Awake() { I = this; }
+        void Awake() { I = this; if (flash) flashBaseColor = flash.color; }
 
         void EnsureArrays()
         {
@@ -73,7 +78,7 @@ namespace Marmoreal
             var k = Keyboard.current;
             if (k != null && !(k.leftCtrlKey.isPressed || k.rightCtrlKey.isPressed))
             {
-                var keys = new[] { k.digit1Key, k.digit2Key, k.digit3Key, k.digit4Key, k.digit5Key, k.digit6Key };
+                var keys = new[] { k.digit1Key, k.digit2Key, k.digit3Key, k.digit4Key, k.digit5Key, k.digit6Key, k.digit7Key, k.digit8Key, k.digit9Key };
                 for (int i = 0; i < keys.Length && i < Count; i++)
                     if (keys[i].wasPressedThisFrame) TryCast(i);
             }
@@ -115,10 +120,13 @@ namespace Marmoreal
             {
                 case "supernova": StartCoroutine(Supernova(d)); return true;
                 case "ingravidez": return Levitation(d);
-                case "meteoros": StartCoroutine(Meteors(d.count + Mathf.RoundToInt(GM.Value("enjambre")), d)); return true;
+                case "meteoros": StartCoroutine(Meteors(d.count + Mathf.RoundToInt(GM.Value("enjambre")), d, true)); return true;
                 case "coloso": if (colossusRunning) return false; StartCoroutine(Colossus(d)); return true;
                 case "vortice": StartCoroutine(Vortex(d)); return true;
                 case "midas": return Midas(Mathf.RoundToInt(GM.PowerUpgrade(d.id, d.count) + GM.Value("reymidas")));
+                case "rayo":
+                    if (!MonolithSpawner.I || MonolithSpawner.I.Nearest(player.position, 999f) == null) { Hud.I?.ShowToast("No hay bloques que fulminar", ToastKind.Info); return false; }
+                    StartCoroutine(Lightning(d)); return true;
             }
             return false;
         }
@@ -132,7 +140,7 @@ namespace Marmoreal
         public void FreeMeteorShower(int count)
         {
             var d = GM.config.GetPower("meteoros");
-            if (d != null) StartCoroutine(Meteors(count, d));
+            if (d != null) StartCoroutine(Meteors(count, d, true));
         }
 
         public void FreeGolden(int count) => Midas(count);
@@ -193,30 +201,58 @@ namespace Marmoreal
             return true;
         }
 
-        IEnumerator Meteors(int count, PowerDef d)
+        IEnumerator Meteors(int count, PowerDef d, bool finale)
         {
             float interval = Mathf.Max(0.05f, d.duration / Mathf.Max(1, count));
             float dmg = GM.PowerDamage(d.id, d.potency);
+            float radius = d.radius > 0f ? d.radius : 3.4f;
+            // Reparte la lluvia: cada bloque recibe su meteorito antes de repetir
+            var targets = new List<Monolith>();
             for (int i = 0; i < count; i++)
             {
-                StartCoroutine(OneMeteor(PickMeteorTarget(), dmg));
+                if (targets.Count == 0) FillTargets(targets);
+                Vector3 at;
+                if (targets.Count > 0) { var m = targets[targets.Count - 1]; targets.RemoveAt(targets.Count - 1); at = m ? m.transform.position + Vector3.up * Random.Range(1f, 3f) : RandomGround(); }
+                else at = RandomGround();
+                StartCoroutine(OneMeteor(at, dmg, radius, 1f, false));
                 yield return new WaitForSeconds(interval);
             }
+            if (!finale || d.finale <= 0f) yield break;
+            // GRAN METEORO: cae donde más bloques hay juntos
+            yield return new WaitForSeconds(0.35f);
+            StartCoroutine(OneMeteor(DensestPoint(radius * 2f) + Vector3.up * 1.5f, GM.PowerDamage(d.id, d.finale), radius * 2.2f, 2.8f, true));
         }
 
-        Vector3 PickMeteorTarget()
+        void FillTargets(List<Monolith> list)
         {
+            list.Clear();
             var sp = MonolithSpawner.I;
-            if (sp && sp.Active.Count > 0)
-            {
-                for (int tries = 0; tries < 6; tries++)
-                {
-                    var m = sp.Active[Random.Range(0, sp.Active.Count)];
-                    if (m && m.IsTargetable) return m.transform.position + Vector3.up * Random.Range(1f, 3f);
-                }
-            }
+            if (!sp) return;
+            foreach (var m in sp.Active) if (m && m.IsTargetable) list.Add(m);
+            for (int i = list.Count - 1; i > 0; i--) { int j = Random.Range(0, i + 1); (list[i], list[j]) = (list[j], list[i]); }
+        }
+
+        Vector3 RandomGround()
+        {
             Vector2 c = Random.insideUnitCircle * ArenaShape.SpawnRadius;
             return Ground(new Vector3(c.x, 0, c.y));
+        }
+
+        /// <summary>Punto (sobre un bloque) con más bloques alrededor en ese radio.</summary>
+        Vector3 DensestPoint(float r)
+        {
+            var sp = MonolithSpawner.I;
+            Vector3 best = player ? Ground(player.position) : Vector3.zero;
+            int bestN = -1;
+            if (!sp) return best;
+            foreach (var a in sp.Active)
+            {
+                if (!a || !a.IsTargetable) continue;
+                int n = 0;
+                foreach (var b in sp.Active) if (b && b.IsTargetable && (b.transform.position - a.transform.position).sqrMagnitude < r * r) n++;
+                if (n > bestN) { bestN = n; best = a.transform.position; }
+            }
+            return best;
         }
 
         GameObject GetMeteor()
@@ -228,32 +264,50 @@ namespace Marmoreal
             return go;
         }
 
-        IEnumerator OneMeteor(Vector3 target, float dmg)
+        IEnumerator OneMeteor(Vector3 target, float dmg, float radius, float scale, bool big)
         {
             var go = GetMeteor();
-            Vector2 off = Random.insideUnitCircle.normalized * 9f;
-            Vector3 start = target + new Vector3(off.x, meteorHeight, off.y);
+            Vector2 off = Random.insideUnitCircle.normalized * (big ? 14f : 9f);
+            Vector3 start = target + new Vector3(off.x, meteorHeight * (big ? 1.4f : 1f), off.y);
+            float flight = meteorFlightTime * (big ? 1.8f : 1f);
             TrailRenderer tr = null;
             if (go)
             {
                 tr = go.GetComponentInChildren<TrailRenderer>();
                 go.transform.position = start;
-                if (tr) tr.Clear();
+                go.transform.localScale = Vector3.one * scale;
+                if (tr) { tr.Clear(); tr.widthMultiplier = scale; }
                 go.SetActive(true);
             }
+            if (big) { AudioFX.I?.Play(Sfx.Dash, 0.8f, 0.4f); Hud.I?.Banner("☄  GRAN METEORO"); }
             float t = 0f;
-            while (t < meteorFlightTime)
+            while (t < flight)
             {
                 t += Time.deltaTime;
-                float k = Mathf.Clamp01(t / meteorFlightTime);
+                float k = Mathf.Clamp01(t / flight);
                 if (go) go.transform.position = Vector3.Lerp(start, target, k * k);
                 yield return null;
             }
-            if (go) go.SetActive(false);
-            Shockwave.I?.Blast(target, 3.4f, dmg, HitSource.Power, true);
-            ShardSystem.I?.SpawnSparkle(target, 10, MonolithSpawner.I ? MonolithSpawner.I.ShardIndexFor(0, true) : 0, 8f);
-            AudioFX.I?.Play(Sfx.Boom, 0.55f, Random.Range(1.3f, 1.6f));
-            CameraRig.I?.Shake(0.22f);
+            if (go) { go.SetActive(false); go.transform.localScale = Vector3.one; if (tr) tr.widthMultiplier = 1f; }
+            Shockwave.I?.Blast(target, radius, dmg, HitSource.Power, !big);
+            int idx = MonolithSpawner.I ? MonolithSpawner.I.ShardIndexFor(0, true) : 0;
+            ShardSystem.I?.SpawnSparkle(target, big ? 60 : 10, idx, big ? 14f : 8f);
+            if (big)
+            {
+                Shockwave.I?.Blast(target, radius * 1.4f, 0f, HitSource.Power);
+                ShardSystem.I?.ForceCollect(3f, radius * 1.6f);
+                FlashAt(target, new Color(1f, 0.55f, 0.2f), 1f);
+                AudioFX.I?.Play(Sfx.Boom, 1f, 0.6f);
+                AudioFX.I?.Play(Sfx.Shatter, 0.9f, 0.7f);
+                CameraRig.I?.Shake(0.9f);
+                CameraRig.I?.Kick(9f);
+                Hud.I?.HitStop(0.07f);
+            }
+            else
+            {
+                AudioFX.I?.Play(Sfx.Boom, 0.55f, Random.Range(1.3f, 1.6f));
+                CameraRig.I?.Shake(0.22f);
+            }
         }
 
         IEnumerator Colossus(PowerDef d)
@@ -292,25 +346,159 @@ namespace Marmoreal
             float radius = d.radius * Mathf.Sqrt(h);
             float dps = GM.PowerDamage(d.id, d.potency) * h;
             if (vortex) { vortex.SetActive(true); vortex.transform.position = pos; vortex.transform.localScale = Vector3.zero; }
-            ShardSystem.I?.AttractTo(pos, d.duration);
             AudioFX.I?.Play(Sfx.Boom, 0.8f, 0.4f);
+            CameraRig.I?.Kick(-6f);
             var tmp = new List<Monolith>();
-            float t = 0f, tick = 0f;
+            int sparkIdx = MonolithSpawner.I ? MonolithSpawner.I.ShardIndexFor(0, true) : 0;
+            float t = 0f, tick = 0f, hum = 0f;
+            Monolith prey = null;
             while (t < d.duration)
             {
-                t += Time.deltaTime; tick += Time.deltaTime;
-                float grow = Mathf.Clamp01(t / 0.4f) * Mathf.Clamp01((d.duration - t) / 0.4f);
-                if (vortex) vortex.transform.localScale = Vector3.one * (radius / 9f) * grow * (1f + 0.06f * Mathf.Sin(t * 20f));
+                float dt = Time.deltaTime;
+                t += dt; tick += dt; hum -= dt;
+                // Errante: viaja hacia el bloque más cercano y lo devora; al acabar busca otro
+                if (!prey || !prey.IsTargetable) prey = MonolithSpawner.I ? MonolithSpawner.I.Nearest(pos, 60f) : null;
+                if (prey)
+                {
+                    Vector3 goal = prey.transform.position; goal.y = Ground(goal).y + 2.2f;
+                    pos = Vector3.MoveTowards(pos, goal, 4.5f * dt);
+                }
+                ShardSystem.I?.AttractTo(pos, 0.4f, radius * 1.6f);
+                float grow = Mathf.Clamp01(t / 0.4f) * Mathf.Clamp01((d.duration - t) / 0.25f + 0.35f);
+                if (vortex)
+                {
+                    vortex.transform.position = pos;
+                    vortex.transform.localScale = Vector3.one * (radius / 9f) * grow * (1f + 0.08f * Mathf.Sin(t * 24f));
+                }
+                FlashAt(pos, new Color(0.55f, 0.25f, 1f), 0.12f + 0.06f * Mathf.Sin(t * 30f));
                 if (tick >= 0.25f)
                 {
                     tick -= 0.25f;
+                    float ramp = 0.6f + 0.8f * (t / d.duration); // tritura cada vez más fuerte
                     MonolithSpawner.I?.InRadius(pos, radius, tmp);
-                    foreach (var m in tmp) m.TakeDamage(dps * 0.25f, m.ClosestPoint(pos), HitSource.Power, false);
-                    CameraRig.I?.Shake(0.05f);
+                    foreach (var m in tmp) m.TakeDamage(dps * 0.25f * ramp, m.ClosestPoint(pos), HitSource.Power, false);
+                    // Materia que orbita y cae dentro
+                    for (int s = 0; s < 4; s++)
+                    {
+                        Vector2 c = Random.insideUnitCircle.normalized * radius * Random.Range(0.8f, 1.3f);
+                        ShardSystem.I?.SpawnSparkle(pos + new Vector3(c.x, Random.Range(-1f, 1.5f), c.y), 2, sparkIdx, 1.5f);
+                    }
+                    CameraRig.I?.Shake(0.06f);
                 }
+                if (hum <= 0f) { hum = 0.45f; AudioFX.I?.Play(Sfx.Boom, 0.25f, Random.Range(0.3f, 0.4f)); }
+                yield return null;
+            }
+            // IMPLOSIÓN: se colapsa y estalla
+            for (float c = 0f; c < 0.22f; c += Time.deltaTime)
+            {
+                if (vortex) vortex.transform.localScale = Vector3.one * (radius / 9f) * 0.35f * (1f - c / 0.22f);
                 yield return null;
             }
             if (vortex) vortex.SetActive(false);
+            if (d.finale > 0f)
+            {
+                Shockwave.I?.Blast(pos, radius * 1.5f, GM.PowerDamage(d.id, d.finale) * h, HitSource.Power);
+                Shockwave.I?.Blast(pos, radius * 2f, 0f, HitSource.Power);
+            }
+            ShardSystem.I?.SpawnSparkle(pos, 50, sparkIdx, 13f);
+            ShardSystem.I?.ForceCollect(3f, radius * 2f);
+            FlashAt(pos, new Color(0.7f, 0.45f, 1f), 1f);
+            AudioFX.I?.Play(Sfx.Boom, 1f, 0.55f);
+            AudioFX.I?.Play(Sfx.Shatter, 0.8f, 0.6f);
+            CameraRig.I?.Shake(0.85f);
+            CameraRig.I?.Kick(10f);
+            Hud.I?.HitStop(0.06f);
+        }
+
+        // ---------------------------------------------------------------- Cadena de Rayos
+        IEnumerator Lightning(PowerDef d)
+        {
+            int bolts = Mathf.Max(1, d.count);
+            int hops = 3 + Mathf.RoundToInt(GM.Value("cadena"));
+            float dmg = GM.PowerDamage(d.id, d.potency);
+            float interval = Mathf.Max(0.08f, d.duration / bolts);
+            var sp = MonolithSpawner.I;
+            var pts = new List<Vector3>();
+            var hit = new HashSet<Monolith>();
+            var targets = new List<Monolith>();
+            for (int b = 0; b < bolts && sp; b++)
+            {
+                if (targets.Count == 0) FillTargets(targets);
+                if (targets.Count == 0) break;
+                var cur = targets[targets.Count - 1]; targets.RemoveAt(targets.Count - 1);
+                if (!cur || !cur.IsTargetable) { b--; continue; }
+                pts.Clear(); hit.Clear();
+                Vector3 top = cur.transform.position + new Vector3(Random.Range(-4f, 4f), 30f, Random.Range(-4f, 4f));
+                pts.Add(top);
+                float k = 1f;
+                for (int h = 0; h < hops && cur; h++)
+                {
+                    Vector3 p = cur.ClosestPoint(cur.transform.position + Vector3.up * 3f);
+                    pts.Add(p);
+                    hit.Add(cur);
+                    cur.TakeDamage(dmg * k, p, HitSource.Power, h == 0);
+                    ShardSystem.I?.SpawnSparkle(p, 8, 0, 7f);
+                    k *= 0.85f;
+                    // salta al bloque más cercano que no haya tocado este rayo
+                    Monolith next = null; float bd = d.radius * d.radius;
+                    foreach (var m in sp.Active)
+                    {
+                        if (!m || !m.IsTargetable || hit.Contains(m)) continue;
+                        float dd = (m.transform.position - cur.transform.position).sqrMagnitude;
+                        if (dd < bd) { bd = dd; next = m; }
+                    }
+                    cur = next;
+                }
+                StartCoroutine(DrawBolt(pts));
+                FlashAt(pts[1], lightningColor, 0.8f);
+                AudioFX.I?.Play(Sfx.Boom, 0.7f, Random.Range(1.7f, 2.0f));
+                AudioFX.I?.Play(Sfx.Chip, 0.8f, Random.Range(1.6f, 1.9f));
+                CameraRig.I?.Shake(0.3f);
+                Hud.I?.HitStop(0.025f);
+                yield return new WaitForSeconds(interval * Random.Range(0.7f, 1.3f));
+            }
+        }
+
+        LineRenderer GetBolt()
+        {
+            foreach (var l in boltPool) if (l && !l.gameObject.activeSelf) return l;
+            if (!lightningPrefab) return null;
+            var go = Instantiate(lightningPrefab, transform);
+            var lr = go.GetComponent<LineRenderer>();
+            if (lr) boltPool.Add(lr);
+            return lr;
+        }
+
+        /// <summary>Dibuja el rayo en zigzag entre los puntos y lo apaga parpadeando.</summary>
+        IEnumerator DrawBolt(List<Vector3> pts)
+        {
+            var lr = GetBolt();
+            if (!lr) yield break;
+            var jag = new List<Vector3>();
+            for (int i = 0; i < pts.Count - 1; i++)
+            {
+                Vector3 a = pts[i], b = pts[i + 1];
+                int seg = i == 0 ? 10 : 6;
+                for (int s = 0; s < seg; s++)
+                {
+                    float f = s / (float)seg;
+                    Vector3 p = Vector3.Lerp(a, b, f);
+                    if (s > 0) p += Random.insideUnitSphere * (i == 0 ? 1.4f : 0.7f);
+                    jag.Add(p);
+                }
+            }
+            jag.Add(pts[pts.Count - 1]);
+            lr.positionCount = jag.Count;
+            lr.SetPositions(jag.ToArray());
+            lr.gameObject.SetActive(true);
+            float w = lr.widthMultiplier;
+            for (float t = 0f; t < 0.4f; t += Time.deltaTime)
+            {
+                lr.widthMultiplier = w * (Random.value < 0.25f ? 0.3f : 1f) * (1f - t / 0.4f);
+                yield return null;
+            }
+            lr.widthMultiplier = w;
+            lr.gameObject.SetActive(false);
         }
 
         bool Midas(int count)
@@ -328,11 +516,16 @@ namespace Marmoreal
             return true;
         }
 
-        void Flash(Vector3 at)
+        void Flash(Vector3 at) => FlashAt(at, flashBaseColor.r >= 0 ? flashBaseColor : (flash ? flash.color : Color.white), 1f);
+
+        /// <summary>Destello de luz en un punto (explosiones, rayos, volcánicos).</summary>
+        public void FlashAt(Vector3 at, Color color, float strength)
         {
             if (!flash) return;
+            if (flashBaseColor.r < 0) flashBaseColor = flash.color;
+            flash.color = color;
             flash.transform.position = at + Vector3.up * 2f;
-            flash.intensity = flashLumens;
+            flash.intensity = Mathf.Max(flash.intensity, flashLumens * strength);
         }
     }
 }

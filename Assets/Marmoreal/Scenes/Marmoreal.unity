@@ -2276,6 +2276,53 @@ Transform:
   - {fileID: 88220088}
   m_Father: {fileID: 2079406234}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &270014820
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 270014821}
+  - component: {fileID: 270014822}
+  m_Layer: 0
+  m_Name: "Disc\xEDpulas"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &270014821
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 270014820}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1552129599}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &270014822
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 270014820}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 857022a6e0f23ea4bb70df2e304ee095, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marmoreal.AllySquad
+  allyPrefab: {fileID: 894721763166035834, guid: d4309c1fda718134bb5f07537fa9b0f8, type: 3}
+  ghostMaterial: {fileID: 2100000, guid: 60eb2ae06edb96e45b02240b4c80b4f9, type: 2}
+  player: {fileID: 132092393}
 --- !u!1 &281910866
 GameObject:
   m_ObjectHideFlags: 0
@@ -5035,6 +5082,7 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 924a087f66fe91248b1080295ed29571, type: 2}
   - {fileID: 2100000, guid: b791345ac1887d742b21fd43d3e628a1, type: 2}
   goldenMaterial: {fileID: 2100000, guid: 9b6a0cb4022846348b25b6f1bc18d1c6, type: 2}
+  volatileMaterial: {fileID: 2100000, guid: 9145d97726e931e40ad4b27e71fba1c8, type: 2}
   spawnPointsRoot: {fileID: 1734502563}
   respawnDelay: 0.9
   minDistanceToPlayer: 5
@@ -6670,6 +6718,8 @@ MonoBehaviour:
   bombPrefab: {fileID: 3234861095129091567, guid: 3d721a37426f8f743ae76b5aeace3314, type: 3}
   meteorPrefab: {fileID: 8207233944502449224, guid: 4fce9ce8324fe1949b1c98cd0c88f912, type: 3}
   vortexPrefab: {fileID: 3846894538671985136, guid: bf60d992846cae64483c83b9f1ea5fb1, type: 3}
+  lightningPrefab: {fileID: 4034195584147671088, guid: b076df50f01c6034c826bc1ee54a4783, type: 3}
+  lightningColor: {r: 0.65, g: 0.85, b: 1, a: 1}
   flash: {fileID: 281910869}
   flashLumens: 350000
   meteorHeight: 32
@@ -8702,6 +8752,7 @@ Transform:
   - {fileID: 396745206}
   - {fileID: 1076661865}
   - {fileID: 313560426}
+  - {fileID: 270014821}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1567865532
