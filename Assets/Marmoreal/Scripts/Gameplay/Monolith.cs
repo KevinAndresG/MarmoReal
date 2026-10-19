@@ -323,6 +323,7 @@ namespace Marmoreal
         {
             var gm = GameManager.I;
             if (!gm) return;
+            gm.OnVolatileBroken();
             Vector3 c = transform.position + Vector3.up * 1.2f;
             Shockwave.I?.Blast(c, gm.config.volatileBlastRadius, gm.ImpactDamage * gm.config.volatileBlastMult, HitSource.Debris);
             for (int i = 0; i < 10; i++)

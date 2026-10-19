@@ -58,6 +58,19 @@ namespace Marmoreal
         [Tooltip("Nivel de galería necesario para que aparezca")]
         public int unlockGallery;
 
+        [Header("Progresión por Pulido (solo Taller)")]
+        [Tooltip("Si es true, el coste se multiplica por (Brillo×Obra×Fama)^k × crecimiento^pulidos (ver EconomyConfig)")]
+        public bool scaleCost = true;
+        [Tooltip("Niveles de tope extra por cada Pulido (0 = tope fijo). Admite fracciones: 0.5 = +1 cada 2 pulidos")]
+        public float maxLevelPerPrestige;
+        [Tooltip("Tope absoluto al que puede llegar el tope creciente (0 = sin límite extra)")]
+        public int maxLevelLimit;
+        [Tooltip("Hito de ESTA vida para que aparezca: runGalleries (galerías subidas) o runVolatile (volcánicos rotos). Vacío = sin hito")]
+        public string unlockStat;
+        public int unlockThreshold;
+        [Tooltip("Texto del hito para el aviso, p. ej. \"subir 3 galerías\"")]
+        public string unlockHint;
+
         [Header("Árboles (Esencia/Ícor) — 'requires' también vale para el Taller")]
         [Tooltip("Posición del nodo en el árbol (x: columnas, y: filas hacia abajo)")]
         public Vector2 treePos;
@@ -161,6 +174,13 @@ namespace Marmoreal
         [Header("Discípulas (canicas aliadas)")]
         public float allyResonancePerHit = 0.03f;
 
+        [Header("Coste del Taller escalado por poder permanente")]
+        public bool workshopCostScale = true;
+        [Tooltip("k: coste × (Brillo×Obra×Fama)^k. 0 = sin escalado")]
+        public float workshopCostK = 2f;
+        [Tooltip("Coste × este valor ^ nº de pulidos (más contenido por vida cuanto más pules)")]
+        public float workshopCostPerPrestige = 1.14f;
+
         [Header("Mecenazgos")]
         [Tooltip("Fama: +X polvo por cada mecenazgo conseguido (aditivo)")]
         public float famePerAchievement = 0.02f;
@@ -199,7 +219,19 @@ namespace Marmoreal
             fresh.FillDefaults();
             bool changed = false;
             foreach (var u in fresh.upgrades)
-                if (Get(u.id) == null) { upgrades.Add(u); changed = true; map = null; }
+            {
+                var old = Get(u.id);
+                if (old == null) { upgrades.Add(u); changed = true; map = null; continue; }
+                // Migración aditiva de la progresión por Pulido: solo si el asset aún no la trae (no pisa lo que edites)
+                if (old.maxLevelLimit == 0 && old.maxLevelPerPrestige == 0 && u.maxLevelPerPrestige > 0)
+                { old.maxLevelPerPrestige = u.maxLevelPerPrestige; old.maxLevelLimit = u.maxLevelLimit; changed = true; }
+                if (string.IsNullOrEmpty(old.unlockStat) && !string.IsNullOrEmpty(u.unlockStat))
+                { old.unlockStat = u.unlockStat; old.unlockThreshold = u.unlockThreshold; old.unlockHint = u.unlockHint; changed = true; }
+                // Mejoras "vivas": los antiguos topes 60 / 14 pasan a ilimitado
+                if (u.maxLevel >= 999 && (u.id == "resonancia" && old.maxLevel == 60 || u.id == "vinculo" && old.maxLevel == 14))
+                { old.maxLevel = u.maxLevel; changed = true; }
+                if (u.id == "cargas" && old.maxLevelLimit == 0 && old.maxLevel == 3) { old.maxLevelLimit = u.maxLevelLimit; old.maxLevelPerPrestige = u.maxLevelPerPrestige; changed = true; }
+            }
             foreach (var p in fresh.powers)
                 if (GetPower(p.id) == null) { powers.Add(p); changed = true; }
             foreach (var a in fresh.achievements)
@@ -214,17 +246,17 @@ namespace Marmoreal
             upgrades = new List<UpgradeDef>
             {
                 U("masa", "Masa", "Cada impacto golpea más fuerte.", "●", 12, 1.5, 500, EffectMode.Exponential, 3f, 1.3f, "{0} daño"),
-                U("inercia", "Inercia", "Velocidad máxima y aceleración.", "➤", 30, 1.75, 25, EffectMode.Linear, 11f, 0.75f, "{0} m/s"),
-                U("iman", "Imán", "Radio de atracción del polvo.", "◎", 20, 1.6, 25, EffectMode.Linear, 5f, 0.9f, "{0} m"),
+                Cap(U("inercia", "Inercia", "Velocidad máxima y aceleración.", "➤", 30, 1.75, 25, EffectMode.Linear, 11f, 0.75f, "{0} m/s"), 1, 60),
+                Cap(U("iman", "Imán", "Radio de atracción del polvo.", "◎", 20, 1.6, 25, EffectMode.Linear, 5f, 0.9f, "{0} m"), 1, 60),
                 U("pureza", "Pureza", "Más polvo por cada fragmento.", "✦", 45, 1.75, 500, EffectMode.Exponential, 1f, 1.2f, "×{0}"),
-                U("fortuna", "Fortuna", "Probabilidad de golpe crítico (×3).", "★", 150, 1.9, 18, EffectMode.Linear, 0.05f, 0.025f, "{0}", 1),
-                U("cantera", "Cantera", "Más bloques de mármol a la vez.", "▣", 80, 2.15, 12, EffectMode.Linear, 5f, 1f, "{0} bloques", 1),
-                U("acolitos", "Acólitos", "Esferas que tallan por ti, incluso sin mirar.", "○", 150, 3.0, 12, EffectMode.Linear, 0f, 1f, "{0} acólitos", 2),
+                Cap(U("fortuna", "Fortuna", "Probabilidad de golpe crítico (×3).", "★", 150, 1.9, 18, EffectMode.Linear, 0.05f, 0.025f, "{0}", 1), 1, 30),
+                Cap(U("cantera", "Cantera", "Más bloques de mármol a la vez.", "▣", 80, 2.15, 12, EffectMode.Linear, 5f, 1f, "{0} bloques", 1), 1, 30),
+                Hito(Cap(U("acolitos", "Acólitos", "Esferas que tallan por ti, incluso sin mirar.", "○", 150, 3.0, 12, EffectMode.Linear, 0f, 1f, "{0} acólitos", 2), 1.5f, 50), "runGalleries", 3, "subir 3 galerías en esta vida"),
                 U("cincel", "Cincel", "Daño de los acólitos.", "⚒", 220, 1.6, 500, EffectMode.Exponential, 1.6f, 1.28f, "{0} daño", 2),
-                U("resonancia", "Resonancia", "Poder y radio de la onda [F].", "≋", 300, 1.7, 60, EffectMode.Linear, 1f, 0.35f, "×{0}", 3),
-                U("cargas", "Doble Embestida", "Cargas de Embestida [Shift]: encadena varias seguidas antes de recargar.", "»", 600, 6, 3, EffectMode.Linear, 1f, 1f, "{0} cargas", 2),
-                U("gemelas", "Discípulas", "Canicas de mármol que ruedan solas y embisten bloques con una parte de TU daño de impacto.", "◐", 2500, 3.2, 8, EffectMode.Linear, 0f, 1f, "{0} discípulas", 4),
-                P(U("vinculo", "Vínculo", "Parte de tu daño de impacto que copian las Discípulas.", "∾", 4000, 1.85, 14, EffectMode.Linear, 0.3f, 0.05f, "{0} de tu daño", 4), "gemelas"),
+                U("resonancia", "Resonancia", "Poder y radio de la onda [F]. Sin límite.", "≋", 300, 1.7, 999, EffectMode.Linear, 1f, 0.35f, "×{0}", 3),
+                Cap(U("cargas", "Doble Embestida", "Cargas de Embestida [Shift]: encadena varias seguidas antes de recargar. Cada 2 pulidos, una carga más.", "»", 600, 6, 3, EffectMode.Linear, 1f, 1f, "{0} cargas", 2), 0.5f, 8),
+                Hito(Cap(U("gemelas", "Discípulas", "Canicas de mármol que ruedan solas y embisten bloques con una parte de TU daño de impacto.", "◐", 2500, 3.2, 8, EffectMode.Linear, 0f, 1f, "{0} discípulas", 4), 1, 24), "runVolatile", 12, "romper 12 bloques volcánicos en esta vida"),
+                P(U("vinculo", "Vínculo", "Parte de tu daño de impacto que copian las Discípulas. Sin límite.", "∾", 4000, 1.85, 999, EffectMode.Linear, 0.3f, 0.05f, "{0} de tu daño", 4), "gemelas"),
 
                 // ---------- MEJORAS DE PODERES (Polvo; aparecen al desbloquear el poder en el Altar y se pierden al Pulir) ----------
                 P(U("pw_supernova", "Pólvora Divina", "Daño de la Supernova [1]. Empieza flojo: súbelo en cada vida.", "✹", 400, 2.2, 20, EffectMode.Exponential, 0.25f, 1.1f, "×{0} daño"), "supernova"),
@@ -349,6 +381,9 @@ namespace Marmoreal
         /// <summary>Mejora del Taller que requiere tener desbloqueado un nodo (p. ej. el poder en el Altar).</summary>
         static UpgradeDef P(UpgradeDef u, params string[] req) { u.requires = req; return u; }
 
+        static UpgradeDef Cap(UpgradeDef u, float perPrestige, int limit) { u.maxLevelPerPrestige = perPrestige; u.maxLevelLimit = limit; return u; }
+        static UpgradeDef Hito(UpgradeDef u, string stat, int threshold, string hint) { u.unlockStat = stat; u.unlockThreshold = threshold; u.unlockHint = hint; return u; }
+
         static AchievementDef A(string id, string n, string d, string stat, double th, int icor)
             => new AchievementDef { id = id, displayName = n, description = d, stat = stat, threshold = th, rewardIcor = icor };
 
@@ -365,6 +400,7 @@ namespace Marmoreal
         {
             var u = U(id, n, d, g, c, gr, max, m, b, p, fmt);
             u.currency = Currency.Essence;
+            u.scaleCost = false;
             u.treePos = new Vector2(x, y);
             u.branch = branch;
             u.requires = req ?? new string[0];

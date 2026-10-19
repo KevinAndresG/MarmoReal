@@ -39,6 +39,18 @@ namespace Marmoreal
         public List<string> achievements = new List<string>();
         public List<UpgradeLevel> levels = new List<UpgradeLevel>();
 
+        // Vida actual (se reinicia al Pulir) y resumen de la anterior
+        public int lifeStartGallery;
+        public int runVolatile;
+        public int lifeStatues;
+        public float lifeStartSeconds;
+        public List<string> hitosSeen = new List<string>();
+        public float lastLifeSeconds;
+        public int lastLifeStatues;
+        public int lastLifeGalleries;
+        public double lastLifeDust;
+        public double lastLifeBestHit;
+
         // Ajustes
         public int quality = -1;
         public bool muted;

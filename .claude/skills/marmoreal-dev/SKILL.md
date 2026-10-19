@@ -57,6 +57,8 @@ Escena: `Assets/Marmoreal/Scenes/Marmoreal.unity` (`--- ILUMINACIÓN ---`, `--- 
 ## Trampas conocidas
 - **No edites `.cs` con el juego en Play**: cada `Unity_RunCommand` refresca el AssetDatabase, recompila y hace una
   recarga de dominio a mitad de partida (corrutinas cortadas, clips de audio nulos). Para → edita → compila → Play.
+- Si `Unity_RunCommand` falla con "No logs available" (visto en la Sesión 1), usa `Unity_ManageEditor` (Play/Stop/GetState) y
+  `Unity_ManageMenuItem` (parámetros `Action`/`MenuPath` con mayúscula) para ejecutar los menús aditivos (migran `Economy.asset`).
 - El puente Unity MCP habla con **el último editor abierto**: si hay otro proyecto abierto, comprueba
   `Unity_ManageEditor GetProjectRoot` antes de ejecutar nada.
 - Desde `Unity_RunCommand` los **estáticos** (`GameManager.I`, etc.) pueden verse `null`: usa
@@ -82,6 +84,13 @@ Replica la cifra en `Tools/balance_sim.py` (`DUST`).
 nodo de nivel 1 con el mismo id + `PowerDef` en `powers` + un `case` en `PowerSystem.Cast` + su mejora de Taller
 `pw_<id>` (Dust, `requires = {id}`; se lee con `GameManager.PowerUpgrade(id, fallback)` / `PowerDamage(id, potencia)`). Replica en `ALTAR`/`POWERS`
 del simulador. Añádelo también a `FillDefaults()` para que `EnsureDefaults()` lo migre a partidas/asset antiguos.
+
+**Progresión por Pulido:** coste del Taller = `CostOf` (`GameManager.WorkshopCostFactor`, params `workshopCost*` en
+`EconomyConfig`); topes = `GameManager.MaxLevelOf(d)` (`maxLevelPerPrestige`/`maxLevelLimit`); hitos de ayudantes =
+`unlockStat/unlockThreshold` (`GameManager.RunStat`, `OnVolatileBroken` lo llama `Monolith.Erupt`); resumen al Pulir =
+`GameManager.PrestigeReport` (modal en `Hud.OnPrestiged`). Estado de vida en `GameState` (`lifeStartGallery`, `runVolatile`, `lastLife*`).
+Simulador: `CAPS`, `MILESTONE`, env `SIMK` (k), `SIMPG` (crecimiento/pulido), tabla "Vida | Taller completo".
+Usa siempre `Hud`/`gm.IsMaxed`/`gm.CostOf` (no `d.maxLevel`/`d.Cost` directos).
 
 **Retocar balance:** `python Tools/balance_sim.py 20` → tabla de hitos (objetivos en `Docs/GDD.md §5`).
 Prueba real: piloto automático compra lo más barato; compara `Temp/hud_state.txt` con el simulador.

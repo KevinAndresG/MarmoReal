@@ -95,17 +95,17 @@ Calacatta Oro) y se llega más lejos.
 | Mejora | Coste base | Crec. | Efecto | Desbloqueo |
 |---|---|---|---|---|
 | Masa | 12 | ×1.5 | daño 3 × 1.3^n | — |
-| Inercia | 30 | ×1.75 | vel. 11 + 0.75n m/s (máx. 25) | — |
-| Imán | 20 | ×1.6 | radio 5 + 0.9n m (máx. 25) | — |
+| Inercia | 30 | ×1.75 | vel. 11 + 0.75n m/s (tope 25, +1 por Pulido, hasta 60) | — |
+| Imán | 20 | ×1.6 | radio 5 + 0.9n m (tope 25, +1/Pulido, hasta 60) | — |
 | Pureza | 45 | ×1.75 | polvo × 1.2^n | — |
-| Fortuna | 150 | ×1.9 | crítico 5 % + 2.5 %/n (máx. 18) | Galería II |
-| Cantera | 80 | ×2.15 | bloques simultáneos 5 + n (máx. 12) | Galería II |
-| Acólitos | 150 | ×3.0 | +1 acólito (máx. 12) | Galería III |
+| Fortuna | 150 | ×1.9 | crítico 5 % + 2.5 %/n (tope 18, +1/Pulido, hasta 30) | Galería II |
+| Cantera | 80 | ×2.15 | bloques simultáneos 5 + n (tope 12, +1/Pulido, hasta 30) | Galería II |
+| Acólitos | 150 | ×3.0 | +1 acólito (tope 12, +1,5/Pulido, hasta 50) | Galería III **y** hito: subir 3 galerías en esta vida |
 | Cincel | 220 | ×1.6 | daño acólito 1.6 × 1.28^n | Galería III |
-| Resonancia | 300 | ×1.7 | onda × (1 + 0.35n) (máx. 60) | Galería IV |
-| Doble Embestida | 600 | ×6 | cargas de Embestida 1 + n (máx. 3 → 4 cargas) | Galería III |
-| Discípulas | 2 500 | ×3.2 | +1 canica aliada (máx. 8) | Galería V |
-| Vínculo | 4 000 | ×1.85 | las Discípulas copian 30 % + 5 %/n de tu daño (máx. 14 → 100 %) | 1.ª Discípula |
+| Resonancia | 300 | ×1.7 | onda × (1 + 0.35n) (**sin tope**) | Galería IV |
+| Doble Embestida | 600 | ×6 | cargas de Embestida 1 + n (tope 3, +1 cada 2 Pulidos, hasta 8) | Galería III |
+| Discípulas | 2 500 | ×3.2 | +1 canica aliada (tope 8, +1/Pulido, hasta 24) | Galería V **y** hito: romper 12 volcánicos en esta vida |
+| Vínculo | 4 000 | ×1.85 | las Discípulas copian 30 % + 5 %/n de tu daño (**sin tope**) | 1.ª Discípula |
 | Pólvora Divina | 400 | ×2.2 | daño Supernova × 0.25·1.1^n (máx. 20 → ×1.68) | poder Supernova |
 | Gravedad Rota | 900 | ×2.2 | daño Ingravidez × 0.25·1.1^n | poder Ingravidez |
 | Núcleo Ígneo | 900 | ×2.2 | daño Meteoros × 0.25·1.1^n | poder Meteoros |
@@ -117,6 +117,16 @@ Calacatta Oro) y se llega más lejos.
 **Discípulas** (`Gameplay/AllySquad.cs` + `AllyMarble.cs`, prefab `Prefabs/Ally`): canicas físicas que eligen uno
 de los 3 bloques más cercanos, toman carrerilla y lo embisten. Daño = tu daño de impacto × (v/9)² × Vínculo (sin
 combo; críticos y Furia sí). No usan poderes. No chocan con la canica ni entre ellas. Dan algo de Resonancia.
+
+**Progresión por Pulido (Sesión 1)** — todo editable en `Economy.asset`:
+- **Coste escalado:** `Coste = baseCost × growth^nivel × (Brillo×Obra×Fama)^k × crecimiento^pulidos` (solo Taller, campos
+  `workshopCostScale/K/PerPrestige`; por mejora `scaleCost`). Defecto: k = 2, crecimiento 1.14. El poder permanente
+  sigue dando ritmo, pero el Taller deja de agotarse en 1 min.
+- **Topes que suben:** `maxLevelPerPrestige` (admite fracciones) y `maxLevelLimit` en cada `UpgradeDef`; la HUD muestra el tope actual.
+- **Ayudantes por hito:** `unlockStat` (`runGalleries` / `runVolatile`) + `unlockThreshold` + `unlockHint`; cuentan solo la vida actual.
+- **Mejoras vivas sin tope:** Masa, Pureza, Cincel, Resonancia y Vínculo.
+- **Al Pulir:** modal con resumen de la vida anterior y "qué se abre ahora" (topes nuevos, hitos).
+- Migración: `EnsureDefaults()` copia estos campos a mejoras existentes solo si el asset no los trae.
 
 Las 7 últimas (borde naranja) son las **mejoras de poderes**: aparecen al desbloquear el poder en el
 Altar y, como todo el Taller, se pierden al Pulir. Así cada vida empieza con poderes flojos
@@ -223,6 +233,21 @@ Calibrado con `Tools/balance_sim.py` (jugador que compra lo más barato y pule a
 | ~1.5-3 h | Coloso, Vórtice y Toque de Midas |
 | 20 h | Galería ~190, 13-14 pulidos, *Obra Maestra* subiendo, Altar ~90 niveles |
 | decenas de horas | Altar completo (≈17 000 Ícor sin contar Ira Divina, que no tiene límite) |
+
+**Sesión 1 (economía y ritmo) — antes / después** (`python Tools/balance_sim.py 20`):
+
+| Métrica | Antes | Después |
+|---|---|---|
+| 1.er Pulido | 53,8 min · Gal. 35 | 52,1 min · Gal. 29 |
+| 5.º Pulido | 234,8 min · Gal. 108 | 206,0 min · Gal. 68 |
+| 10.º Pulido | 768,0 min · Gal. 186 | 683,6 min · Gal. 117 |
+| Galería a las 20 h | 219 (13 pulidos) | 127 (15 pulidos) |
+| Taller completo, vida 1 / 2 / 5 / 10 / 14 | ~27 / 7 / 1,8 / 1,4 / 1,3 min | ~52 / 12 / 8 / 6 / 7 min |
+| Duración de la vida (pulidos 7-14) | ~100-118 min | ~77-119 min |
+
+"Taller completo" = todas las mejoras con tope al máximo. Objetivo 8-12 min: se cumple en las vidas 2-4 (12→8 min);
+después baja a ~5-7 min y **no crece** el 30 % cada 3 pulidos (pendiente: más topes/mejoras "vivas" o k mayor;
+con k=2,4 la vida 1 se atasca y nunca completa el Taller). Los topes ilimitados de Resonancia/Vínculo cuentan fuera de esa medida.
 
 Con Poderes, Musas y Fama el primer Pulido llega a los ~45 min en la Galería ~30 (antes ~40 min,
 Galería 22): el muro sigue ahí, pero llegas un poco más lejos y se gana más Esencia.

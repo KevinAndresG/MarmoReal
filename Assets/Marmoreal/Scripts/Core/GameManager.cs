@@ -129,7 +129,7 @@ namespace Marmoreal
             if (overflowTimer > 0) Resonance = 1f;
 
             achievementTimer -= dt;
-            if (achievementTimer <= 0) { achievementTimer = 1f; CheckAchievements(); }
+            if (achievementTimer <= 0) { achievementTimer = 1f; CheckAchievements(); CheckHitos(); }
 
             saveTimer += dt;
             if (saveTimer >= autosaveInterval) { saveTimer = 0; Save(); }
@@ -148,13 +148,44 @@ namespace Marmoreal
             return d == null ? 0f : d.Value(S.Level(id));
         }
 
-        public bool IsMaxed(UpgradeDef d) => S.Level(d.id) >= d.maxLevel;
-        public double CostOf(UpgradeDef d) => d.Cost(S.Level(d.id));
+        /// <summary>Tope actual: el base + lo que suma cada Pulido (hasta maxLevelLimit).</summary>
+        public int MaxLevelOf(UpgradeDef d) => MaxLevelAt(d, S.prestigeCount);
+
+        public static int MaxLevelAt(UpgradeDef d, int prestiges)
+        {
+            if (d.currency != Currency.Dust || d.maxLevelPerPrestige <= 0 || d.maxLevelLimit <= 0) return d.maxLevel;
+            return Mathf.Max(d.maxLevel, Mathf.Min(d.maxLevelLimit, d.maxLevel + Mathf.FloorToInt(d.maxLevelPerPrestige * prestiges + 1e-4f)));
+        }
+
+        public bool IsMaxed(UpgradeDef d) => S.Level(d.id) >= MaxLevelOf(d);
+
+        /// <summary>Factor de coste del Taller: (Brillo×Obra×Fama)^k × crecimiento^pulidos. Mantiene el ritmo de compra pese al poder permanente.</summary>
+        public double WorkshopCostFactor(UpgradeDef d)
+        {
+            if (d.currency != Currency.Dust || !d.scaleCost || !config.workshopCostScale) return 1.0;
+            double power = Math.Max(1.0, (double)GlobalMult * FameMult);
+            return Math.Pow(power, config.workshopCostK) * Math.Pow(config.workshopCostPerPrestige, S.prestigeCount);
+        }
+
+        public double CostOf(UpgradeDef d) => Math.Ceiling(d.Cost(S.Level(d.id)) * WorkshopCostFactor(d));
+
+        public double RunStat(string stat)
+        {
+            switch (stat)
+            {
+                case "runGalleries": return Math.Max(0, S.galleryLevel - S.lifeStartGallery);
+                case "runVolatile": return S.runVolatile;
+                default: return 0;
+            }
+        }
+
+        public bool MilestoneMet(UpgradeDef d) => string.IsNullOrEmpty(d.unlockStat) || RunStat(d.unlockStat) >= d.unlockThreshold;
         public double Balance(Currency c) => c == Currency.Dust ? S.dust : c == Currency.Essence ? S.essence : S.icor;
         public bool CanAfford(UpgradeDef d) => !IsMaxed(d) && IsUnlocked(d) && Balance(d.currency) >= CostOf(d);
         public bool IsUnlocked(UpgradeDef d)
         {
             if (d.currency == Currency.Dust && S.galleryLevel < d.unlockGallery && S.prestigeCount == 0) return false;
+            if (d.currency == Currency.Dust && !MilestoneMet(d)) return false;
             if (d.requires == null) return true;
             foreach (var r in d.requires) if (S.Level(r) <= 0) return false;
             return true;
@@ -244,9 +275,12 @@ namespace Marmoreal
         public int StatuesNeeded => Mathf.Min(config.statuesPerGalleryMax,
             config.statuesPerGalleryBase + config.statuesPerGalleryStep * S.galleryLevel);
 
+        public void OnVolatileBroken() { S.runVolatile++; }
+
         public void OnStatueFreed(bool golden, bool transmuted = false)
         {
             S.totalStatues++;
+            S.lifeStatues++;
             if (golden && !transmuted)
             {
                 S.goldenFound++;
@@ -334,10 +368,44 @@ namespace Marmoreal
         public double PrestigeGainNext =>
             Math.Floor(config.prestigeBase * Math.Pow(Math.Max(0, S.galleryLevel + 1 - config.prestigeMinGallery) + 3, config.prestigePow));
 
+        /// <summary>Texto "qué se abre ahora" del último Pulido (lo muestra la HUD).</summary>
+        public string PrestigeReport { get; private set; } = "";
+
+        string BuildReport(int oldP, int newP, double gain)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("VIDA ANTERIOR");
+            sb.AppendLine($"{Num.Time(S.lastLifeSeconds)} · {S.lastLifeStatues} estatuas · hasta Galería {Num.Roman(S.lastLifeGalleries)} · {Num.F(S.lastLifeDust)} polvo · mejor golpe {Num.F(S.lastLifeBestHit)}");
+            sb.AppendLine($"Esencia +{Num.F(gain)}");
+            sb.AppendLine();
+            sb.AppendLine("QUÉ SE ABRE AHORA");
+            bool any = false;
+            foreach (var d in config.upgrades)
+            {
+                if (d.currency != Currency.Dust) continue;
+                int a = MaxLevelAt(d, oldP), b = MaxLevelAt(d, newP);
+                if (b > a) { sb.AppendLine($"· {d.displayName}: tope {a} → {b}"); any = true; }
+            }
+            foreach (var d in config.upgrades)
+                if (d.currency == Currency.Dust && !string.IsNullOrEmpty(d.unlockStat))
+                { sb.AppendLine($"· {d.displayName}: aparece al {(string.IsNullOrEmpty(d.unlockHint) ? d.unlockStat : d.unlockHint)}"); any = true; }
+            if (!any) sb.AppendLine("· (nada nuevo esta vez)");
+            sb.AppendLine();
+            sb.Append($"Coste del Taller: ×{WorkshopCostFactor(config.Get("masa") ?? new UpgradeDef()):0.#} sobre el precio base (por tu poder permanente).");
+            return sb.ToString();
+        }
+
         public void DoPrestige()
         {
             if (!CanPrestige) return;
             double gain = PrestigeGain;
+            // Resumen de la vida que termina
+            S.lastLifeSeconds = S.playSeconds - S.lifeStartSeconds;
+            S.lastLifeStatues = S.lifeStatues;
+            S.lastLifeGalleries = S.galleryLevel + 1;
+            S.lastLifeDust = S.runDust;
+            S.lastLifeBestHit = S.bestHit;
+            int oldP = S.prestigeCount;
             S.essence += gain;
             S.lifetimeEssence += gain;
             S.prestigeCount++;
@@ -348,9 +416,15 @@ namespace Marmoreal
             foreach (var d in config.upgrades)
                 if (d.currency == Currency.Dust) S.SetLevel(d.id, 0);
             S.galleryLevel = Mathf.RoundToInt(Value("memoria"));
+            S.lifeStartGallery = S.galleryLevel;
+            S.runVolatile = 0;
+            S.lifeStatues = 0;
+            S.lifeStartSeconds = S.playSeconds;
+            S.hitosSeen.Clear();
             Combo = 0;
             Resonance = 0;
             RecalcStats();
+            PrestigeReport = BuildReport(oldP, S.prestigeCount, gain);
             Save();
             AudioFX.I?.Play(Sfx.Prestige);
             Prestiged?.Invoke();
@@ -392,6 +466,21 @@ namespace Marmoreal
 
         public void RegisterPowerUse() => S.powersUsed++;
         public void RegisterMusa() { S.musasCaught++; }
+
+        // =================== Hitos de ayudantes ===================
+
+        void CheckHitos()
+        {
+            foreach (var d in config.upgrades)
+            {
+                if (d.currency != Currency.Dust || string.IsNullOrEmpty(d.unlockStat) || !MilestoneMet(d)) continue;
+                string key = S.prestigeCount + ":" + d.id;
+                if (S.hitosSeen.Contains(key)) continue;
+                S.hitosSeen.Add(key);
+                Toast?.Invoke($"Hito cumplido: ya puedes comprar {d.displayName}", ToastKind.Gallery);
+                StatsChanged?.Invoke();
+            }
+        }
 
         // =================== Mecenazgos ===================
 

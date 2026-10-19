@@ -17,8 +17,13 @@ CFG = dict(
     statBase=8, statStep=2, statMax=30,
     critMult=3, shockMult=6, resPerImpact=0.1,
     prestigeMin=8, prestigeBase=0.3, prestigePow=1.6,
-    acolyteInterval=1.1,
+    acolyteInterval=1.1, volatileChance=0.06, volatileUnlock=2,
+    # Coste del Taller escalado por poder permanente: × (GlobalMult × Fama)^k (EconomyConfig.workshopCostScale*)
+    costPrestigeGrowth=float(__import__('os').environ.get('SIMPG',1.14)), costScaleOn=True, costScaleK=2.0,
 )
+SCALE_K = float(__import__("os").environ.get("SIMK", CFG["costScaleK"]))
+CFG["costScaleOn"] = SCALE_K > 0
+SCOPE = __import__("os").environ.get("SIMSCOPE", "all")
 
 # id: (baseCost, growth, max, mode, base, per, unlockGallery)
 DUST = {
@@ -30,10 +35,10 @@ DUST = {
     "cantera":    (80, 2.15, 12, "lin", 5, 1, 1),
     "acolitos":   (150, 3.0, 12, "lin", 0, 1, 2),
     "cincel":     (220, 1.6, 500, "exp", 1.6, 1.28, 2),
-    "resonancia": (300, 1.7, 60, "lin", 1, 0.35, 3),
+    "resonancia": (300, 1.7, 500, "lin", 1, 0.35, 3),   # viva (sin tope)
     "cargas":     (600, 6, 3, "lin", 1, 1, 2),          # cargas de Embestida
     "gemelas":    (2500, 3.2, 8, "lin", 0, 1, 4),       # Discípulas (canicas aliadas)
-    "vinculo":    (4000, 1.85, 14, "lin", 0.3, 0.05, 4),  # % de tu daño que copian (requiere gemelas)
+    "vinculo":    (4000, 1.85, 500, "lin", 0.3, 0.05, 4),  # % de tu daño que copian (requiere gemelas) · viva
     # Mejoras de poderes: solo aparecen con el poder desbloqueado en el Altar (se pierden al pulir)
     "pw_supernova":  (400, 2.2, 20, "exp", 0.25, 1.1, 0),
     "pw_ingravidez": (900, 2.2, 20, "exp", 0.25, 1.1, 0),
@@ -43,6 +48,15 @@ DUST = {
     "pw_midas":      (20000, 8, 4, "lin", 1, 1, 0),
     "pw_rayo":       (6000, 2.2, 20, "exp", 0.25, 1.1, 0),
 }
+# Topes que suben con cada Pulido: id: (niveles extra por pulido, tope absoluto). UpgradeDef.maxLevelPerPrestige / maxLevelLimit
+CAPS = {
+    "inercia": (1, 60), "iman": (1, 60), "fortuna": (1, 30), "cantera": (1, 30),
+    "acolitos": (1.5, 50), "cargas": (0.5, 8), "gemelas": (1, 24),
+}
+# Ayudantes por hito de ESTA vida: id: (estadística, umbral). UpgradeDef.unlockStat / unlockThreshold
+# run_galleries = galerías subidas en esta vida (no cuenta la Memoria); run_volatile = volcánicos rotos en esta vida
+MILESTONE = {"acolitos": ("run_galleries", 3), "gemelas": ("run_volatile", 12)}
+
 # id: (baseCost, growth, max, mode, base, per, requires)
 TREE = {
     "brillo":   (1, 1.55, 300, "exp", 1, 1.25, []),
@@ -133,6 +147,7 @@ class Sim:
         s.icor = 0.0; s.icor_life = 0.0
         s.st = dict(statues=0, golden=0, gallery=1, prestige=0, combo=0, powers=0, musas=0, dust=0)
         s.ach = set(); s.milestones = {}; s.cur_kills = 0.1
+        s.g0 = 0; s.run_vol = 0.0; s.done_t = None; s.lives = []   # (pulido, min hasta Taller completo, min de la vida)
 
     def V(s, k):
         if k in DUST: return val(DUST[k], s.lv[k])
@@ -140,6 +155,32 @@ class Sim:
         return val(TREE[k], s.tr[k])
 
     def fame(s): return 1 + ICOR["fame"] * len(s.ach)
+
+    def dust_cost(s, k):
+        c = cost(DUST[k], s.lv[k])
+        if CFG["costScaleOn"] and (SCOPE == "all" or DUST[k][2] < 500): c *= (s.V("brillo") * s.V("obra") * s.fame()) ** SCALE_K * CFG["costPrestigeGrowth"] ** s.prest
+        return c
+
+    def dmax(s, k):
+        m = DUST[k][2]
+        if k in CAPS: m = min(CAPS[k][1], m + int(CAPS[k][0] * s.prest + 1e-9))
+        return m
+
+    def dust_open(s, k):
+        d = DUST[k]
+        if s.g < d[6] and s.prest == 0: return False
+        if k.startswith("pw_") and not s.al[k[3:]]: return False
+        if k == "vinculo" and not s.lv["gemelas"]: return False
+        if k in MILESTONE:
+            st, th = MILESTONE[k]
+            if s.run_stat(st) < th: return False
+        return True
+
+    def run_stat(s, st):
+        return s.g - s.g0 if st == "run_galleries" else s.run_vol
+
+    def workshop_done(s):
+        return all(s.lv[k] >= s.dmax(k) for k in DUST if DUST[k][2] < 500 and (not k.startswith("pw_") or s.al[k[3:]]))
 
     def power_kills(s, hp):
         """Bloques/s extra por los poderes (daño = impacto × potencia × Ira) y multiplicador de polvo medio."""
@@ -241,9 +282,8 @@ class Sim:
             bought = False
             best = None
             for k, d in DUST.items():
-                if s.lv[k] >= d[2] or (s.g < d[6] and s.prest == 0): continue
-                if k.startswith("pw_") and not s.al[k[3:]]: continue
-                c = cost(d, s.lv[k])
+                if s.lv[k] >= s.dmax(k) or not s.dust_open(k): continue
+                c = s.dust_cost(k)
                 if best is None or c < best[0]: best = (c, k)
             if best and best[0] <= s.dust:
                 s.dust -= best[0]; s.lv[best[1]] += 1; bought = True
@@ -267,6 +307,7 @@ class Sim:
     def prestige(s):
         gn = s.gain()
         s.log.append(f"  >> PULIDO #{s.prest+1} a {s.t/60:6.1f} min | galería {s.g+1} | +{gn} esencia")
+        s.lives.append((s.prest, None if s.done_t is None else (s.done_t - s.life_t0) / 60, (s.t - s.life_t0) / 60))
         s.ess += gn; s.prest += 1
         s.st["prestige"] = s.prest
         s.add_icor(ICOR["prestigeBase"] + gn // ICOR["prestigeDiv"])
@@ -274,10 +315,11 @@ class Sim:
         s.lv = {k: 0 for k in DUST}
         s.spend_essence()
         s.g = int(s.V("memoria")); s.tg = s.t
+        s.g0 = s.g; s.run_vol = 0.0; s.done_t = None; s.life_t0 = s.t
 
     def run_sim(s, seconds):
         acc_hp = 0.0
-        first_prest_done = False
+        if not hasattr(s, "life_t0"): s.life_t0 = 0
         while s.t < seconds:
             s.t += 1
             hp, _ = s.block_hp()
@@ -296,6 +338,7 @@ class Sim:
             s.st["powers"] += casts; s.st["dust"] += earned; s.st["gallery"] = max(s.st["gallery"], s.g + 1)
             s.st["combo"] = 50 if s.t > 120 else 15 if s.t > 40 else 0
             if s.t % 5 == 0: s.check_ach(); s.spend_icor()
+            if s.g >= CFG["volatileUnlock"]: s.run_vol += kills * CFG["volatileChance"]
             s.dust += earned; s.run += earned
             while acc_hp >= 1:
                 acc_hp -= 1; s.stat += 1
@@ -306,6 +349,7 @@ class Sim:
                     hp, _ = s.block_hp()
             if s.run > 1e300: s.log.append("OVERFLOW"); break
             s.buy_cheapest()
+            if s.done_t is None and s.workshop_done(): s.done_t = s.t
             stuck = s.t - s.tg
             gn = s.gain()
             if s.g >= CFG["prestigeMin"] and gn >= 1:
@@ -323,6 +367,9 @@ if __name__ == "__main__":
         print(f"[{m:5d} min] galería {s.g+1:3d} | pulidos {s.prest:2d} | esencia libre {s.ess:7.0f} | árbol {sum(s.tr.values()):4d} niv"
               f" | ícor {s.icor_life:6.0f} (altar {sum(s.al.values()):3d} niv) | mecenazgos {len(s.ach):2d}")
     print("\n".join(l for l in s.log if os.environ.get("SIMLOG") or "PULIDO" in l or "PODER" in l))
+    print("Vida | Taller completo (min) | duración vida (min)")
+    for p, done, life in s.lives:
+        print(f"  #{p:2d} | {('%6.1f' % done) if done is not None else '   nunca'} | {life:6.1f}")
     print("Árbol: " + ", ".join(f"{k}{v}" for k, v in s.tr.items() if v))
     print("Altar: " + ", ".join(f"{k}{v}" for k, v in s.al.items() if v))
     finite = sum(sum(cost(d, l) for l in range(d[2])) for k, d in ALTAR.items() if d[2] < 100)

@@ -422,7 +422,8 @@ namespace Marmoreal
                 vis++;
                 int lvl = gm.Level(d.id);
                 bool maxed = gm.IsMaxed(d);
-                r.lvl.text = d.maxLevel < 999 ? $"Nv {lvl}/{d.maxLevel}" : $"Nv {lvl}";
+                int cap = gm.MaxLevelOf(d);
+                r.lvl.text = cap < 999 ? $"Nv {lvl}/{cap}" : $"Nv {lvl}";
                 r.cost.text = maxed ? "MÁX" : Num.F(gm.CostOf(d));
                 r.key.text = vis <= 9 ? $"[^{vis}]" : "";
                 r.effect.text = maxed ? FormatEffect(d, lvl) : FormatEffect(d, lvl) + "  →  " + FormatEffect(d, lvl + 1);
@@ -889,6 +890,8 @@ namespace Marmoreal
         void OnPrestiged()
         {
             RefreshShopNow();
+            var rep = GameManager.I.PrestigeReport;
+            if (!string.IsNullOrEmpty(rep)) OpenModal("CANICA PULIDA", rep, "SEGUIR", null, false);
             lastCombo = -1;
             galleryTitle.AddToClassList("up");
             galleryTitle.schedule.Execute(() => galleryTitle.RemoveFromClassList("up")).StartingIn(350);
