@@ -52,6 +52,15 @@ namespace Marmoreal
         public double lastLifeBestHit;
         public string biomeId = "carrara"; // sala actual (BiomeDef.id); partidas antiguas → carrara
 
+        // Mutadores, jefes y contratos (S3)
+        public string mutatorId = "";                 // MutatorDef.id de la vida actual ("" = ninguno)
+        public List<string> mutatorOffer = new List<string>(); // cartas ofrecidas al último Pulido
+        public int bossDoneGallery = -1;              // última galería cuyo Coloso cayó
+        public int lifeBosses;
+        public int lifeGolden;
+        public List<string> contracts = new List<string>();
+        public List<string> contractsDone = new List<string>();
+
         // Ajustes
         public int quality = -1;
         public bool muted;

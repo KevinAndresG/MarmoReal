@@ -31,6 +31,18 @@ namespace Marmoreal
         public float largeChanceBase = 0f, largeChanceStep = 0.04f, largeChanceMax = 0.45f;
         public Transform player;
 
+        [Header("Coloso (jefe cada N galerías; cifras en Economy.asset)")]
+        public Monolith bossPrefab;
+        [Tooltip("Dónde brota el Coloso (vacío = este objeto)")]
+        public Transform bossPoint;
+        public GameObject bossStatuePrefab;
+        [Tooltip("No brota si la canica está más cerca que esto del punto")]
+        public float bossClearRadius = 6f;
+        [System.NonSerialized] Monolith boss;
+        float bossDelay = 2f;
+        /// <summary>Coloso en pie (null si no hay).</summary>
+        public Monolith Boss => boss && boss.gameObject.activeSelf && active.Contains(boss) ? boss : null;
+
         readonly List<Monolith> active = new List<Monolith>();
         readonly Stack<Monolith> poolSmall = new Stack<Monolith>();
         readonly Stack<Monolith> poolLarge = new Stack<Monolith>();
@@ -76,6 +88,14 @@ namespace Marmoreal
             if (subscribed != gm) { gm.Prestiged += ResetAll; subscribed = gm; }
             if (points.Count == 0) CollectPoints(); // tras recarga de dominio
             cooldown -= Time.deltaTime;
+            if (gm.BossDue && !Boss)
+            {
+                bossDelay -= Time.deltaTime;
+                Vector3 bp = bossPoint ? bossPoint.position : transform.position;
+                Vector3 d = player ? player.position - bp : Vector3.one * 99f; d.y = 0;
+                if (bossDelay <= 0 && d.sqrMagnitude > bossClearRadius * bossClearRadius) SpawnBoss(false);
+            }
+            else bossDelay = 2f;
             int target = Mathf.Min(gm.MaxMonoliths, points.Count);
             if (active.Count < target && cooldown <= 0)
             {
@@ -90,7 +110,7 @@ namespace Marmoreal
             int idx = PickPoint();
             if (idx < 0) return false;
 
-            bool golden = Random.value < gm.GoldenChance;
+            bool golden = Random.value < gm.GoldenChance + (LifeDirector.I ? LifeDirector.I.GoldenBonus : 0f);
             float largeChance = Mathf.Min(largeChanceMax, largeChanceBase + largeChanceStep * gm.S.galleryLevel);
             bool large = largePrefab && Random.value < largeChance;
 
@@ -106,7 +126,7 @@ namespace Marmoreal
             var fab = pool != null && pool.Length > 0 ? pool[Random.Range(0, pool.Length)] : null;
             m.Init(this, hp, reward, statue, golden ? goldenMaterial : tierMaterials[tier], tier, fab, golden);
             var biome = BiomeManager.I ? BiomeManager.I.Current : null;
-            float volBonus = biome ? biome.volatileBonus : 0f;
+            float volBonus = (biome ? biome.volatileBonus : 0f) + (gm.Mutator != null ? gm.Mutator.volatileBonus : 0f);
             bool volOpen = gm.S.galleryLevel >= gm.config.volatileUnlockGallery;
             if (!golden && volatileMaterial && (volOpen || volBonus > 0) && Random.value < (volOpen ? gm.config.volatileChance : 0f) + volBonus)
             {
@@ -123,6 +143,27 @@ namespace Marmoreal
                 Hud.I?.ShowToast("¡Un bloque DORADO ha brotado!", ToastKind.Gold);
             }
             return true;
+        }
+
+        /// <summary>Hace brotar el Coloso (HP ×bossHPMult). trial = Prueba de sala (gancho para la campaña de la S4).</summary>
+        public Monolith SpawnBoss(bool trial)
+        {
+            var gm = GameManager.I;
+            if (!bossPrefab || !gm) return null;
+            if (Boss) return Boss;
+            if (!boss) { boss = Instantiate(bossPrefab, transform); boss.name = "Coloso"; boss.gameObject.SetActive(false); }
+            var p = bossPoint ? bossPoint : transform;
+            boss.transform.SetPositionAndRotation(p.position, Quaternion.Euler(0, Random.Range(0, 4) * 90f, 0));
+            int tier = TierFor(gm.S.galleryLevel);
+            double reward = gm.BossReward;
+            boss.Init(this, gm.BossHP, reward, gm.StatueReward(reward, true), tierMaterials[tier], tier, bossStatuePrefab, false);
+            boss.MakeBoss(trial);
+            active.Add(boss);
+            AudioFX.I?.Play(Sfx.Boom, 1f, 0.55f);
+            CameraRig.I?.Shake(0.7f);
+            Hud.I?.Banner(trial ? "PRUEBA DE LA SALA" : "UN COLOSO DESPIERTA");
+            Hud.I?.ShowToast("Derriba al COLOSO para abrir la siguiente galería", ToastKind.Gallery);
+            return boss;
         }
 
         int PickPoint()
@@ -153,6 +194,7 @@ namespace Marmoreal
         public void Release(Monolith m)
         {
             active.Remove(m);
+            if (m == boss) return;
             if (occupied.TryGetValue(m, out int idx)) { busy.Remove(idx); occupied.Remove(m); }
             (m.large ? poolLarge : poolSmall).Push(m);
         }

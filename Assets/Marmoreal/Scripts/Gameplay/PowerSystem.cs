@@ -104,6 +104,14 @@ namespace Marmoreal
                 return false;
             }
             if (cooldownLeft[i] > 0f) { AudioFX.I?.Play(Sfx.Deny, 0.4f); return false; }
+            var mu = GM.Mutator;
+            if (mu != null && mu.disabledPower == d.id)
+            {
+                Hud.I?.ShowToast($"{d.displayName} está sellado por el mutador {mu.displayName}", ToastKind.Info);
+                AudioFX.I?.Play(Sfx.Deny, 0.5f);
+                cooldownLeft[i] = 1.5f;
+                return false;
+            }
 
             bool ok = Cast(d, false);
             if (!ok) { cooldownLeft[i] = 1.5f; return false; } // evita repetir el intento cada frame

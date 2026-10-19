@@ -29,6 +29,13 @@ namespace Marmoreal
         public State CurrentState { get; private set; }
         public bool IsTargetable => CurrentState == State.Active;
         public bool Golden { get; private set; }
+        /// <summary>Coloso (jefe): 3 fases visibles, recompensa de Ícor. Trial = Prueba de sala (campaña).</summary>
+        public bool IsBoss { get; private set; }
+        public bool Trial { get; private set; }
+        public int BossPhase { get; private set; }
+        [Tooltip("Brillo de las grietas del Coloso en las fases II y III")]
+        public Color phaseGlow2 = new Color(1f, 0.45f, 0.1f), phaseGlow3 = new Color(1f, 0.08f, 0.04f);
+        public float phaseGlowIntensity = 20f;
         /// <summary>Mármol volcánico: al romperse del todo estalla y daña a los bloques vecinos.</summary>
         public bool Volatile { get; private set; }
         public double HP { get; private set; }
@@ -88,6 +95,7 @@ namespace Marmoreal
             owner = spawner;
             HP = hp; dealt = 0; pending = 0;
             Golden = golden;
+            IsBoss = false; Trial = false; BossPhase = 0;
             Volatile = false;
             transmuted = false;
             tierIndex = tier;
@@ -137,6 +145,36 @@ namespace Marmoreal
             stateTime = 0;
             block.localPosition = baseBlockPos + Vector3.down * BlockHeight;
             if (statueAnchor) statueAnchor.localPosition = Vector3.down * BlockHeight;
+        }
+
+        /// <summary>Convierte el bloque recién iniciado en Coloso (lo llama MonolithSpawner.SpawnBoss).</summary>
+        public void MakeBoss(bool trial)
+        {
+            IsBoss = true; Trial = trial; BossPhase = 0;
+            SetChunkGlow(Color.black);
+        }
+
+        void SetChunkGlow(Color c)
+        {
+            var b = new MaterialPropertyBlock();
+            if (c != Color.black) b.SetColor(EmissiveColorId, c);
+            foreach (var r in chunks) r.SetPropertyBlock(c == Color.black ? null : b);
+        }
+
+        void BossPhaseCheck(Vector3 point)
+        {
+            int phase = dealt >= HP * 2.0 / 3.0 ? 2 : dealt >= HP / 3.0 ? 1 : 0;
+            if (phase <= BossPhase) return;
+            BossPhase = phase;
+            SetChunkGlow((phase == 1 ? phaseGlow2 : phaseGlow3) * phaseGlowIntensity);
+            Vector3 c = transform.position + Vector3.up * 2f;
+            PowerSystem.I?.FlashAt(c, phase == 1 ? phaseGlow2 : phaseGlow3, 0.8f);
+            for (int i = 0; i < 14; i++)
+                ShardSystem.I?.SpawnDebris(c + Random.insideUnitSphere * 1.5f, Random.rotation, Vector3.one * Random.Range(0.4f, 0.8f),
+                    Random.insideUnitSphere * 12f + Vector3.up * 9f, owner ? owner.DebrisIndexFor(tierIndex, false) : 0, GetInstanceID());
+            AudioFX.I?.Play(Sfx.Boom, 1f, 0.7f);
+            CameraRig.I?.Shake(0.6f);
+            Hud.I?.Banner(phase == 1 ? "COLOSO · FASE II" : "COLOSO · FASE III");
         }
 
         public void SetVolatile(Material mat)
@@ -207,6 +245,7 @@ namespace Marmoreal
             punch = Mathf.Min(1f, punch + 0.35f + (src == HitSource.Player ? 0.4f : 0f));
             Hud.I?.DamageNumber(point, dmg, crit, src);
             if (src == HitSource.Player) BiomeManager.I?.OnPlayerHit(this, dmg, point);
+            if (IsBoss) BossPhaseCheck(point);
 
             int broken = 0;
             while (pending >= chunkHP && alive.Count > 0)
@@ -345,6 +384,7 @@ namespace Marmoreal
                     Random.insideUnitSphere * 6f + Vector3.up * 6f, owner ? owner.DebrisIndexFor(0, true) : 0, GetInstanceID());
             AudioFX.I?.Play(Sfx.Shatter, 0.9f, Random.Range(0.9f, 1.1f));
             Hud.I?.StatueFreed(c, statueReward, Golden);
+            if (IsBoss) { GameManager.I?.OnBossDefeated(Trial); SetChunkGlow(Color.black); }
             GameManager.I?.OnStatueFreed(Golden, transmuted);
             if (statue) statue.SetActive(false);
             CurrentState = State.Idle;
@@ -366,6 +406,7 @@ namespace Marmoreal
         public void Levitate(float height, float rise, float hold, float damage)
         {
             if (CurrentState != State.Active) return;
+            if (IsBoss) { TakeDamage(damage, transform.position + Vector3.up, HitSource.Power, false); return; } // el Coloso no levita
             CurrentState = State.Levitating;
             stateTime = 0;
             levHeight = height; levRise = rise; levHold = hold; levDamage = damage;
@@ -408,7 +449,7 @@ namespace Marmoreal
         /// <summary>Toque de Midas: convierte el bloque en oro (vale mucho más).</summary>
         public bool MakeGolden()
         {
-            if (Golden || (CurrentState != State.Active && CurrentState != State.Rising) || !owner) return false;
+            if (Golden || IsBoss || (CurrentState != State.Active && CurrentState != State.Rising) || !owner) return false;
             var gm = GameManager.I;
             Golden = true;
             transmuted = true;

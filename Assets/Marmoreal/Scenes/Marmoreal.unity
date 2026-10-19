@@ -529,6 +529,50 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 56435349}
   m_Mesh: {fileID: 4300000, guid: a49298ed7fad27a4eac31c8600fe8a38, type: 2}
+--- !u!1 &69724339
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 69724340}
+  - component: {fileID: 69724341}
+  m_Layer: 0
+  m_Name: LifeDirector (eventos y contratos)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &69724340
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 69724339}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1552129599}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &69724341
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 69724339}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61992cd6748c00e43904d3f1d2b31d4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Marmoreal.LifeDirector
 --- !u!1 &77697644
 GameObject:
   m_ObjectHideFlags: 0
@@ -7318,7 +7362,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1347700757}
   m_Father: {fileID: 1552129599}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &707133154
@@ -7363,6 +7408,10 @@ MonoBehaviour:
   largeChanceStep: 0.04
   largeChanceMax: 0.45
   player: {fileID: 132092393}
+  bossPrefab: {fileID: 1361683738626841522, guid: f795a024ccc2ed847a38ccf5e24f5c88, type: 3}
+  bossPoint: {fileID: 1347700757}
+  bossStatuePrefab: {fileID: 212435436680899119, guid: 09caae02373e9634bbac79d3e80ac039, type: 3}
+  bossClearRadius: 6
 --- !u!1 &736383916
 GameObject:
   m_ObjectHideFlags: 0
@@ -12257,6 +12306,37 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1346794743}
   m_Mesh: {fileID: 4300000, guid: e39d1e2d6d662b44dba8543d4e089d2b, type: 2}
+--- !u!1 &1347700756
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1347700757}
+  m_Layer: 0
+  m_Name: Pedestal del Coloso
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1347700757
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1347700756}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 707133153}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1358965731
 GameObject:
   m_ObjectHideFlags: 0
@@ -13281,6 +13361,7 @@ Transform:
   - {fileID: 313560426}
   - {fileID: 270014821}
   - {fileID: 229540651}
+  - {fileID: 69724340}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1567865532

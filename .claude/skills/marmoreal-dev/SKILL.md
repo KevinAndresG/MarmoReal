@@ -18,6 +18,8 @@ el builder para "rehacer"**). Diseño completo en `Docs/GDD.md`.
 | `Editor/ContentV2Builder.cs` | Menú *Marmoreal/Añadir Discípulas, Rayo y Volcánicos (aditivo)*: materiales, prefabs Ally/Lightning/JumpRune, disco del Vórtice y AllySquad en escena. Seguro de repetir. |
 | `Core/BiomeDef.cs` + `Gameplay/BiomeManager.cs` | Salas por Pulido. `BiomeDef` (Config/Biomes): materiales por tier/polvo, `swaps` de materiales de `--- SANTUARIO ---`, Sol, `VolumeProfile`, regla (`BiomeRule` + `ruleA/B/C`, `volatileBonus`), `campaignStage`, `hpMult`/`dustMult`. `BiomeManager` aplica en Play el bioma de `GameState.biomeId` (sin caché: revierte con `swaps` inversos y `biomes[0]`), activa el hijo de `--- SALA ---`, re-renderiza la sonda de reflexión (OnDemand), banner tras cerrar el modal, reglas lava (`PlayerMarble.Launch`, `gm.BreakCombo`) y cristal (`PowerSystem.ReflectBolt`, `FreeShrapnel` en `ShardSystem`). Selección: `NextFor`/`CycleChoice` (botón `modal-alt` del modal de Pulir); `DoPrestige` fija `S.biomeId`. `DebugState` (heat/lava/reflejos) sale en `hud_state.txt`. |
 | `Editor/BiomeBuilder.cs` | Menú *Marmoreal/Añadir salas: Volcánica y Cristal (aditivo)*: materiales en `Materials/Biomes`, `VP_Volcanica`/`VP_Cristal`, `Biome_*.asset`, `--- SALA ---` con decoración y `BiomeManager`. Seguro de repetir. |
+| `Gameplay/LifeDirector.cs` | Eventos temporales (`lifeEvents`: `StartEvent(id)`, `ActiveEvent`, `GoldenBonus` que lee el spawner) y progreso de contratos por sondeo de `GameState` (`Progress(c)`, `PanelText()` para la HUD). Objeto en `--- SISTEMAS ---`. |
+| Mutadores / Coloso / contratos | `GameManager`: `Mutator` (aplicado en `RecalcStats` y `MonolithHP`; `noDash` en `PlayerMarble.TryDash`, `disabledPower` en `PowerSystem.TryCast`, `volatileBonus` en el spawner), `RollMutatorOffer`/`ChooseMutator` (cartas en `Hud.ShowMutatorCards`, contenedor `modal-cards`), `MutatorBonus` al Pulir; `BossDue` (cierra la galería), `OnBossDefeated` + evento `BossDefeated(trial)`; `RollContracts`/`CompleteContract`. Coloso: `MonolithSpawner.SpawnBoss(trial)` (prefab `Monolith_Coloso`, `bossPoint`), `Monolith.MakeBoss`/`BossPhase`. Estado en `GameState` (`mutatorId`, `mutatorOffer`, `bossDoneGallery`, `lifeBosses`, `lifeGolden`, `contracts`, `contractsDone`). |
 | `Gameplay/MusaSpawner.cs` | Musas: orbe (prefab `Musa`) cada 60-120 s × Favor; al tocarlo, 1 Ícor + bendición aleatoria. |
 | `World/Spinner.cs` | Giro/flotación/pulso decorativo (anillos de vórtice, musa, bomba). |
 | `Core/GameState.cs`, `Core/Num.cs` | Datos guardados; formateo (`Num.F`, `Num.Roman`). |
@@ -114,6 +116,21 @@ materiales base de `Materials/` (M_Floor, M_Column, M_OuterGround, M_Gold, M_Bra
 `BiomeManager.biomes`/`rooms` (mismo índice). Regla nueva = valor en `BiomeRule` + su lógica en `BiomeManager`
 (o un gancho como `OnPlayerHit`/`FreeShrapnel`). Un material nunca debe ser `from` y `to` a la vez.
 Probar: forzar Pulidos en Play (`gm.S.galleryLevel = prestigeMinGallery + 2; bm.CycleChoice(p+1); gm.DoPrestige()`).
+
+**Añadir mutador:** `MutatorDef` en `Economy.asset` → `mutators` (y en `FillDefaults()` para migrar). Si solo usa los
+campos existentes (multiplicadores, `alwaysCrit`, `noDash`, `disabledPower`, `volatileBonus`) no hay código; un efecto nuevo =
+campo nuevo + leerlo donde aplique (stats en `GameManager.RecalcStats`). Actualiza la media `MUT` del simulador.
+
+**Añadir evento temporal:** `LifeEventDef` en `lifeEvents` (`goldenChance`, `frenzyMult`, `meteorEvery/Count`, `duration`,
+`minGallery`, `weight`). Efecto nuevo = campo + lógica en `LifeDirector.StartEvent`/`UpdateEvents`. Probar con
+`FindFirstObjectByType<LifeDirector>().StartEvent("id")` en Play.
+
+**Añadir contrato:** `ContractDef` en `contracts` con un `ContractKind` existente (`target`, `window`, `rewardIcor`,
+`rewardEssencePct`). Tipo nuevo = valor en `ContractKind` + `case` en `LifeDirector.Progress` (sondear `GameState`, sin eventos).
+
+**Probar el Coloso:** en Play, `gm.S.galleryLevel = 9 (o 19…); gm.S.bossDoneGallery = -1;` y alejar la canica del centro
+(`bossClearRadius`); para ver las fases, `boss.TakeDamage(boss.HP*0.4f, …)`. Con la partida del usuario (daño enorme) cae al
+instante: pon a 0 los niveles del Taller y `RecalcStats()`.
 
 **Retocar balance:** `python Tools/balance_sim.py 20` → tabla de hitos (objetivos en `Docs/GDD.md §5`).
 Prueba real: piloto automático compra lo más barato; compara `Temp/hud_state.txt` con el simulador.

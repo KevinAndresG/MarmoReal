@@ -39,6 +39,62 @@ namespace Marmoreal
         public int rewardIcor = 1;
     }
 
+    /// <summary>Mutador: carta riesgo/recompensa que eliges al Pulir; dura toda la vida siguiente.</summary>
+    [Serializable]
+    public class MutatorDef
+    {
+        public string id;
+        public string displayName;
+        [TextArea] public string description;
+        [Tooltip("Carta segura: sin riesgo ni bono. Siempre se ofrece una")]
+        public bool safe;
+        public float hpMult = 1f, dustMult = 1f, magnetMult = 1f, acolyteMult = 1f, allyMult = 1f, powerCooldownMult = 1f;
+        [Tooltip("Probabilidad extra de bloque volcánico (aditiva)")]
+        public float volatileBonus;
+        public bool alwaysCrit, noDash;
+        [Tooltip("Id del poder bloqueado esta vida (vacío = ninguno)")]
+        public string disabledPower = "";
+        [Tooltip("Esencia extra (fracción) al Pulir si esta vida subes goalGalleries galerías")]
+        public float essenceBonus;
+        public int goalGalleries;
+    }
+
+    /// <summary>Evento temporal (Luna de Ónice, Lluvia de Cristal, Hora Dorada…). Lo lanza LifeDirector.</summary>
+    [Serializable]
+    public class LifeEventDef
+    {
+        public string id;
+        public string displayName;
+        public string description;
+        public int minGallery;
+        public float duration = 30f;
+        [Tooltip("Probabilidad extra de bloque dorado (1 = todo dorado; también convierte los bloques en pie)")]
+        public float goldenChance;
+        [Tooltip("Frenesí de polvo durante el evento (0 = no)")]
+        public float frenzyMult;
+        [Tooltip("Cada cuántos segundos cae una lluvia de meteoros (0 = no)")]
+        public float meteorEvery;
+        public int meteorCount;
+        public float weight = 1f;
+    }
+
+    public enum ContractKind { VolatileChain, Combo, PowerBurst, Golden, Boss, Statues }
+
+    /// <summary>Contrato: objetivo opcional de la vida actual. description admite {0} = objetivo.</summary>
+    [Serializable]
+    public class ContractDef
+    {
+        public string id;
+        public string description;
+        public ContractKind kind;
+        public int target = 1;
+        [Tooltip("Ventana en segundos (cadena de volcánicos, ráfaga de poderes)")]
+        public float window;
+        public int rewardIcor;
+        [Tooltip("Esencia = esta fracción de la Esencia que daría Pulir ahora (mínimo 1)")]
+        public float rewardEssencePct;
+    }
+
     [Serializable]
     public class UpgradeDef
     {
@@ -185,7 +241,28 @@ namespace Marmoreal
         [Tooltip("Fama: +X polvo por cada mecenazgo conseguido (aditivo)")]
         public float famePerAchievement = 0.02f;
 
+        [Header("Jefes: Coloso cada N galerías")]
+        public int bossEveryGalleries = 10;
+        [Tooltip("Vida del Coloso en bloques pequeños normales de su galería")]
+        public float bossHPMult = 50f;
+        [Tooltip("Polvo del Coloso en bloques pequeños (la estatua da statueBonus encima)")]
+        public float bossDustMult = 40f;
+        public int bossIcor = 3;
+        [Tooltip("Ícor extra por cada Coloso anterior (galería XX, XXX…)")]
+        public int bossIcorPerTier = 1;
+
+        [Header("Eventos temporales")]
+        public int eventUnlockGallery = 2;
+        public float eventIntervalMin = 150f, eventIntervalMax = 260f;
+
+        [Header("Contratos")]
+        public int contractsPerLife = 3;
+        public int contractsUnlockPrestige = 1;
+
         public List<UpgradeDef> upgrades = new List<UpgradeDef>();
+        public List<MutatorDef> mutators = new List<MutatorDef>();
+        public List<LifeEventDef> lifeEvents = new List<LifeEventDef>();
+        public List<ContractDef> contracts = new List<ContractDef>();
         public List<PowerDef> powers = new List<PowerDef>();
         public List<AchievementDef> achievements = new List<AchievementDef>();
 
@@ -194,6 +271,9 @@ namespace Marmoreal
             foreach (var p in powers) if (p.id == id) return p;
             return null;
         }
+
+        public MutatorDef GetMutator(string id) => string.IsNullOrEmpty(id) ? null : mutators.Find(m => m.id == id);
+        public ContractDef GetContract(string id) => contracts.Find(c => c.id == id);
 
         Dictionary<string, UpgradeDef> map;
 
@@ -236,6 +316,12 @@ namespace Marmoreal
                 if (GetPower(p.id) == null) { powers.Add(p); changed = true; }
             foreach (var a in fresh.achievements)
                 if (achievements.Find(x => x.id == a.id) == null) { achievements.Add(a); changed = true; }
+            foreach (var m in fresh.mutators)
+                if (GetMutator(m.id) == null) { mutators.Add(m); changed = true; }
+            foreach (var e in fresh.lifeEvents)
+                if (lifeEvents.Find(x => x.id == e.id) == null) { lifeEvents.Add(e); changed = true; }
+            foreach (var c in fresh.contracts)
+                if (GetContract(c.id) == null) { contracts.Add(c); changed = true; }
             if (Application.isPlaying) Destroy(fresh); else DestroyImmediate(fresh);
             return changed;
         }
@@ -371,6 +457,35 @@ namespace Marmoreal
                 A("pol6", "Millonario", "Acumula 1M de polvo en total.", "dust", 1e6, 1),
                 A("pol12", "Billonario", "Acumula 1T de polvo en total.", "dust", 1e12, 3),
                 A("pol24", "Inconmensurable", "Acumula 1Sp de polvo en total.", "dust", 1e24, 6),
+            };
+
+            mutators = new List<MutatorDef>
+            {
+                new MutatorDef { id = "sereno", displayName = "Camino Sereno", description = "Sin cambios. Pule como siempre.", safe = true },
+                new MutatorDef { id = "petreo", displayName = "Mármol Pétreo", description = "Bloques ×2 de vida, polvo ×3.", hpMult = 2f, dustMult = 3f, essenceBonus = 0.15f, goalGalleries = 12 },
+                new MutatorDef { id = "soledad", displayName = "Voto de Soledad", description = "Sin Acólitos. Discípulas ×3.", acolyteMult = 0f, allyMult = 3f, essenceBonus = 0.25f, goalGalleries = 11 },
+                new MutatorDef { id = "furia", displayName = "Furia Ciega", description = "Todo golpe es crítico, pero sin Embestida.", alwaysCrit = true, noDash = true, essenceBonus = 0.2f, goalGalleries = 12 },
+                new MutatorDef { id = "plegaria", displayName = "Plegaria Impaciente", description = "Poderes con media recarga, pero sin Supernova.", powerCooldownMult = 0.5f, disabledPower = "supernova", essenceBonus = 0.15f, goalGalleries = 12 },
+                new MutatorDef { id = "volcan", displayName = "Lluvia de Volcánicos", description = "+35 % bloques volcánicos, bloques ×1,3 de vida.", volatileBonus = 0.35f, hpMult = 1.3f, essenceBonus = 0.25f, goalGalleries = 11 },
+                new MutatorDef { id = "avaro", displayName = "Avaricia", description = "Polvo ×2, pero el Imán atrae a menos de la mitad.", dustMult = 2f, magnetMult = 0.4f, essenceBonus = 0.2f, goalGalleries = 12 },
+                new MutatorDef { id = "fragil", displayName = "Mármol Quebradizo", description = "Bloques a mitad de vida, polvo ×0,4. Objetivo largo.", hpMult = 0.5f, dustMult = 0.4f, essenceBonus = 0.3f, goalGalleries = 14 },
+            };
+
+            lifeEvents = new List<LifeEventDef>
+            {
+                new LifeEventDef { id = "luna", displayName = "Luna de Ónice", description = "todo el mármol es oro", minGallery = 3, duration = 30, goldenChance = 1f },
+                new LifeEventDef { id = "cristal", displayName = "Lluvia de Cristal", description = "meteoros de cristal caen del cielo", minGallery = 2, duration = 20, meteorEvery = 4, meteorCount = 4 },
+                new LifeEventDef { id = "hora", displayName = "Hora Dorada", description = "polvo ×2,5", minGallery = 1, duration = 45, frenzyMult = 2.5f },
+            };
+
+            contracts = new List<ContractDef>
+            {
+                new ContractDef { id = "cadena", description = "Rompe {0} volcánicos de una explosión", kind = ContractKind.VolatileChain, target = 4, window = 1.2f, rewardIcor = 3 },
+                new ContractDef { id = "combo", description = "Alcanza un combo de {0}", kind = ContractKind.Combo, target = 80, rewardIcor = 2 },
+                new ContractDef { id = "rafaga", description = "Lanza {0} poderes en 10 s", kind = ContractKind.PowerBurst, target = 4, window = 10, rewardIcor = 3 },
+                new ContractDef { id = "dorados", description = "Libera {0} estatuas doradas", kind = ContractKind.Golden, target = 3, rewardEssencePct = 0.1f },
+                new ContractDef { id = "coloso", description = "Derrota a un Coloso", kind = ContractKind.Boss, target = 1, rewardIcor = 4 },
+                new ContractDef { id = "estatuas", description = "Libera {0} estatuas en esta vida", kind = ContractKind.Statues, target = 80, rewardEssencePct = 0.15f },
             };
             map = null;
         }

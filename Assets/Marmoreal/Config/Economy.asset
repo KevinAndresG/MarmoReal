@@ -66,6 +66,16 @@ MonoBehaviour:
   workshopCostK: 1.8
   workshopCostPerPrestige: 1.6
   famePerAchievement: 0.02
+  bossEveryGalleries: 10
+  bossHPMult: 50
+  bossDustMult: 40
+  bossIcor: 3
+  bossIcorPerTier: 1
+  eventUnlockGallery: 2
+  eventIntervalMin: 150
+  eventIntervalMax: 260
+  contractsPerLife: 3
+  contractsUnlockPrestige: 1
   upgrades:
   - id: masa
     displayName: Masa
@@ -1462,6 +1472,209 @@ MonoBehaviour:
     requires:
     - cadena
     branch: 2
+  mutators:
+  - id: sereno
+    displayName: Camino Sereno
+    description: Sin cambios. Pule como siempre.
+    safe: 1
+    hpMult: 1
+    dustMult: 1
+    magnetMult: 1
+    acolyteMult: 1
+    allyMult: 1
+    powerCooldownMult: 1
+    volatileBonus: 0
+    alwaysCrit: 0
+    noDash: 0
+    disabledPower: 
+    essenceBonus: 0
+    goalGalleries: 0
+  - id: petreo
+    displayName: "M\xE1rmol P\xE9treo"
+    description: "Bloques \xD72 de vida, polvo \xD73."
+    safe: 0
+    hpMult: 2
+    dustMult: 3
+    magnetMult: 1
+    acolyteMult: 1
+    allyMult: 1
+    powerCooldownMult: 1
+    volatileBonus: 0
+    alwaysCrit: 0
+    noDash: 0
+    disabledPower: 
+    essenceBonus: 0.15
+    goalGalleries: 12
+  - id: soledad
+    displayName: Voto de Soledad
+    description: "Sin Ac\xF3litos. Disc\xEDpulas \xD73."
+    safe: 0
+    hpMult: 1
+    dustMult: 1
+    magnetMult: 1
+    acolyteMult: 0
+    allyMult: 3
+    powerCooldownMult: 1
+    volatileBonus: 0
+    alwaysCrit: 0
+    noDash: 0
+    disabledPower: 
+    essenceBonus: 0.25
+    goalGalleries: 11
+  - id: furia
+    displayName: Furia Ciega
+    description: "Todo golpe es cr\xEDtico, pero sin Embestida."
+    safe: 0
+    hpMult: 1
+    dustMult: 1
+    magnetMult: 1
+    acolyteMult: 1
+    allyMult: 1
+    powerCooldownMult: 1
+    volatileBonus: 0
+    alwaysCrit: 1
+    noDash: 1
+    disabledPower: 
+    essenceBonus: 0.2
+    goalGalleries: 12
+  - id: plegaria
+    displayName: Plegaria Impaciente
+    description: Poderes con media recarga, pero sin Supernova.
+    safe: 0
+    hpMult: 1
+    dustMult: 1
+    magnetMult: 1
+    acolyteMult: 1
+    allyMult: 1
+    powerCooldownMult: 0.5
+    volatileBonus: 0
+    alwaysCrit: 0
+    noDash: 0
+    disabledPower: supernova
+    essenceBonus: 0.15
+    goalGalleries: 12
+  - id: volcan
+    displayName: "Lluvia de Volc\xE1nicos"
+    description: "+35 % bloques volc\xE1nicos, bloques \xD71,3 de vida."
+    safe: 0
+    hpMult: 1.3
+    dustMult: 1
+    magnetMult: 1
+    acolyteMult: 1
+    allyMult: 1
+    powerCooldownMult: 1
+    volatileBonus: 0.35
+    alwaysCrit: 0
+    noDash: 0
+    disabledPower: 
+    essenceBonus: 0.25
+    goalGalleries: 11
+  - id: avaro
+    displayName: Avaricia
+    description: "Polvo \xD72, pero el Im\xE1n atrae a menos de la mitad."
+    safe: 0
+    hpMult: 1
+    dustMult: 2
+    magnetMult: 0.4
+    acolyteMult: 1
+    allyMult: 1
+    powerCooldownMult: 1
+    volatileBonus: 0
+    alwaysCrit: 0
+    noDash: 0
+    disabledPower: 
+    essenceBonus: 0.2
+    goalGalleries: 12
+  - id: fragil
+    displayName: "M\xE1rmol Quebradizo"
+    description: "Bloques a mitad de vida, polvo \xD70,4. Objetivo largo."
+    safe: 0
+    hpMult: 0.5
+    dustMult: 0.4
+    magnetMult: 1
+    acolyteMult: 1
+    allyMult: 1
+    powerCooldownMult: 1
+    volatileBonus: 0
+    alwaysCrit: 0
+    noDash: 0
+    disabledPower: 
+    essenceBonus: 0.3
+    goalGalleries: 14
+  lifeEvents:
+  - id: luna
+    displayName: "Luna de \xD3nice"
+    description: "todo el m\xE1rmol es oro"
+    minGallery: 3
+    duration: 30
+    goldenChance: 1
+    frenzyMult: 0
+    meteorEvery: 0
+    meteorCount: 0
+    weight: 1
+  - id: cristal
+    displayName: Lluvia de Cristal
+    description: meteoros de cristal caen del cielo
+    minGallery: 2
+    duration: 20
+    goldenChance: 0
+    frenzyMult: 0
+    meteorEvery: 4
+    meteorCount: 4
+    weight: 1
+  - id: hora
+    displayName: Hora Dorada
+    description: "polvo \xD72,5"
+    minGallery: 1
+    duration: 45
+    goldenChance: 0
+    frenzyMult: 2.5
+    meteorEvery: 0
+    meteorCount: 0
+    weight: 1
+  contracts:
+  - id: cadena
+    description: "Rompe {0} volc\xE1nicos de una explosi\xF3n"
+    kind: 0
+    target: 4
+    window: 1.2
+    rewardIcor: 3
+    rewardEssencePct: 0
+  - id: combo
+    description: Alcanza un combo de {0}
+    kind: 1
+    target: 80
+    window: 0
+    rewardIcor: 2
+    rewardEssencePct: 0
+  - id: rafaga
+    description: Lanza {0} poderes en 10 s
+    kind: 2
+    target: 4
+    window: 10
+    rewardIcor: 3
+    rewardEssencePct: 0
+  - id: dorados
+    description: Libera {0} estatuas doradas
+    kind: 3
+    target: 3
+    window: 0
+    rewardIcor: 0
+    rewardEssencePct: 0.1
+  - id: coloso
+    description: Derrota a un Coloso
+    kind: 4
+    target: 1
+    window: 0
+    rewardIcor: 4
+    rewardEssencePct: 0
+  - id: estatuas
+    description: Libera {0} estatuas en esta vida
+    kind: 5
+    target: 80
+    window: 0
+    rewardIcor: 0
+    rewardEssencePct: 0.15
   powers:
   - id: supernova
     displayName: Supernova

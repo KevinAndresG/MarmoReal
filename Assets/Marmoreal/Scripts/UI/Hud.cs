@@ -34,7 +34,10 @@ namespace Marmoreal
         VisualElement root, floaterLayer, galleryFill, resFill, resBar, dashFill, toasts, treeOverlay, treeCanvas, modal, title, shop;
         VisualElement powersBar, icorRow, logrosOverlay;
         Label dust, dustRate, essence, statLine, galleryTitle, galleryText, combo, treeEssence, tiName, tiDesc, tiEffect, modalTitle, modalBody, press;
-        Label icor, buffs, banner, treeTitle, logrosFame, musaMarker;
+        Label icor, buffs, banner, treeTitle, logrosFame, musaMarker, contractsLbl;
+        VisualElement modalCards, modalBox;
+        bool holdToasts;
+        readonly List<(string, ToastKind)> pendingToasts = new List<(string, ToastKind)>();
         ScrollView shopList, logrosList;
         Button treeBtn, prestigeBtn, qualityBtn, muteBtn, resetBtn, tiBuy, modalOk, modalCancel, modalAlt, treeClose;
         Button altarBtn, logrosBtn, logrosClose;
@@ -68,7 +71,7 @@ namespace Marmoreal
 
         public bool BlocksGameplay => titleShown || modalOpen || treeOpen || logrosOpen;
         public bool PointerOverUI { get; private set; }
-        public string DebugState => $"bound={root != null} sameRoot={root == doc.rootVisualElement} rows={rows.Count} shopChildren={shopList?.childCount} shopPanel={shopList?.panel != null} title={titleShown} gm={GameManager.I != null} t={Time.timeSinceLevelLoad:0} gal={GameManager.I?.S.galleryLevel} dust={GameManager.I?.S.dust:0} statues={GameManager.I?.S.totalStatues} dmg={GameManager.I?.ImpactDamage:0.0} hp={GameManager.I?.MonolithHP(false, false):0} max={GameManager.I?.MaxMonoliths} sp=[{MonolithSpawner.I?.DebugState}] shards={ShardSystem.I?.ActiveShards} {BiomeManager.I?.DebugState}";
+        public string DebugState => $"bound={root != null} sameRoot={root == doc.rootVisualElement} rows={rows.Count} shopChildren={shopList?.childCount} shopPanel={shopList?.panel != null} title={titleShown} gm={GameManager.I != null} t={Time.timeSinceLevelLoad:0} gal={GameManager.I?.S.galleryLevel} dust={GameManager.I?.S.dust:0} statues={GameManager.I?.S.totalStatues} dmg={GameManager.I?.ImpactDamage:0.0} hp={GameManager.I?.MonolithHP(false, false):0} max={GameManager.I?.MaxMonoliths} sp=[{MonolithSpawner.I?.DebugState}] shards={ShardSystem.I?.ActiveShards} {BiomeManager.I?.DebugState} mut={GameManager.I?.S.mutatorId} boss={(MonolithSpawner.I && MonolithSpawner.I.Boss ? MonolithSpawner.I.Boss.BossPhase + "/" + MonolithSpawner.I.Boss.HPLeft.ToString("0") : "-")} {LifeDirector.I?.DebugState}";
 
         void Awake()
         {
@@ -119,6 +122,7 @@ namespace Marmoreal
             Q(out altarBtn, "altar-btn"); Q(out logrosBtn, "logros-btn"); Q(out logrosClose, "logros-close");
             Q(out treeBtn, "tree-btn"); Q(out prestigeBtn, "prestige-btn"); Q(out qualityBtn, "quality-btn"); Q(out muteBtn, "mute-btn");
             Q(out resetBtn, "reset-btn"); Q(out tiBuy, "ti-buy"); Q(out modalOk, "modal-ok"); Q(out modalCancel, "modal-cancel"); Q(out modalAlt, "modal-alt"); Q(out treeClose, "tree-close");
+            Q(out contractsLbl, "contracts"); Q(out modalCards, "modal-cards"); modalBox = root.Q(className: "modal-box");
 
             treeBtn.clicked += () => ToggleTree(Currency.Essence);
             altarBtn.clicked += () => ToggleTree(Currency.Icor);
@@ -276,7 +280,7 @@ namespace Marmoreal
 
             shopTimer -= Time.unscaledDeltaTime;
             pulseCooldown -= Time.unscaledDeltaTime;
-            if (shopTimer <= 0) { shopTimer = 0.15f; RefreshShop(); if (treeOpen) RefreshTree(); if (logrosOpen) RefreshLogros(); }
+            if (shopTimer <= 0) { shopTimer = 0.15f; RefreshContracts(); RefreshShop(); if (treeOpen) RefreshTree(); if (logrosOpen) RefreshLogros(); }
         }
 
         void HandleKeys(GameManager gm)
@@ -709,6 +713,14 @@ namespace Marmoreal
             }
         }
 
+        void RefreshContracts()
+        {
+            if (contractsLbl == null) return;
+            string t = LifeDirector.I ? LifeDirector.I.PanelText() : "";
+            contractsLbl.text = t;
+            contractsLbl.EnableInClassList("hidden", t.Length == 0);
+        }
+
         void UpdateBuffs(GameManager gm)
         {
             if (buffs == null) return;
@@ -718,6 +730,10 @@ namespace Marmoreal
             if (gm.OverflowTimeLeft > 0) t += (t.Length > 0 ? "     " : "") + $"ONDA INFINITA [F]  {gm.OverflowTimeLeft:0}s";
             if (AllySquad.I && AllySquad.I.LegionTimeLeft > 0) t += (t.Length > 0 ? "     " : "") + $"LEGIÓN  {AllySquad.I.LegionTimeLeft:0}s";
             if (gm.colossusMult > 1f) t += (t.Length > 0 ? "     " : "") + $"COLOSO ×{gm.colossusMult:0} daño";
+            var ld = LifeDirector.I;
+            if (ld && ld.ActiveEvent != null) t += (t.Length > 0 ? "     " : "") + $"{ld.ActiveEvent.displayName.ToUpperInvariant()}  {ld.EventTimeLeft:0}s";
+            var boss = MonolithSpawner.I ? MonolithSpawner.I.Boss : null;
+            if (boss && boss.HP > 0) t += (t.Length > 0 ? "     " : "") + $"COLOSO · FASE {Num.Roman(boss.BossPhase + 1)} · {boss.HPLeft / boss.HP * 100:0}%";
             buffs.text = t;
             buffs.EnableInClassList("hidden", t.Length == 0);
         }
@@ -730,11 +746,13 @@ namespace Marmoreal
             banner.text = text;
             banner.RemoveFromClassList("out");
             banner.AddToClassList("show");
+            toasts?.AddToClassList("dim"); // los toasts no tapan el rótulo
             banner.schedule.Execute(() =>
             {
                 if (id != bannerSeq) return;
                 banner.RemoveFromClassList("show");
                 banner.AddToClassList("out");
+                toasts?.RemoveFromClassList("dim");
             }).StartingIn(1300);
         }
 
@@ -851,8 +869,9 @@ namespace Marmoreal
                 $"Reinicias el Polvo, el Taller y las Galerías.\nConservas la Esencia, el Árbol, el Ícor y el Altar.\n\n" +
                 $"Ícor por pulir: +{Num.F(gm.config.icorPrestigeBase + System.Math.Floor(gm.PrestigeGain / gm.config.icorPrestigeDivisor))}\n" +
                 $"Ganarás  +{Num.F(gm.PrestigeGain)} ESENCIA   (una galería más: +{Num.F(gm.PrestigeGainNext)})\n" +
-                $"Tu canica renacerá en mármol {next}." + sala,
-                "PULIR", () => { gm.DoPrestige(); });
+                $"Tu canica renacerá en mármol {next}." + sala +
+                (gm.MutatorStatus().Length > 0 ? $"\n\nMutador: {gm.MutatorStatus()}" + (gm.MutatorBonus(gm.PrestigeGain) > 0 ? $"  (+{Num.F(gm.MutatorBonus(gm.PrestigeGain))} Esencia)" : "") : ""),
+                "PULIR", () => { holdToasts = true; gm.DoPrestige(); holdToasts = false; });
             if (modalAlt != null) modalAlt.style.display = choose ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
@@ -882,6 +901,8 @@ namespace Marmoreal
             modalOk.text = ok;
             modalCancel.style.display = cancel ? DisplayStyle.Flex : DisplayStyle.None;
             if (modalAlt != null) modalAlt.style.display = DisplayStyle.None;
+            modalCards?.AddToClassList("hidden");
+            modalBox?.RemoveFromClassList("wide");
             modalAction = action;
             modalOpen = true;
             modal.RemoveFromClassList("hidden");
@@ -892,13 +913,59 @@ namespace Marmoreal
             modalOpen = false;
             modalAction = null;
             modal.AddToClassList("hidden");
+            if (pendingToasts.Count > 0) root.schedule.Execute(FlushToasts).StartingIn(1600); // tras el rótulo de la sala
+        }
+
+        void FlushToasts()
+        {
+            if (modalOpen) return;
+            var list = new List<(string, ToastKind)>(pendingToasts);
+            pendingToasts.Clear();
+            foreach (var (t, k) in list) ShowToast(t, k);
+        }
+
+        /// <summary>Cartas de mutador en el modal de Pulido (elige 1 de 3; por defecto la segura).</summary>
+        void ShowMutatorCards()
+        {
+            var gm = GameManager.I;
+            if (modalCards == null) return;
+            modalCards.Clear();
+            bool any = gm.S.mutatorOffer.Count > 1;
+            modalCards.EnableInClassList("hidden", !any);
+            modalBox?.EnableInClassList("wide", any);
+            foreach (var id in gm.S.mutatorOffer)
+            {
+                var mu = gm.config.GetMutator(id);
+                if (mu == null) continue;
+                var b = new Button();
+                b.AddToClassList("btn");
+                b.AddToClassList("mut-card");
+                foreach (var l in new[] { Lbl("mut-name", mu.displayName), Lbl("mut-desc", mu.description),
+                    Lbl("mut-goal", mu.safe ? "Carta segura" : $"Sube {mu.goalGalleries} galerías: +{mu.essenceBonus * 100:0}% Esencia") })
+                { l.pickingMode = PickingMode.Ignore; b.Add(l); }
+                b.EnableInClassList("selected", gm.S.mutatorId == id);
+                string cid = id;
+                b.clicked += () =>
+                {
+                    gm.ChooseMutator(cid);
+                    AudioFX.I?.Play(Sfx.Buy, 0.4f);
+                    foreach (var ch in modalCards.Children()) ch.RemoveFromClassList("selected");
+                    b.AddToClassList("selected");
+                };
+                modalCards.Add(b);
+            }
         }
 
         void OnPrestiged()
         {
             RefreshShopNow();
             var rep = GameManager.I.PrestigeReport;
-            if (!string.IsNullOrEmpty(rep)) OpenModal("CANICA PULIDA", rep, "SEGUIR", null, false);
+            if (!string.IsNullOrEmpty(rep))
+            {
+                bool cards = GameManager.I.S.mutatorOffer.Count > 1;
+                OpenModal("CANICA PULIDA", rep + (cards ? "\n\nELIGE UN MUTADOR PARA ESTA VIDA" : ""), "SEGUIR", null, false);
+                ShowMutatorCards();
+            }
             lastCombo = -1;
             galleryTitle.AddToClassList("up");
             galleryTitle.schedule.Execute(() => galleryTitle.RemoveFromClassList("up")).StartingIn(350);
@@ -960,7 +1027,13 @@ namespace Marmoreal
         public void ShowToast(string text, ToastKind kind)
         {
             if (toasts == null) return;
-            while (toasts.childCount >= 4) toasts.RemoveAt(0);
+            if (modalOpen || holdToasts) // se muestran al cerrar el modal (no se apilan sobre él ni sobre el rótulo)
+            {
+                pendingToasts.Add((text, kind));
+                if (pendingToasts.Count > 3) pendingToasts.RemoveAt(0);
+                return;
+            }
+            while (toasts.childCount >= 3) toasts.RemoveAt(0);
             var l = Lbl("toast", text);
             if (kind == ToastKind.Gold) l.AddToClassList("gold");
             if (kind == ToastKind.Gallery) l.AddToClassList("gallery");
@@ -1064,6 +1137,7 @@ namespace Marmoreal
                 if (vp.z < 0) { f.l.style.display = DisplayStyle.None; continue; }
                 f.l.style.display = DisplayStyle.Flex;
                 Vector2 p = RuntimePanelUtils.CameraTransformWorldToPanel(root.panel, f.world, cam);
+                if (shop != null && shop.worldBound.Contains(p)) { f.l.style.display = DisplayStyle.None; continue; } // no asomar tras el Taller
                 f.l.style.left = p.x;
                 f.l.style.top = p.y;
                 float k = f.age / f.life;

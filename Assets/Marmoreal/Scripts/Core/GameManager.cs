@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Marmoreal
@@ -80,6 +81,8 @@ namespace Marmoreal
         public event Action<string, ToastKind> Toast;
         public event Action<double, double> OfflineEarned; // dust, seconds
         public event Action<AchievementDef> AchievementUnlocked;
+        /// <summary>Cae un Coloso (true = Prueba de sala; gancho para la campaña).</summary>
+        public event Action<bool> BossDefeated;
 
         float saveTimer;
         readonly double[] dustWindow = new double[10];
@@ -94,6 +97,7 @@ namespace Marmoreal
             Application.runInBackground = true; // idle: los acólitos siguen tallando con la ventana en segundo plano
             config.EnsureDefaults(); // añade (en memoria) contenido nuevo si el asset es antiguo
             Load();
+            if (S.contracts.Count == 0) RollContracts();
             RecalcStats();
         }
 
@@ -233,6 +237,16 @@ namespace Marmoreal
             AllyCount = Mathf.RoundToInt(Value("gemelas"));
             AllyFraction = Value("vinculo");
             ResonanceGain = Has("perpetua") ? Mathf.Max(1f, Value("perpetua")) : 1f;
+            var mu = Mutator;
+            if (mu != null)
+            {
+                DustMult *= mu.dustMult;
+                MagnetRadius *= mu.magnetMult;
+                AcolyteCount = Mathf.RoundToInt(AcolyteCount * mu.acolyteMult);
+                AllyCount = Mathf.RoundToInt(AllyCount * mu.allyMult);
+                PowerCooldownMult *= mu.powerCooldownMult;
+                if (mu.alwaysCrit) CritChance = 1f;
+            }
             StatsChanged?.Invoke();
         }
 
@@ -257,6 +271,8 @@ namespace Marmoreal
             if (golden) hp *= config.goldenHPMult;
             var b = BiomeManager.I ? BiomeManager.I.Current : null;
             if (b) hp *= b.hpMult;
+            var mu = Mutator;
+            if (mu != null) hp *= mu.hpMult;
             return hp;
         }
 
@@ -285,6 +301,7 @@ namespace Marmoreal
         {
             S.totalStatues++;
             S.lifeStatues++;
+            if (golden) S.lifeGolden++;
             if (golden && !transmuted)
             {
                 S.goldenFound++;
@@ -292,6 +309,7 @@ namespace Marmoreal
             }
             else if (UnityEngine.Random.value < config.icorStatueChance) AddIcor(1, "estatua");
             S.statuesThisGallery++;
+            if (BossDue) S.statuesThisGallery = Mathf.Min(S.statuesThisGallery, StatuesNeeded - 1); // el Coloso cierra la galería
             if (S.statuesThisGallery >= StatuesNeeded)
             {
                 S.statuesThisGallery = 0;
@@ -381,6 +399,8 @@ namespace Marmoreal
             sb.AppendLine("VIDA ANTERIOR");
             sb.AppendLine($"{Num.Time(S.lastLifeSeconds)} · {S.lastLifeStatues} estatuas · hasta Galería {Num.Roman(S.lastLifeGalleries)} · {Num.F(S.lastLifeDust)} polvo · mejor golpe {Num.F(S.lastLifeBestHit)}");
             sb.AppendLine($"Esencia +{Num.F(gain)}");
+            if (lastMutatorLine.Length > 0) sb.AppendLine(lastMutatorLine);
+            if (lastContractsLine.Length > 0) sb.AppendLine(lastContractsLine);
             sb.AppendLine();
             var room = BiomeManager.I ? BiomeManager.I.Current : null;
             if (room) { sb.AppendLine($"SALA: {room.displayName.ToUpperInvariant()}"); sb.AppendLine(room.tagline); sb.AppendLine(); }
@@ -397,7 +417,7 @@ namespace Marmoreal
                 { sb.AppendLine($"· {d.displayName}: aparece al {(string.IsNullOrEmpty(d.unlockHint) ? d.unlockStat : d.unlockHint)}"); any = true; }
             if (!any) sb.AppendLine("· (nada nuevo esta vez)");
             sb.AppendLine();
-            sb.Append($"Coste del Taller: ×{WorkshopCostFactor(config.Get("masa") ?? new UpgradeDef()):0.#} sobre el precio base (por tu poder permanente).");
+            sb.Append($"Coste del Taller: ×{Num.F(WorkshopCostFactor(config.Get("masa") ?? new UpgradeDef()))} sobre el precio base (por tu poder permanente).");
             return sb.ToString();
         }
 
@@ -405,6 +425,12 @@ namespace Marmoreal
         {
             if (!CanPrestige) return;
             double gain = PrestigeGain;
+            var mu = Mutator;
+            double mBonus = MutatorBonus(gain);
+            lastMutatorLine = mu == null || mu.safe || mu.goalGalleries <= 0 ? "" :
+                $"Mutador {mu.displayName}: {(mBonus > 0 ? $"objetivo CUMPLIDO, +{Num.F(mBonus)} Esencia" : $"objetivo no cumplido ({LifeGalleries}/{mu.goalGalleries} galerías)")}";
+            lastContractsLine = S.contracts.Count == 0 || !ContractsOpen ? "" : $"Contratos cumplidos: {S.contractsDone.Count}/{S.contracts.Count}";
+            gain += mBonus;
             // Resumen de la vida que termina
             S.lastLifeSeconds = S.playSeconds - S.lifeStartSeconds;
             S.lastLifeStatues = S.lifeStatues;
@@ -429,6 +455,11 @@ namespace Marmoreal
             S.lifeStatues = 0;
             S.lifeStartSeconds = S.playSeconds;
             S.hitosSeen.Clear();
+            S.bossDoneGallery = -1;
+            S.lifeBosses = 0;
+            S.lifeGolden = 0;
+            RollContracts();
+            RollMutatorOffer();
             Combo = 0;
             Resonance = 0;
             RecalcStats();
@@ -437,6 +468,109 @@ namespace Marmoreal
             AudioFX.I?.Play(Sfx.Prestige);
             Prestiged?.Invoke();
             Toast?.Invoke($"Canica pulida · +{Num.F(gain)} Esencia", ToastKind.Prestige);
+        }
+
+        // =================== Mutadores ===================
+
+        string lastMutatorLine = "", lastContractsLine = "";
+        public MutatorDef Mutator => config.GetMutator(S.mutatorId);
+        public int LifeGalleries => Math.Max(0, S.galleryLevel - S.lifeStartGallery);
+        public double MutatorBonus(double gain)
+        {
+            var mu = Mutator;
+            return mu != null && mu.essenceBonus > 0 && mu.goalGalleries > 0 && LifeGalleries >= mu.goalGalleries
+                ? Math.Max(1, Math.Floor(gain * mu.essenceBonus)) : 0;
+        }
+
+        /// <summary>Línea de estado del mutador activo ("" si no hay o es la carta segura).</summary>
+        public string MutatorStatus()
+        {
+            var mu = Mutator;
+            if (mu == null || mu.safe) return "";
+            return mu.essenceBonus > 0 && mu.goalGalleries > 0
+                ? $"{mu.displayName} · {Math.Min(LifeGalleries, mu.goalGalleries)}/{mu.goalGalleries} galerías → +{mu.essenceBonus * 100:0}% Esencia"
+                : mu.displayName;
+        }
+
+        /// <summary>3 cartas: la segura + 2 al azar. Por defecto queda la segura hasta que elijas otra.</summary>
+        void RollMutatorOffer()
+        {
+            S.mutatorOffer.Clear();
+            var safe = config.mutators.Find(m => m.safe);
+            if (safe != null) S.mutatorOffer.Add(safe.id);
+            var pool = config.mutators.FindAll(m => !m.safe);
+            while (S.mutatorOffer.Count < 3 && pool.Count > 0)
+            {
+                int i = UnityEngine.Random.Range(0, pool.Count);
+                S.mutatorOffer.Add(pool[i].id);
+                pool.RemoveAt(i);
+            }
+            S.mutatorId = safe != null ? safe.id : "";
+        }
+
+        public void ChooseMutator(string id)
+        {
+            if (!S.mutatorOffer.Contains(id)) return;
+            S.mutatorId = id;
+            RecalcStats();
+            Save();
+        }
+
+        // =================== Jefes (Coloso) ===================
+
+        /// <summary>¿Hay un Coloso pendiente en esta galería? Cierra la galería hasta que caiga.</summary>
+        public bool BossDue => config.bossEveryGalleries > 0 && (S.galleryLevel + 1) % config.bossEveryGalleries == 0
+            && S.bossDoneGallery != S.galleryLevel && MonolithSpawner.I && MonolithSpawner.I.bossPrefab;
+        public int BossTier => Mathf.Max(1, (S.galleryLevel + 1) / Mathf.Max(1, config.bossEveryGalleries));
+        public double BossHP => MonolithHP(false, false) * config.bossHPMult;
+        public double BossReward => BaseBlockReward * config.bossDustMult;
+
+        public void OnBossDefeated(bool trial)
+        {
+            S.bossDoneGallery = S.galleryLevel;
+            S.lifeBosses++;
+            S.statuesThisGallery = Mathf.Max(S.statuesThisGallery, StatuesNeeded - 1); // su estatua cierra la galería
+            AddIcor(config.bossIcor + config.bossIcorPerTier * (BossTier - 1), "Coloso");
+            Toast?.Invoke("¡COLOSO derribado! La galería se abre", ToastKind.Gallery);
+            BossDefeated?.Invoke(trial);
+        }
+
+        // =================== Contratos ===================
+
+        public bool ContractsOpen => S.prestigeCount >= config.contractsUnlockPrestige;
+        public string ContractText(ContractDef c) => string.Format(c.description, c.target);
+
+        void RollContracts()
+        {
+            S.contracts.Clear();
+            S.contractsDone.Clear();
+            int powers = 0;
+            foreach (var p in config.powers) if (Has(p.id)) powers++;
+            var pool = config.contracts.FindAll(c => c.kind != ContractKind.PowerBurst || powers >= c.target);
+            while (S.contracts.Count < config.contractsPerLife && pool.Count > 0)
+            {
+                int i = UnityEngine.Random.Range(0, pool.Count);
+                S.contracts.Add(pool[i].id);
+                pool.RemoveAt(i);
+            }
+        }
+
+        public void CompleteContract(ContractDef c)
+        {
+            if (c == null || S.contractsDone.Contains(c.id)) return;
+            S.contractsDone.Add(c.id);
+            string reward = "";
+            if (c.rewardEssencePct > 0)
+            {
+                double e = Math.Max(1, Math.Floor(Math.Max(PrestigeGain, PrestigeGainNext) * c.rewardEssencePct));
+                S.essence += e;
+                S.lifetimeEssence += e;
+                reward = $"+{Num.F(e)} Esencia";
+            }
+            if (c.rewardIcor > 0) { S.icor += c.rewardIcor; S.lifetimeIcor += c.rewardIcor; reward += (reward.Length > 0 ? ", " : "+") + $"{c.rewardIcor} Ícor"; }
+            AudioFX.I?.Play(Sfx.GalleryUp, 0.6f, 1.2f);
+            Toast?.Invoke($"CONTRATO cumplido: {ContractText(c)} — {reward}", ToastKind.Divine);
+            StatsChanged?.Invoke();
         }
 
         // =================== Poderes / Ícor / buffs ===================

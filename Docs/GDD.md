@@ -227,6 +227,41 @@ Play por `BiomeManager` (`--- SISTEMAS ---`); decoración/luces propias bajo `--
   de "Canica pulida" incluye la sala.
 - Economía: `hpMult`/`dustMult` por sala (hoy 1,0 en las tres, para la campaña S4) — el simulador no cambia.
 
+### 4.11d Mutadores, Colosos, eventos y contratos (S3)
+Datos en `Economy.asset` (listas `mutators`, `lifeEvents`, `contracts` y cabeceras *Jefes*, *Eventos*, *Contratos*);
+`EnsureDefaults()` los migra por id. Lógica: `GameManager` (mutador, Coloso, contratos), `MonolithSpawner.SpawnBoss`,
+`Gameplay/LifeDirector.cs` (eventos y progreso de contratos, objeto en `--- SISTEMAS ---`).
+- **Mutadores** (`MutatorDef`): al Pulir, el modal "Canica pulida" ofrece 3 cartas (la segura *Camino Sereno* + 2 al
+  azar); por defecto queda la segura. Dura toda la vida (`GameState.mutatorId`). Campos: `hpMult`, `dustMult`,
+  `magnetMult`, `acolyteMult`, `allyMult`, `powerCooldownMult`, `volatileBonus`, `alwaysCrit`, `noDash`, `disabledPower`.
+  Si en la vida subes `goalGalleries` galerías, al Pulir das `essenceBonus` de Esencia extra.
+  | Carta | Efecto | Objetivo → bono |
+  |---|---|---|
+  | Camino Sereno | nada (segura) | — |
+  | Mármol Pétreo | bloques ×2 vida, polvo ×3 | 12 gal → +15 % |
+  | Voto de Soledad | sin Acólitos, Discípulas ×3 | 11 → +25 % |
+  | Furia Ciega | todo crítico, sin Embestida | 12 → +20 % |
+  | Plegaria Impaciente | recarga de poderes ×0,5, Supernova sellada | 12 → +15 % |
+  | Lluvia de Volcánicos | +35 % volcánicos, vida ×1,3 | 11 → +25 % |
+  | Avaricia | polvo ×2, Imán ×0,4 | 12 → +20 % |
+  | Mármol Quebradizo | vida ×0,5, polvo ×0,4 | 14 → +30 % |
+- **Coloso** (jefe): en cada galería múltiplo de `bossEveryGalleries` (X, XX…) brota en el centro (`Pedestal del
+  Coloso`, hijo del spawner) el prefab `Prefabs/Monolith_Coloso` (Monolith_Large ×2, editable). Vida = `bossHPMult` (50)
+  bloques pequeños; polvo = `bossDustMult` (40) bloques; estatua especial (`bossStatuePrefab`, obelisco dorado).
+  3 fases visibles (100-67-33 %): las grietas brillan naranja y luego rojo (`phaseGlow2/3`, `phaseGlowIntensity`),
+  estallido de escombros, rótulo y temblor. **Cierra la galería**: las estatuas se quedan en N−1 hasta que cae; al caer
+  da `bossIcor + bossIcorPerTier × (nº de Coloso − 1)` Ícor y abre la galería. No levita ni se vuelve oro.
+  Gancho S4: `MonolithSpawner.SpawnBoss(trial: true)` y el evento `GameManager.BossDefeated(bool trial)`.
+- **Eventos temporales** (`LifeEventDef`): cada `eventIntervalMin-Max` s (150-260) desde la galería `eventUnlockGallery`,
+  uno al azar (por `weight` y `minGallery`): **Luna de Ónice** (30 s, todo dorado, convierte los bloques en pie),
+  **Lluvia de Cristal** (20 s, 4 meteoros gratis cada 4 s), **Hora Dorada** (45 s, Frenesí ×2,5). Rótulo + toast al
+  empezar; contador en la línea de buffs. Prueba: `LifeDirector.StartEvent("luna")`.
+- **Contratos** (`ContractDef`, `ContractKind`): `contractsPerLife` (3) al azar por vida desde el Pulido
+  `contractsUnlockPrestige` (1); lista con progreso en el panel izquierdo de la HUD (label `contracts` de `Hud.uxml`).
+  Cadena de 4 volcánicos (Ícor 3), combo 80 (Ícor 2), 4 poderes en 10 s (Ícor 3; solo si tienes 4 poderes),
+  3 estatuas doradas (+10 % de la Esencia de Pulir), derrotar un Coloso (Ícor 4), 80 estatuas (+15 %).
+  El resumen al Pulir muestra el mutador (cumplido/no) y los contratos cumplidos.
+
 ### 4.12 Mecenazgos (logros)
 28 hitos (estatuas, dorados, galería, pulidos, combo, poderes, Musas, polvo total). Cada uno da Ícor
 y **Fama** (+2 % de polvo permanente, aditivo). Se comprueban cada segundo y son retroactivos.
@@ -306,6 +341,12 @@ Galería 22): el muro sigue ahí, pero llegas un poco más lejos y se gana más 
 6. Siempre hay algo cerca: galerías cada ~1 min al principio, mejoras cada pocos segundos,
    desbloqueos escalonados (galerías II-IV) y bloques dorados aleatorios.
 
+**S3 (simulador):** el Coloso se modela como 50/1,48 bloques medios extra al cerrar la galería X, XX… (+40 bloques
+de polvo, Ícor 3 + 1 por Coloso anterior) y el mutador medio como polvo ×1,34 / vida ×1,11 desde la vida 2 y +21 % de
+Esencia si la vida sube 12 galerías (`SIMMUT=0` lo apaga). Resultado (20 h): el Taller completo apenas cambia
+(vidas 1-15: 12 11 12 11 13 12 11 12 12 13 14 15 17 20 19 min), 1.er Pulido ~50 min, 16 pulidos (antes 15).
+Los Colosos suman ~+55 % de Ícor en 20 h (con +2 Ícor por tier era +85 %: por eso `bossIcorPerTier` = 1).
+
 Para retocar: edita `Economy.asset` en el Inspector y replica los números en `Tools/balance_sim.py`;
 ejecuta `python Tools/balance_sim.py 20` y revisa la tabla de hitos.
 
@@ -329,7 +370,7 @@ ejecuta `python Tools/balance_sim.py 20` y revisa la tabla de hitos.
 Ver `CLAUDE.md` y el skill `.claude/skills/marmoreal-dev`.
 
 ## 9. Ideas futuras (backlog)
-- Eventos temporales ("Luna de Ónice": todo dorado 30 s); más bendiciones de Musas.
+- Más eventos temporales y bendiciones de Musas; tipos de bloque nuevos (espejo, hielo, bomba, hueco).
 - Tercer árbol / reliquias equipables (slots que modifican los poderes: Supernova en racimo, Vórtice móvil…).
 - Más estatuas (manos, caballos, rostros) y bloques con forma (columnas, arcos).
 - Más salas (Hielo, Forja, Jardín, Panteón; ver `Docs/ANALISIS_PROGRESION.md` §3B) con `BiomeDef` nuevos.

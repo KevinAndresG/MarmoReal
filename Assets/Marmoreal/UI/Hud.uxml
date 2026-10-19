@@ -18,6 +18,7 @@
                     <ui:Label class="caption icor-caption" text="  ÍCOR ✶" picking-mode="Ignore" />
                 </ui:VisualElement>
                 <ui:Label name="stat-line" class="stat-line" text="" picking-mode="Ignore" />
+                <ui:Label name="contracts" class="contracts hidden" text="" picking-mode="Ignore" />
             </ui:VisualElement>
 
             <ui:VisualElement name="gallery" class="gallery" picking-mode="Ignore">
@@ -104,6 +105,7 @@
             <ui:VisualElement class="modal-box">
                 <ui:Label name="modal-title" class="modal-title" text="" />
                 <ui:Label name="modal-body" class="modal-body" text="" />
+                <ui:VisualElement name="modal-cards" class="modal-cards hidden" />
                 <ui:VisualElement class="row">
                     <ui:Button name="modal-ok" class="btn buy" text="ACEPTAR" />
                     <ui:Button name="modal-alt" class="btn" text="CAMBIAR SALA" />

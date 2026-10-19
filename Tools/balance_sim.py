@@ -21,6 +21,11 @@ CFG = dict(
     # Coste del Taller escalado por poder permanente: × (GlobalMult × Fama)^k (EconomyConfig.workshopCostScale*)
     costPrestigeGrowth=float(__import__('os').environ.get('SIMPG',1.6)), costScaleOn=True, costScaleK=1.8,
 )
+# S3: Coloso cada 10 galerías (Economy.asset boss*) y mutador medio (media de las 7 cartas no seguras)
+BOSS = dict(every=10, hpMult=50, dustMult=40, icor=3, icorPerTier=1)
+MUT = dict(on=__import__("os").environ.get("SIMMUT", "1") == "1",
+           dust=(3 + 1 + 1 + 1 + 1 + 2 + 0.4) / 7, hp=(2 + 1 + 1 + 1 + 1.3 + 1 + 0.5) / 7,
+           bonus=(0.15 + 0.25 + 0.2 + 0.15 + 0.25 + 0.2 + 0.3) / 7, goal=12)
 SCALE_K = float(__import__("os").environ.get("SIMK", CFG["costScaleK"]))
 CFG["costScaleOn"] = SCALE_K > 0
 SCOPE = __import__("os").environ.get("SIMSCOPE", "all")
@@ -263,7 +268,8 @@ class Sim:
     def block_hp(s):
         c = CFG; gold = c["goldenChance"] + s.V("fiebre")
         avg = (1 - c["largeShare"]) + c["largeShare"] * c["largeMult"]
-        return c["baseHP"] * c["hpGrowth"] ** s.g * avg * (1 + gold * (c["goldenHP"] - 1)), gold
+        mh = MUT["hp"] if MUT["on"] and s.prest > 0 else 1
+        return c["baseHP"] * c["hpGrowth"] ** s.g * avg * (1 + gold * (c["goldenHP"] - 1)) * mh, gold
 
     def reward_per_hp(s):
         c = CFG; _, gold = s.block_hp()
@@ -271,7 +277,8 @@ class Sim:
         base = c["baseReward"] * avg * s.V("pureza") * s.V("brillo") * s.V("obra") * s.fame() * c["rewardGrowth"] ** s.g
         statue = 1 + c["statueBonus"] * s.V("veta")
         goldF = 1 + gold * (c["goldenReward"] * s.V("veta") - 1)
-        return base * statue * goldF   # polvo por BLOQUE completo
+        md = MUT["dust"] if MUT["on"] and s.prest > 0 else 1
+        return base * statue * goldF * md   # polvo por BLOQUE completo
 
     def needed(s):
         return min(CFG["statMax"], CFG["statBase"] + CFG["statStep"] * s.g)
@@ -306,6 +313,7 @@ class Sim:
 
     def prestige(s):
         gn = s.gain()
+        if MUT["on"] and s.prest > 0 and s.g - s.g0 >= MUT["goal"]: gn += max(1, math.floor(gn * MUT["bonus"]))
         s.log.append(f"  >> PULIDO #{s.prest+1} a {s.t/60:6.1f} min | galería {s.g+1} | +{gn} esencia")
         s.lives.append((s.prest, None if s.done_t is None else (s.done_t - s.life_t0) / 60, (s.t - s.life_t0) / 60))
         s.ess += gn; s.prest += 1
@@ -342,6 +350,14 @@ class Sim:
             s.dust += earned; s.run += earned
             while acc_hp >= 1:
                 acc_hp -= 1; s.stat += 1
+                if s.stat >= s.needed() and (s.g + 1) % BOSS["every"] == 0 and getattr(s, "boss_g", -1) != s.g:
+                    # Coloso: HP = hpMult bloques pequeños (≈ hpMult / 1,48 bloques medios); cierra la galería
+                    s.boss_g = s.g; s.bosses = getattr(s, "bosses", 0) + 1
+                    acc_hp -= BOSS["hpMult"] / ((1 - CFG["largeShare"]) + CFG["largeShare"] * CFG["largeMult"])
+                    s.dust += s.reward_per_hp() * BOSS["dustMult"] / 1.48 / (1 + CFG["statueBonus"])
+                    s.add_icor(BOSS["icor"] + BOSS["icorPerTier"] * ((s.g + 1) // BOSS["every"] - 1))
+                    s.stat -= 1
+                    continue
                 if s.stat >= s.needed():
                     s.stat = 0; s.g += 1
                     s.log.append(f"{s.t/60:7.1f} min  Galería {s.g+1:3d}  (+{(s.t-s.tg)/60:5.1f} min)  dps={d:10.3g}  polvo/s={earned:10.3g}")
@@ -368,6 +384,7 @@ if __name__ == "__main__":
         print(f"[{m:5d} min] galería {s.g+1:3d} | pulidos {s.prest:2d} | esencia libre {s.ess:7.0f} | árbol {sum(s.tr.values()):4d} niv"
               f" | ícor {s.icor_life:6.0f} (altar {sum(s.al.values()):3d} niv) | mecenazgos {len(s.ach):2d}")
     print("\n".join(l for l in s.log if os.environ.get("SIMLOG") or "PULIDO" in l or "PODER" in l))
+    print(f"Colosos derrotados: {getattr(s, 'bosses', 0)} | mutador medio: {'sí' if MUT['on'] else 'no'}")
     print("Vida | Taller completo (min) | duración vida (min)")
     for p, done, life in s.lives:
         print(f"  #{p:2d} | {('%6.1f' % done) if done is not None else '   nunca'} | {life:6.1f}")

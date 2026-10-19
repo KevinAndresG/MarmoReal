@@ -314,6 +314,7 @@ namespace Marmoreal
         {
             var gm0 = GameManager.I;
             if (!gm0 || dashGap > 0) return;
+            if (gm0.Mutator != null && gm0.Mutator.noDash) return; // mutador Furia Ciega
             bool fury = gm0.FuryActive; // Furia Divina: Embestidas sin recarga
             if (!fury && dashCharges <= 0) return;
             // Con la cámara bloqueada la Embestida sale hacia donde se mira; si no, sigue la inercia

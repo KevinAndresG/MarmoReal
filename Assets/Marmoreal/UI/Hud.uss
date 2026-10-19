@@ -51,7 +51,8 @@
 .bar-fill.dash { background-color: #FFB27A; }
 .bar.flash { border-color: #FF6B6B; }
 
-.toasts { margin-top: 10px; align-items: center; }
+.toasts { margin-top: 10px; align-items: center; transition: opacity 0.3s; }
+.toasts.dim { opacity: 0.12; }
 .toast {
     background-color: var(--panel-hi);
     border-radius: 8px; border-width: 1px; border-color: var(--gold-dim);
@@ -278,3 +279,20 @@
 .shop-row.power-up { border-left-width: 3px; border-left-color: var(--divine-dim); }
 .shop-row.power-up .glyph { color: var(--divine); }
 .shop-row.power-up.affordable { border-color: var(--divine-dim); border-left-color: var(--divine); }
+
+/* ---------------- Contratos / mutadores (S3) ---------------- */
+.contracts {
+    font-size: 12px; color: var(--ink); margin-top: 8px; padding-top: 6px; max-width: 300px; white-space: normal;
+    border-top-width: 1px; border-color: var(--gold-dim);
+}
+.modal-box.wide { width: 680px; }
+.modal-box.wide .modal-body { font-size: 14px; margin-bottom: 8px; }
+.modal-cards { flex-direction: row; justify-content: center; margin-bottom: 6px; }
+.modal-box .mut-card {
+    width: 196px; min-width: 0; min-height: 104px; margin: 0 5px; padding: 8px 8px;
+    flex-direction: column; justify-content: flex-start; white-space: normal; letter-spacing: 0;
+}
+.mut-card.selected { border-color: var(--essence); border-width: 2px; background-color: rgba(185, 166, 255, 0.24); }
+.mut-name { font-size: 15px; color: var(--gold); -unity-font-style: bold; white-space: normal; -unity-text-align: middle-center; }
+.mut-desc { font-size: 12px; color: var(--ink); white-space: normal; -unity-text-align: middle-center; margin-top: 4px; -unity-font-style: normal; }
+.mut-goal { font-size: 11px; color: var(--essence); white-space: normal; -unity-text-align: middle-center; margin-top: 4px; -unity-font-style: normal; }
