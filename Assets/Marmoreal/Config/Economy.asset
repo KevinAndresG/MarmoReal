@@ -76,7 +76,7 @@ MonoBehaviour:
   eventIntervalMax: 260
   contractsPerLife: 3
   contractsUnlockPrestige: 1
-  campaignPiecesRequired: 3
+  campaignPiecesRequired: 7
   trialHPMult: 2
   trialIcor: 15
   campaign:
@@ -182,6 +182,22 @@ MonoBehaviour:
     material: {fileID: 2100000, guid: a4ab130482532c842920c6d4f34a2932, type: 2}
     trailColor: {r: 0.4, g: 1, b: 0.95, a: 1}
     waveColor: {r: 0.6, g: 1, b: 1, a: 1}
+  - id: hierro
+    displayName: Hierro Forjado
+    unlock: 2
+    threshold: 5
+    hint: Supera la Prueba 5
+    material: {fileID: 2100000, guid: af840a99c03e49242b47f5e2a62ce3c7, type: 2}
+    trailColor: {r: 0.75, g: 0.78, b: 0.85, a: 1}
+    waveColor: {r: 1, g: 0.55, b: 0.2, a: 1}
+  - id: flor
+    displayName: "Flor de Jard\xEDn"
+    unlock: 2
+    threshold: 6
+    hint: Supera la Prueba 6
+    material: {fileID: 2100000, guid: 8ebe163e903834f4580d9ea5fd9f6b49, type: 2}
+    trailColor: {r: 1, g: 0.45, b: 0.75, a: 1}
+    waveColor: {r: 0.5, g: 1, b: 0.45, a: 1}
   infiniteHpPerLife: 0.25
   rankNames:
   - Aprendiz

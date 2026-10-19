@@ -73,6 +73,17 @@ namespace Marmoreal
         bool canSlam;
         readonly RaycastHit[] groundHits = new RaycastHit[4];
 
+        [System.NonSerialized] float accelMult = 1f, capMult = 1f, baseDamping = -1f;
+
+        /// <summary>Suelo de la sala (BiomeManager): hielo = menos agarre, más velocidad, menos rozamiento. damping &lt; 0 = el original.</summary>
+        public void SetSurface(float accel, float cap, float damping)
+        {
+            if (!rb) return;
+            if (baseDamping < 0) baseDamping = rb.linearDamping;
+            accelMult = accel; capMult = cap;
+            rb.linearDamping = damping >= 0 ? damping : baseDamping;
+        }
+
         void Awake()
         {
             I = this;
@@ -233,7 +244,8 @@ namespace Marmoreal
             else dir = new Vector3(moveInput.x, 0, moveInput.y);
 
             float maxSpeed = GameManager.I ? GameManager.I.MaxSpeed : 11f;
-            float accel = acceleration * (grounded ? 1f : airControl) * (0.6f + maxSpeed / 25f);
+            maxSpeed *= capMult;
+            float accel = acceleration * accelMult * (grounded ? 1f : airControl) * (0.6f + maxSpeed / 25f);
             rb.AddForce(dir * accel, ForceMode.Acceleration);
 
             // Rodadura visual coherente: par en la dirección de avance

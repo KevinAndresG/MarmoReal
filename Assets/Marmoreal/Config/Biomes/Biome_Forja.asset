@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46bb5a26e3310e14986e87589645c550, type: 3}
+  m_Name: Biome_Forja
+  m_EditorClassIdentifier: Assembly-CSharp::Marmoreal.BiomeDef
+  id: forja
+  displayName: Forja de Hierro
+  tagline: "Bloques de metal: \xD72 de vida, \xD73 de polvo \xB7 los imanes del suelo
+    atraen tu canica."
+  campaignStage: 4
+  hpMult: 2
+  dustMult: 3
+  trialGallery: 112
+  chunkMaterials:
+  - {fileID: 2100000, guid: a95c64c3aaf102648b6aefce2f73fcac, type: 2}
+  - {fileID: 2100000, guid: c1e0cfc33ee03c8499bc38083d3aeb2e, type: 2}
+  - {fileID: 2100000, guid: 87f5b6d524f7fb44891947d6e4fad46f, type: 2}
+  - {fileID: 2100000, guid: a5e16a279a5c9bf41a457bb37fda453d, type: 2}
+  - {fileID: 2100000, guid: def038c61fad96b45ac476a7fec656e6, type: 2}
+  - {fileID: 2100000, guid: d489bd61c518b02458184691576a26d3, type: 2}
+  shardMaterials:
+  - {fileID: 2100000, guid: 275cc693eca817d468d515faf87ce8c8, type: 2}
+  - {fileID: 2100000, guid: a6295eb82314c31428e8f94142fb940f, type: 2}
+  - {fileID: 2100000, guid: aa75704ee5d8f3a439c13b9d0d42d23b, type: 2}
+  - {fileID: 2100000, guid: e32836e0ce220514d875e2a6c678beb1, type: 2}
+  - {fileID: 2100000, guid: 7664eff15d56d484780733497e5ced14, type: 2}
+  - {fileID: 2100000, guid: d34bd2deb63af17499fd9d7bdce19e2d, type: 2}
+  - {fileID: 2100000, guid: 62ff226269efe7649a2947773eb45578, type: 2}
+  swaps:
+  - from: {fileID: 2100000, guid: ef95eacd7b53e694ab946a9c380cbde0, type: 2}
+    to: {fileID: 2100000, guid: a2dd1605c613228498ea4ceeabad6fe7, type: 2}
+  - from: {fileID: 2100000, guid: 9109bea7110f8f44488de273e06106be, type: 2}
+    to: {fileID: 2100000, guid: 598c4d7554a1c91489c6a7bacd5e16b8, type: 2}
+  - from: {fileID: 2100000, guid: 49ab415c654b0e1418109ca25fef33b6, type: 2}
+    to: {fileID: 2100000, guid: 1d2b8cd99d0eb1f418fac4a6d0c1b7bc, type: 2}
+  - from: {fileID: 2100000, guid: 7f6172170e92b07448660bfd62e1b8ce, type: 2}
+    to: {fileID: 2100000, guid: 6988d9bf116e67f41a4f88a8c4c32d5e, type: 2}
+  - from: {fileID: 2100000, guid: 76bef62160265ca448bc6d4a3533531c, type: 2}
+    to: {fileID: 2100000, guid: 553aa06f45d18e44aae93c3b6c002c44, type: 2}
+  sunColor: {r: 1, g: 0.75, b: 0.55, a: 1}
+  sunIntensity: 1900
+  volumeProfile: {fileID: 11400000, guid: e10a1b86d7a1c4449959d0fdf264136a, type: 2}
+  rule: 4
+  ruleA: 0
+  ruleB: 0
+  ruleC: 0
+  volatileBonus: 0

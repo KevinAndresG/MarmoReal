@@ -317,7 +317,7 @@ namespace Marmoreal
 
         [Header("Campaña: El Gran Monumento (Pruebas en BiomeDef.trialGallery)")]
         [Tooltip("Piezas para ganar la campaña (7 con todas las salas; hoy 3 jugables)")]
-        public int campaignPiecesRequired = 3;
+        public int campaignPiecesRequired = 7;
         [Tooltip("Vida del jefe de la Prueba = Coloso × esto")]
         public float trialHPMult = 2f;
         public int trialIcor = 15;
@@ -621,6 +621,8 @@ namespace Marmoreal
                 MC("nero", "Nero Obsidiana", ColorUnlock.Prestiges, 25, "Pule la canica 25 veces", new Color(0.5f, 0.5f, 0.6f), new Color(0.35f, 0.3f, 0.5f)),
                 MC("dorado", "Dorado", ColorUnlock.Campaign, 0, "Completa la campaña", new Color(1f, 0.8f, 0.3f), new Color(1f, 0.75f, 0.2f)),
                 MC("cosmica", "Cósmica", ColorUnlock.InfiniteGallery, 500, "Galería 500 en el Modo Infinito", new Color(0.5f, 0.6f, 1f), new Color(0.9f, 0.5f, 1f)),
+                MC("hierro", "Hierro Forjado", ColorUnlock.Trial, 5, "Supera la Prueba 5", new Color(0.75f, 0.78f, 0.85f), new Color(1f, 0.55f, 0.2f)),
+                MC("flor", "Flor de Jardín", ColorUnlock.Trial, 6, "Supera la Prueba 6", new Color(1f, 0.45f, 0.75f), new Color(0.5f, 1f, 0.45f)),
                 MC("eterna", "Eterna", ColorUnlock.Fragments, 60, "Cómprala con 60 Fragmentos de Eternidad", new Color(0.4f, 1f, 0.95f), new Color(0.6f, 1f, 1f)),
             };
 

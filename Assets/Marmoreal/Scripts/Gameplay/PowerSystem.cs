@@ -26,6 +26,8 @@ namespace Marmoreal
         [Tooltip("Luz puntual que destella en explosiones")]
         public Light flash;
         public float flashLumens = 350000f;
+        [Tooltip("Multiplicador global del destello (0-1). Bajo = se ve la jugada en el frenesí")]
+        [Range(0f, 1f)] public float flashScale = 0.3f;
         public float meteorHeight = 32f;
         public float meteorFlightTime = 0.55f;
         public float levitateHeight = 6f;
@@ -72,7 +74,7 @@ namespace Marmoreal
             float dt = Time.deltaTime;
             for (int i = 0; i < cooldownLeft.Length; i++) cooldownLeft[i] -= dt;
 
-            if (flash && flash.intensity > 0f) flash.intensity = Mathf.MoveTowards(flash.intensity, 0f, flashLumens * dt * 4f);
+            if (flash && flash.intensity > 0f) flash.intensity = Mathf.MoveTowards(flash.intensity, 0f, flashLumens * flashScale * dt * 5f);
 
             if (Hud.I && Hud.I.BlocksGameplay) return;
             var k = Keyboard.current;
@@ -619,7 +621,7 @@ namespace Marmoreal
             if (flashBaseColor.r < 0) flashBaseColor = flash.color;
             flash.color = color;
             flash.transform.position = at + Vector3.up * 2f;
-            flash.intensity = Mathf.Max(flash.intensity, flashLumens * strength);
+            flash.intensity = Mathf.Max(flash.intensity, flashLumens * flashScale * Mathf.Min(strength, 1f));
         }
     }
 }

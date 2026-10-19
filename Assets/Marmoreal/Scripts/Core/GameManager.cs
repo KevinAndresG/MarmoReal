@@ -401,6 +401,7 @@ namespace Marmoreal
 
         /// <summary>Texto "qué se abre ahora" del último Pulido (lo muestra la HUD).</summary>
         public string PrestigeReport { get; private set; } = "";
+        public bool LastWasConsecrate { get; private set; }
 
         string BuildReport(int oldP, int newP, double gain)
         {
@@ -479,10 +480,13 @@ namespace Marmoreal
             Resonance = 0;
             RecalcStats();
             PrestigeReport = BuildReport(oldP, S.prestigeCount, gain);
+            LastWasConsecrate = newRelics != null;
             if (newRelics != null)
-                PrestigeReport = $"CANICA CONSAGRADA (n.º {S.consecrations})\nEsencia y Árbol reiniciados · Esencia al Pulir ×{ConsecrateMult:0.##}\n" +
+                PrestigeReport = $"CONSAGRACIÓN N.º {S.consecrations}\n" +
                     $"Reliquias nuevas: {(newRelics.Count > 0 ? string.Join(", ", newRelics) : "(todas conseguidas: +Ícor)")}\n" +
-                    $"Equípalas en RELIQUIAS [R]\n\n" + PrestigeReport;
+                    $"Ranuras: {S.relicsEquipped.Count}/{RelicSlots} equipadas · equípalas en RELIQUIAS [R]\n" +
+                    $"Esencia al Pulir ×{ConsecrateMult:0.##} desde ahora\n" +
+                    "Se pierden: Esencia y nodos del Árbol · Se conservan: Ícor, Altar, Reliquias, campaña y colección\n\n" + PrestigeReport;
             Save();
             AudioFX.I?.Play(Sfx.Prestige);
             Prestiged?.Invoke();

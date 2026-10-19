@@ -113,7 +113,9 @@ namespace Marmoreal
             if (idx < 0) return false;
 
             bool golden = Random.value < gm.GoldenChance + (LifeDirector.I ? LifeDirector.I.GoldenBonus : 0f);
-            float largeChance = Mathf.Min(largeChanceMax, largeChanceBase + largeChanceStep * gm.S.galleryLevel);
+            var room = BiomeManager.I ? BiomeManager.I.Current : null;
+            float largeChance = Mathf.Min(largeChanceMax, largeChanceBase + largeChanceStep * gm.S.galleryLevel)
+                + (room && room.rule == BiomeRule.GoldenPantheon ? room.ruleA : 0f); // Panteón: bloques gigantes
             bool large = largePrefab && Random.value < largeChance;
 
             var m = Get(large);
@@ -127,8 +129,7 @@ namespace Marmoreal
             var pool = golden && goldenStatuePrefabs != null && goldenStatuePrefabs.Length > 0 ? goldenStatuePrefabs : statuePrefabs;
             var fab = pool != null && pool.Length > 0 ? pool[Random.Range(0, pool.Length)] : null;
             m.Init(this, hp, reward, statue, golden ? goldenMaterial : tierMaterials[tier], tier, fab, golden);
-            var biome = BiomeManager.I ? BiomeManager.I.Current : null;
-            float volBonus = (biome ? biome.volatileBonus : 0f) + (gm.Mutator != null ? gm.Mutator.volatileBonus : 0f);
+            float volBonus = (room ? room.volatileBonus : 0f) + (gm.Mutator != null ? gm.Mutator.volatileBonus : 0f);
             bool volOpen = gm.S.galleryLevel >= gm.config.volatileUnlockGallery;
             if (!golden && volatileMaterial && (volOpen || volBonus > 0) && Random.value < (volOpen ? gm.config.volatileChance : 0f) + volBonus)
             {
@@ -160,12 +161,14 @@ namespace Marmoreal
             var mod = trial ? null : gm.RollBossMod(); // Modo Infinito: 1 modificador aleatorio
             double reward = gm.BossReward * (mod?.rewardMult ?? 1f);
             boss.transform.localScale = bossScale * (mod?.scale ?? 1f);
-            boss.Init(this, (trial ? gm.TrialHP : gm.BossHP) * (mod?.hpMult ?? 1f), reward, gm.StatueReward(reward, true), tierMaterials[tier], tier, bossStatuePrefab, false);
+            var room = BiomeManager.I ? BiomeManager.I.Current : null;
+            bool final = trial && room && room.rule == BiomeRule.GoldenPantheon; // Prueba final: El Coloso de Mármol
+            boss.Init(this, (trial ? gm.TrialHP : gm.BossHP) * (mod?.hpMult ?? 1f) * (final ? room.ruleB : 1f), reward, gm.StatueReward(reward, true), tierMaterials[tier], tier, bossStatuePrefab, false);
             boss.MakeBoss(trial, mod);
             active.Add(boss);
             AudioFX.I?.Play(Sfx.Boom, 1f, 0.55f);
             CameraRig.I?.Shake(0.7f);
-            Hud.I?.Banner(trial ? "PRUEBA DE LA SALA" : mod != null ? $"COLOSO {mod.displayName.ToUpperInvariant()} · {mod.description}" : "UN COLOSO DESPIERTA");
+            Hud.I?.Banner(final ? "EL COLOSO DE MÁRMOL" : trial ? "PRUEBA DE LA SALA" : mod != null ? $"COLOSO {mod.displayName.ToUpperInvariant()} · {mod.description}" : "UN COLOSO DESPIERTA");
             Hud.I?.ShowToast("Derriba al COLOSO para abrir la siguiente galería", ToastKind.Gallery);
             return boss;
         }

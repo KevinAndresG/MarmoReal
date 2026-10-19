@@ -31,10 +31,12 @@ namespace Marmoreal
         [NonSerialized] float heat, reflectCd, sparkCd;
         [NonSerialized] bool lavaHintShown;
         [NonSerialized] string pendingBanner;
-        [NonSerialized] int lavaBursts, reflects;
+        [NonSerialized] int lavaBursts, reflects, grows;
+        [NonSerialized] System.Collections.Generic.Dictionary<Monolith, (float t, int n)> garden;
 
         public BiomeDef Current => Find(GameManager.I ? GameManager.I.S.biomeId : null);
-        public string DebugState => $"biome={appliedId} heat={heat:0.0} lava={lavaBursts} reflejos={reflects}";
+        public string DebugState => $"biome={appliedId} heat={heat:0.0} lava={lavaBursts} reflejos={reflects} brotes={grows}" +
+            $" drag={(PlayerMarble.I ? PlayerMarble.I.GetComponent<Rigidbody>().linearDamping : 0):0.00}";
 
         void Awake() => I = this;
 
@@ -158,6 +160,9 @@ namespace Marmoreal
             int idx = IndexOf(d);
             if (rooms != null) for (int i = 0; i < rooms.Length; i++) if (rooms[i]) rooms[i].SetActive(i == idx);
             heat = 0;
+            garden?.Clear();
+            bool ice = d.rule == BiomeRule.IceFloor;
+            PlayerMarble.I?.SetSurface(ice ? d.ruleA : 1f, ice ? d.ruleB : 1f, ice ? d.ruleC : -1f);
             if (reflectionProbe)
             {
                 // la sonda (tiempo real "OnEnable") guardaría la sala anterior: se pasa a bajo demanda
@@ -185,6 +190,32 @@ namespace Marmoreal
             if (pendingBanner != null && Hud.I && !Hud.I.BlocksGameplay) { Hud.I.Banner(pendingBanner); pendingBanner = null; }
             reflectCd -= Time.deltaTime;
             if (d.rule == BiomeRule.LavaFloor) TickLava(d, gm);
+            if (d.rule == BiomeRule.GardenGrowth) TickGarden(d);
+        }
+
+        /// <summary>Jardín de Rosa: los bloques que no rompes crecen (más HP y más polvo) cada ruleA s, hasta ruleC veces.</summary>
+        void TickGarden(BiomeDef d)
+        {
+            var sp = MonolithSpawner.I;
+            if (!sp || (Hud.I && Hud.I.BlocksGameplay)) return;
+            garden ??= new System.Collections.Generic.Dictionary<Monolith, (float, int)>();
+            foreach (var m in sp.Active)
+            {
+                if (!m || m.IsBoss) continue;
+                garden.TryGetValue(m, out var g);
+                g.t += Time.deltaTime;
+                if (g.t >= d.ruleA && g.n < d.ruleC)
+                {
+                    g = (0, g.n + 1);
+                    grows++;
+                    m.Overgrow(d.ruleB);
+                    ShardSystem.I?.SpawnSparkle(m.WorldBounds.center + Vector3.up * m.WorldBounds.extents.y, 12, 0, 4f);
+                    if (grows == 1) Hud.I?.ShowToast("¡Un bloque ha CRECIDO! Rómpelos antes de que se hagan fuertes (y más valiosos)", ToastKind.Info);
+                }
+                garden[m] = g;
+            }
+            // bloque roto (vuelve al pool): su próximo brote empieza de cero
+            if (garden.Count > sp.Active.Count) { var keep = new System.Collections.Generic.List<Monolith>(sp.Active); foreach (var k in new System.Collections.Generic.List<Monolith>(garden.Keys)) if (!keep.Contains(k)) garden.Remove(k); }
         }
 
         // =================== Reglas ===================

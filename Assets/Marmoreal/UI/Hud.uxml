@@ -87,7 +87,7 @@
                     <ui:Button name="mute-btn" class="btn small-btn" text="Sonido" style="margin-left: 6px;" />
                     <ui:Button name="reset-btn" class="btn small-btn" text="Borrar partida" style="margin-left: 6px;" />
                 </ui:VisualElement>
-                <ui:Label class="hint" text="WASD rodar · Espacio saltar · Shift embestida · F onda · 1-6 poderes · Ctrl+1-9 comprar · T árbol · G altar · L mecenazgos" picking-mode="Ignore" />
+                <ui:Label class="hint" text="WASD rodar · Espacio saltar · Shift embestida · F onda · 1-6 poderes · Ctrl+1-9 comprar · T árbol · G altar · L mecenazgos · V cámara" picking-mode="Ignore" />
             </ui:VisualElement>
         </ui:VisualElement>
 

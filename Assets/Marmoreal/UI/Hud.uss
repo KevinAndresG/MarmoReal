@@ -52,7 +52,7 @@
 .bar.flash { border-color: #FF6B6B; }
 
 .toasts { margin-top: 10px; align-items: center; transition: opacity 0.3s; }
-.toasts.dim { opacity: 0.12; }
+.toasts.dim { opacity: 0; }
 .toast {
     background-color: var(--panel-hi);
     border-radius: 8px; border-width: 1px; border-color: var(--gold-dim);
@@ -60,12 +60,12 @@
     transition: opacity 0.4s, translate 0.4s;
 }
 .toast.gold { border-color: #FFD34D; color: #FFE7A0; }
-.toast.gallery { border-color: var(--gold); color: var(--gold); font-size: 17px; -unity-font-style: bold; }
+.toast.gallery { position: relative; top: auto; left: auto; right: auto; border-color: var(--gold); color: var(--gold); font-size: 17px; -unity-font-style: bold; } /* anula .gallery (panel absoluto de arriba): era el solape de toasts */
 .toast.prestige { border-color: var(--essence); color: var(--essence); }
-.toast.out { opacity: 0; translate: 0 -12px; }
+.toast.out { opacity: 0; } /* sin desplazamiento: el saliente nunca pisa al de arriba */
 
 .combo {
-    position: absolute; top: 120px; left: 0; right: 0;
+    position: absolute; bottom: 176px; left: 0; right: 0; /* bajo el monumento ya no cabe: encima de los buffs */
     -unity-text-align: middle-center; font-size: 26px; -unity-font-style: bold;
     color: #FFD9A0; letter-spacing: 2px; transition: scale 0.08s, opacity 0.3s;
     -unity-text-outline-width: 1px; -unity-text-outline-color: rgba(0,0,0,0.6);
@@ -131,8 +131,8 @@
 .floater.crit { font-size: 30px; color: #FFD34D; }
 .floater.acolyte { font-size: 13px; color: #CFE9FF; }
 .floater.wave { font-size: 22px; color: var(--res); }
-.floater.statue { font-size: 26px; color: var(--gold); letter-spacing: 2px; }
-.floater.golden { font-size: 34px; color: #FFE58A; }
+.floater.statue { font-size: 19px; color: var(--gold); letter-spacing: 2px; }
+.floater.golden { font-size: 25px; color: #FFE58A; }
 
 /* ---------------- Overlays ---------------- */
 .overlay {
@@ -319,3 +319,7 @@
 
 .relic-glyph { font-size: 24px; width: 34px; color: var(--gold); -unity-text-align: middle-center; margin-right: 10px; }
 .logro-row.equipped { border-color: #FFFFFF; background-color: rgba(255, 255, 255, 0.10); }
+
+/* Cinemática de victoria: solo queda el rótulo */
+.layer.cine > * { visibility: hidden; }
+.layer.cine > .banner { visibility: visible; }

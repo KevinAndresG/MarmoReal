@@ -24,8 +24,8 @@ CFG = dict(
 # S3: Coloso cada 10 galerías (Economy.asset boss*) y mutador medio (media de las 7 cartas no seguras)
 BOSS = dict(every=10, hpMult=50, dustMult=40, icor=3, icorPerTier=1)
 # Campaña (S4): Prueba de cada sala al llegar a su galería (BiomeDef.trialGallery, nº visible). Jefe = Coloso × hpMult.
-# La sala por defecto al Pulir es la de la Prueba pendiente, así que la campaña es lineal. env SIMTRIALS="45,65,90".
-TRIALS = [int(x) for x in __import__("os").environ.get("SIMTRIALS", "45,65,90").split(",")]
+# La sala por defecto al Pulir es la de la Prueba pendiente, así que la campaña es lineal. env SIMTRIALS="45,65,90,105,112,118,124" (S6: 7 salas).
+TRIALS = [int(x) for x in __import__("os").environ.get("SIMTRIALS", "45,65,90,105,112,118,124").split(",")]
 TRIAL = dict(hpMult=2.0, icor=15)
 MUT = dict(on=__import__("os").environ.get("SIMMUT", "1") == "1",
            dust=(3 + 1 + 1 + 1 + 1 + 2 + 0.4) / 7, hp=(2 + 1 + 1 + 1 + 1.3 + 1 + 0.5) / 7,

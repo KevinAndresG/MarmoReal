@@ -32,6 +32,8 @@ ascendentes, la estatua se revela con un acorde. Primera mejora comprable en ~15
 | Onda de Resonancia | F / Clic izq. | Y |
 | Girar cámara | Clic der. + arrastrar / Q-E | Stick der. |
 | Zoom | Rueda | — |
+| Bloquear cámara (tercera persona: cursor oculto, el ratón gira siempre) | V | — |
+| Colección | C | — |
 | Poder n (Supernova, Ingravidez, Meteoros, Coloso, Vórtice, Midas, Rayos) | 1-7 / clic en la barra | Cruceta (4 primeros) |
 | Comprar mejora n del Taller | Ctrl + 1-9 | — |
 | Árbol del Escultor | T / Tab | — |
@@ -220,13 +222,20 @@ Play por `BiomeManager` (`--- SISTEMAS ---`); decoración/luces propias bajo `--
 | Santuario de Carrara | 0 | mármol blanco/negro, atardecer | ninguna |
 | Cantera Volcánica | 1 | basalto, juntas y grietas de lava, cielo rojo | +25 % bloques volcánicos (desde la Galería I); **lava**: si vas a < 2,5 m/s 1,6 s seguidos, el suelo te lanza por los aires y pierdes el combo (chispas de aviso) |
 | Gruta de Cristal | 2 | cristal azul con luz interior, bosque de cristales | cada golpe tuyo tiene 35 % de **reflejar un rayo** (50 % del daño) al bloque más cercano; los trozos son **metralla gratis** (×0,4 del daño de impacto, o tu nivel de Metralla si es mayor) |
+| Catedral de Hielo | 3 | hielo blanco azulado, carámbanos, luz fría | **suelo resbaladizo** (`IceFloor`): ×0,55 aceleración (cuesta frenar y girar), ×1,3 velocidad máxima, rozamiento de la canica 0,01 (`PlayerMarble.SetSurface`) |
+| Forja de Hierro | 4 | hierro gris, ascuas naranjas, pilares | **bloques de metal**: `hpMult` 2, `dustMult` 3; 4 **imanes** en el suelo (componente `Magnet`, radio 9 m, 14 m/s²) atraen la canica |
+| Jardín de Rosa | 5 | rosa/verde, rosales | **los bloques crecen** (`GardenGrowth`): cada 8 s sin romperlos, ×1,35 HP y polvo, hasta 4 veces |
+| Panteón Dorado | 6 | oro y negro, obeliscos dorados, polvo dorado | +25 % bloques grandes; la Prueba es **El Coloso de Mármol** (vida ×1,5 sobre la Prueba normal) |
 - **Selección (S4)**: la 1.ª sala está abierta; cada **Prueba superada** abre la siguiente (`BiomeManager.Unlocked`:
   etapa 0, o pieza de la etapa anterior, o `GameState.legacyStage` = pulidos que tenía una partida anterior a la S4).
   Por defecto el Pulido lleva a la sala con la Prueba pendiente más temprana; con todo superado o en el Modo Infinito,
   rotación mezclada entre las desbloqueadas. **CAMBIAR SALA** alterna entre las desbloqueadas.
 - Guardado: `GameState.biomeId` (partidas antiguas → `carrara`). Banner con nombre y regla al entrar; el resumen
   de "Canica pulida" incluye la sala.
-- Economía: `hpMult`/`dustMult` por sala (hoy 1,0 en las tres, para la campaña S4) — el simulador no cambia.
+- Economía: `hpMult`/`dustMult` por sala (1,0 salvo la Forja: ×2 HP, ×3 polvo) — el simulador no los modela.
+- Salas 4-7 (S6): menú *Marmoreal/Añadir salas 4-7: Hielo, Forja, Jardín y Panteón (aditivo)* (`BiomeBuilder.AddBiomes47`):
+  crea solo lo que falta (materiales `Materials/Biomes/*_Hielo|_Hierro|_Rosa|_Oro`, `VP_*`, `Biome_*`, hijos de `--- SALA ---`)
+  y los añade al final de `BiomeManager.biomes/rooms`.
 
 ### 4.11d Mutadores, Colosos, eventos y contratos (S3)
 Datos en `Economy.asset` (listas `mutators`, `lifeEvents`, `contracts` y cabeceras *Jefes*, *Eventos*, *Contratos*);
@@ -265,18 +274,19 @@ Datos en `Economy.asset` (listas `mutators`, `lifeEvents`, `contracts` y cabecer
 
 ### 4.11e Campaña: El Gran Monumento, Colección y Modo Infinito (S4)
 - **Meta**: 7 piezas (Base, Columnas, Torso, Brazos, Rostro, Corona, Alma) en `Economy.asset → campaign`
-  (índice = `campaignStage` de la sala). Se ganan con `campaignPiecesRequired` piezas (hoy **3**, una por sala
-  jugable; subir a 7 cuando existan las salas 4-7: Hielo, Hierro, Rosa, Panteón Dorado).
-- **Prueba de sala**: al llegar a `BiomeDef.trialGallery` (nº visible: Carrara **45**, Volcánica **65**, Cristal **90**)
+  (índice = `campaignStage` de la sala). Se ganan con `campaignPiecesRequired` = **7** piezas (S6). Migración: quien ya
+  ganó con 3 conserva `campaignWon` (victoria y Modo Infinito) y puede seguir sacando las piezas 4-7.
+- **Prueba de sala**: al llegar a `BiomeDef.trialGallery` (nº visible: Carrara **45**, Volcánica **65**, Cristal **90**, Hielo **105**, Forja **112**, Jardín **118**, Panteón **124**)
   brota el jefe (`SpawnBoss(trial: true)`, vida = Coloso × `trialHPMult` 2) y cierra la galería. Al caer: pieza,
   +`trialIcor` 15 Ícor, color de canica y la sala siguiente se abre (`GameManager.CompleteTrial`).
 - **HUD**: barra de 7 piezas bajo la galería (Hud.uxml `monument`, `piece-0..6`; clases `got`/`trial`/`future`) y
   pista "Prueba de X: Galería N". **Monumento físico** `--- MONUMENTO ---` (componente `Monument`, un hijo por pieza
   que se activa al conseguirla), detrás de la columnata.
 - **Colección [C]** (`marbleColors`): Carrara (inicio) · Rosa (1.er Pulido) · Verde (Prueba 1) · Rojo (Prueba 2) ·
-  Violeta (Prueba 3) · Celeste (Prueba 4) · Nero (25 pulidos) · Dorado (campaña) · Cósmica (galería 500 en el infinito).
+  Violeta (Prueba 3) · Celeste (Prueba 4) · Hierro Forjado (Prueba 5) · Flor de Jardín (Prueba 6) · Nero (25 pulidos) · Dorado (campaña) · Cósmica (galería 500 en el infinito).
   Cada una: material `M_Player_*`, color de estela y de la onda. Solo cosmético. Al desbloquear se estrena sola.
-- **Victoria**: modal con tiempo de campaña, estatuas, pulidos, mejor golpe y galería máxima; desbloquea el Modo
+- **Victoria**: cinemática corta (`HudCampaign.VictoryCinematic`: 8 s orbitando `--- MONUMENTO ---` con la HUD oculta,
+  cualquier tecla la salta) y luego modal con tiempo de campaña, estatuas, pulidos, mejor golpe y galería máxima; desbloquea el Modo
   Infinito (entrar ahora o desde Colección).
 - **Modo Infinito** (`GameState.infinite`): salas mezcladas, sin carta de mutador segura, vida de los bloques
   ×(1 + `infiniteHpPerLife` 0,25 × pulidos en el infinito). Récords (galería máx., tiempo, mejor golpe, polvo/s) y
@@ -370,7 +380,13 @@ Los Colosos suman ~+55 % de Ícor en 20 h (con +2 Ícor por tier era +85 %: por 
 
 **S4 (campaña):** la Prueba se modela como 2 × Coloso al llegar a su galería (`TRIALS`, env `SIMTRIALS`); la
 campaña es lineal. Con 45/65/90: Prueba 1 a **1,8 h**, Prueba 2 a **3,3 h** (+1,5 h), Prueba 3 a **5,1 h** (+1,8 h)
-→ objetivo 1,5-3 h por sala cumplido; campaña de 3 salas ≈ 5 h (7 salas ≈ 12-18 h extrapolando).
+→ objetivo 1,5-3 h por sala cumplido; campaña de 3 salas ≈ 5 h.
+
+**S6 (7 salas):** pasado ~G110 el ritmo se frena mucho (la vida tarda horas en subir unas pocas galerías), así que
+las Pruebas 4-7 van en pasos cortos: 105/112/118/124 → Prueba 4 a **7,5 h** (+2,3 h), 5 a **10,2 h** (+2,7 h),
+6 a **15,0 h** (+4,9 h), 7 a **18,5 h** (+3,5 h). Campaña ≈ 18,5 h (objetivo 12-20 h); la sala 6 se pasa del objetivo
+de 3 h porque el simulador avanza a saltos por Pulido (118 cae justo tras un muro). No modela ×2 HP/×3 polvo de la Forja
+ni el crecimiento del Jardín. Probadas: 120 (sala 4 = 10 h), 110/125 (5 h + 8,7 h), 117/123, 116/121, 115/120.
 
 Para retocar: edita `Economy.asset` en el Inspector y replica los números en `Tools/balance_sim.py`;
 ejecuta `python Tools/balance_sim.py 20` y revisa la tabla de hitos.
@@ -385,7 +401,11 @@ ejecuta `python Tools/balance_sim.py 20` y revisa la tabla de hitos.
 
 ## 6. Juice / feedback
 - Trozos que saltan con física simulada (instanced), polvo emisivo atraído, estatua que asciende y brilla.
-- Números de daño flotantes (críticos grandes y dorados), combo con "pop", toasts.
+- Números de daño flotantes (críticos grandes y dorados), combo con "pop" (abajo, sobre los buffs), toasts.
+- **Rótulos y toasts nunca se pisan** (S6): mientras hay rótulo (`Hud.Banner`) los toasts se ocultan y los nuevos esperan en
+  cola (`pendingToasts`, se vacía al acabar el rótulo o al cerrar un modal). El toast de galería usa la clase `gallery`, que
+  también es el panel de arriba: `.toast.gallery` la anula (`position: relative`) — era el solape antiguo.
+- El modal de Consagrar se titula **CONSAGRACIÓN** (`GameManager.LastWasConsecrate`) con su resumen (reliquias, ranuras, ×Esencia, qué se pierde).
 - Hit-stop, temblor por trauma², FOV kick en la embestida y a alta velocidad, estela.
 - Audio 100 % procedural: impactos, cincel, notas pentatónicas al recoger, acordes de estatua y
   galería, ondas graves, pad ambiental en bucle, reverb de sala.
@@ -406,5 +426,4 @@ Ver `CLAUDE.md` y el skill `.claude/skills/marmoreal-dev`.
 - Más eventos temporales y bendiciones de Musas; tipos de bloque nuevos (espejo, hielo, bomba, hueco).
 - Tercer árbol / reliquias equipables (slots que modifican los poderes: Supernova en racimo, Vórtice móvil…).
 - Más estatuas (manos, caballos, rostros) y bloques con forma (columnas, arcos).
-- Más salas (Hielo, Forja, Jardín, Panteón; ver `Docs/ANALISIS_PROGRESION.md` §3B) con `BiomeDef` nuevos.
 - Música adaptativa por galería.

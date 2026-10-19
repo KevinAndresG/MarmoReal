@@ -1,5 +1,6 @@
 using System.Text;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
 namespace Marmoreal
@@ -16,6 +17,7 @@ namespace Marmoreal
         bool coleccionOpen;
         string builtColors;
         float victoryAt = -1f;
+        bool cinematic;
 
         void BindCampaign()
         {
@@ -71,9 +73,52 @@ namespace Marmoreal
 
         void ShowVictory()
         {
+            GameManager.I.S.victoryShown = true;
+            StartCoroutine(VictoryCinematic());
+        }
+
+        /// <summary>Cinemática corta: la cámara orbita el Gran Monumento (--- MONUMENTO ---) y luego sale el modal. Cualquier tecla la salta.</summary>
+        System.Collections.IEnumerator VictoryCinematic()
+        {
+            var mon = FindFirstObjectByType<Monument>();
+            var rig = cameraRig ? cameraRig : CameraRig.I;
+            if (mon && rig)
+            {
+                cinematic = true;
+                var b = new Bounds(mon.transform.position, Vector3.one);
+                foreach (var r in mon.GetComponentsInChildren<Renderer>()) b.Encapsulate(r.bounds);
+                Vector3 c = b.center;
+                float dist = b.extents.magnitude * 1.5f + 6f, dur = 8f, t = 0f;
+                var cam = rig.transform;
+                Vector3 pos0 = cam.position; Quaternion rot0 = cam.rotation;
+                rig.enabled = false;
+                hudLayer?.AddToClassList("cine");
+                Banner("EL GRAN MONUMENTO\n<size=40%>cualquier tecla: saltar</size>", (int)(dur * 1000));
+                var fwd = -mon.transform.position; // el frente mira al centro del cuenco
+                float a0 = Mathf.Atan2(fwd.x, fwd.z) * Mathf.Rad2Deg;
+                yield return null;
+                while (t < dur && !(Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame))
+                {
+                    t += Time.unscaledDeltaTime;
+                    float k = t / dur;
+                    var dir = Quaternion.Euler(0, a0 - 70f + 160f * Mathf.SmoothStep(0, 1, k), 0) * Vector3.forward;
+                    cam.position = c + dir * dist * Mathf.Lerp(1.15f, 0.9f, k) + Vector3.up * dist * Mathf.Lerp(0.45f, 0.2f, k);
+                    cam.LookAt(c + Vector3.up * b.extents.y * 0.2f);
+                    yield return null;
+                }
+                cam.SetPositionAndRotation(pos0, rot0);
+                rig.enabled = true;
+                hudLayer?.RemoveFromClassList("cine");
+                Banner("");
+                cinematic = false;
+            }
+            ShowVictoryModal();
+        }
+
+        void ShowVictoryModal()
+        {
             var gm = GameManager.I;
             var S = gm.S;
-            S.victoryShown = true;
             OpenModal("¡MONUMENTO COMPLETO!",
                 "La obra maestra se alza sobre el santuario.\n\n" +
                 $"Tiempo de campaña: {Num.Time(S.campaignSeconds)}\n" +

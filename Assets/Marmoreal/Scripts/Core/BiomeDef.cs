@@ -12,6 +12,14 @@ namespace Marmoreal
         LavaFloor,
         /// <summary>Cristal: cada golpe tuyo refleja un rayo (prob. ruleA, ruleB × daño) y los trozos son metralla gratis (ruleC × daño de impacto).</summary>
         CrystalReflect,
+        /// <summary>Hielo: suelo resbaladizo. ruleA × aceleración (cuesta frenar/girar), ruleB × velocidad máxima, ruleC = amortiguación lineal de la canica.</summary>
+        IceFloor,
+        /// <summary>Forja: bloques de metal (hpMult/dustMult de la sala) e imanes en el suelo (componente Magnet en los hijos de la sala).</summary>
+        IronForge,
+        /// <summary>Jardín: cada ruleA s sin romperlo, un bloque crece ×ruleB (HP y polvo), hasta ruleC veces.</summary>
+        GardenGrowth,
+        /// <summary>Panteón: +ruleA a la probabilidad de bloque grande; la Prueba es "El Coloso de Mármol" con HP ×ruleB.</summary>
+        GoldenPantheon,
     }
 
     [Serializable]

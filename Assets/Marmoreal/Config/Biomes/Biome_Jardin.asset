@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46bb5a26e3310e14986e87589645c550, type: 3}
+  m_Name: Biome_Jardin
+  m_EditorClassIdentifier: Assembly-CSharp::Marmoreal.BiomeDef
+  id: jardin
+  displayName: "Jard\xEDn de Rosa"
+  tagline: "Los bloques crecen si no los rompes: m\xE1s vida, pero tambi\xE9n m\xE1s
+    polvo."
+  campaignStage: 5
+  hpMult: 1
+  dustMult: 1
+  trialGallery: 118
+  chunkMaterials:
+  - {fileID: 2100000, guid: d1184a3cea4b7454db41d5e1717fa896, type: 2}
+  - {fileID: 2100000, guid: 4804b3badc595ba47a3c89307ae8b349, type: 2}
+  - {fileID: 2100000, guid: 0988c9ce4b55e224da747405854e19a3, type: 2}
+  - {fileID: 2100000, guid: c1be6139b594b514187fb0ff72fe8320, type: 2}
+  - {fileID: 2100000, guid: 8ddc7865cf26c0940a90560d4618abe9, type: 2}
+  - {fileID: 2100000, guid: d1f7ec3d8f0c1f04bb821adc1cea5882, type: 2}
+  shardMaterials: []
+  swaps:
+  - from: {fileID: 2100000, guid: ef95eacd7b53e694ab946a9c380cbde0, type: 2}
+    to: {fileID: 2100000, guid: 2d294d057ee9bc64ba5c5941a371e02e, type: 2}
+  - from: {fileID: 2100000, guid: 9109bea7110f8f44488de273e06106be, type: 2}
+    to: {fileID: 2100000, guid: cc8af23b1b66c57469f6536d0e367a66, type: 2}
+  - from: {fileID: 2100000, guid: 49ab415c654b0e1418109ca25fef33b6, type: 2}
+    to: {fileID: 2100000, guid: ac5c8b1fdc81f78448c3d25ba39a6ffd, type: 2}
+  - from: {fileID: 2100000, guid: 7f6172170e92b07448660bfd62e1b8ce, type: 2}
+    to: {fileID: 2100000, guid: d06224573bf903640b0bf30dcc65aea6, type: 2}
+  - from: {fileID: 2100000, guid: 76bef62160265ca448bc6d4a3533531c, type: 2}
+    to: {fileID: 2100000, guid: a328de54ac5070740b223e8b01ca06c3, type: 2}
+  sunColor: {r: 1, g: 0.88, b: 0.85, a: 1}
+  sunIntensity: 2600
+  volumeProfile: {fileID: 11400000, guid: ac47232e1101dc54b87a69f41f19ab32, type: 2}
+  rule: 5
+  ruleA: 8
+  ruleB: 1.35
+  ruleC: 4
+  volatileBonus: 0

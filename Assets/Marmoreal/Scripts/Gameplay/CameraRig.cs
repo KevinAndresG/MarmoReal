@@ -5,7 +5,7 @@ namespace Marmoreal
 {
     /// <summary>
     /// Cámara orbital que sigue a la canica. Clic derecho + arrastrar o Q/E para girar,
-    /// rueda para zoom. C bloquea la cámara (tercera persona: cursor oculto, el ratón gira siempre).
+    /// rueda para zoom. V bloquea la cámara (tercera persona: cursor oculto, el ratón gira siempre).
     /// Incluye temblor (trauma²) y "kick" de FOV en la Embestida.
     /// </summary>
     [RequireComponent(typeof(Camera))]
@@ -31,7 +31,7 @@ namespace Marmoreal
         public float baseFov = 55f;
         [Tooltip("Vista del título: órbita lenta alrededor del santuario")]
         public bool attractMode = true;
-        [System.NonSerialized] public bool locked; // tercera persona (tecla C)
+        [System.NonSerialized] public bool locked; // tercera persona (tecla V; la C abre la Colección)
 
         Camera cam;
         Vector3 focus;
@@ -82,7 +82,7 @@ namespace Marmoreal
             }
 
             var kb = Keyboard.current;
-            if (!blocked && kb != null && kb.cKey.wasPressedThisFrame) locked = !locked;
+            if (!blocked && kb != null && kb.vKey.wasPressedThisFrame) locked = !locked;
             // Los menús abiertos sueltan el cursor; al cerrarlos vuelve a bloquearse
             bool cursorLocked = locked && !blocked;
             Cursor.lockState = cursorLocked ? CursorLockMode.Locked : CursorLockMode.None;
@@ -138,8 +138,8 @@ namespace Marmoreal
             trauma = Mathf.Max(0, trauma - dt * 1.6f);
             float sh = trauma * trauma;
             float t = Time.unscaledTime * 28f;
-            Vector3 offs = new Vector3(Mathf.PerlinNoise(t, 0.1f) - 0.5f, Mathf.PerlinNoise(0.3f, t) - 0.5f, 0) * sh * 0.9f;
-            Quaternion roll = Quaternion.Euler(0, 0, (Mathf.PerlinNoise(t, t) - 0.5f) * sh * 6f);
+            Vector3 offs = new Vector3(Mathf.PerlinNoise(t, 0.1f) - 0.5f, Mathf.PerlinNoise(0.3f, t) - 0.5f, 0) * sh * 0.6f;
+            Quaternion roll = Quaternion.Euler(0, 0, (Mathf.PerlinNoise(t, t) - 0.5f) * sh * 3f);
 
             Vector3 finalPos = pos + rot * offs;
             Quaternion finalRot = Quaternion.LookRotation(focus - pos) * roll;

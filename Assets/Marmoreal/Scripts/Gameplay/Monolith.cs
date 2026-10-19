@@ -42,6 +42,13 @@ namespace Marmoreal
         public bool Volatile { get; private set; }
         public double HP { get; private set; }
         public double HPLeft => System.Math.Max(0, HP - dealt);
+
+        /// <summary>Jardín de Rosa: el bloque sin romper crece (HP y recompensa × m).</summary>
+        public void Overgrow(float m)
+        {
+            HP *= m; chunkHP *= m; rewardPerChunk *= m; statueReward *= m;
+            punch = 1f;
+        }
         public Bounds WorldBounds => col.bounds;
 
         MeshRenderer[] chunks;

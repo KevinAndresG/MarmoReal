@@ -18,15 +18,34 @@ namespace Marmoreal
         public Transform[] rings;
         public float expandTime = 0.55f;
         public float ringHeight = 0.6f;
-        [System.NonSerialized] MaterialPropertyBlock tint;
+        [Tooltip("Brillo de los anillos respecto al emisivo del material (1 = tal cual). Se apaga al expandirse y se reparte entre ondas simultáneas")]
+        [Range(0f, 1f)] public float glow = 0.3f;
+        [System.NonSerialized] MaterialPropertyBlock block;
+        [System.NonSerialized] bool hasTint, hasBase;
+        [System.NonSerialized] Color tintColor, baseEmissive;
 
         /// <summary>Color de la onda según la canica elegida (Colección).</summary>
         public void SetTint(Color c)
         {
-            tint ??= new MaterialPropertyBlock();
-            tint.SetColor("_BaseColor", c);
-            tint.SetColor("_EmissiveColor", c.linear * 1024f);
-            foreach (var r in rings) if (r && r.TryGetComponent<Renderer>(out var mr)) mr.SetPropertyBlock(tint);
+            hasTint = true;
+            tintColor = c;
+            baseEmissive = c.linear * 1024f;
+            hasBase = true;
+        }
+
+        void ApplyGlow(Transform ring, float k, float crowd)
+        {
+            if (!ring.TryGetComponent<Renderer>(out var mr)) return;
+            if (!hasBase)
+            {
+                baseEmissive = mr.sharedMaterial && mr.sharedMaterial.HasProperty("_EmissiveColor") ? mr.sharedMaterial.GetColor("_EmissiveColor") : Color.white * 1024f;
+                hasBase = true;
+            }
+            block ??= new MaterialPropertyBlock();
+            if (hasTint) block.SetColor("_BaseColor", tintColor);
+            float fade = (1f - k) * (1f - k);
+            block.SetColor("_EmissiveColor", baseEmissive * (glow * fade * crowd));
+            mr.SetPropertyBlock(block);
         }
 
         class Wave
@@ -128,6 +147,9 @@ namespace Marmoreal
             }
 
             float dt = Time.deltaTime;
+            int visible = 0;
+            foreach (var w in waves) if (w.delay <= 0 && w.ring) visible++;
+            float crowd = 1f / Mathf.Sqrt(Mathf.Max(1, visible));
             for (int i = waves.Count - 1; i >= 0; i--)
             {
                 var w = waves[i];
@@ -139,11 +161,9 @@ namespace Marmoreal
 
                 if (w.ring)
                 {
-                    if (!w.ring.gameObject.activeSelf)
-                    {
-                        w.ring.gameObject.SetActive(true);
-                        if (tint != null && w.ring.TryGetComponent<Renderer>(out var mr)) mr.SetPropertyBlock(tint); // clones nuevos
-                    }
+                    if (!w.ring.gameObject.activeSelf) w.ring.gameObject.SetActive(true);
+                    // ponytail: brillo repartido entre anillos visibles (1/√n) para que el frenesí no deslumbre
+                    ApplyGlow(w.ring, k, w.mini ? 0.5f * crowd : crowd);
                     w.ring.position = new Vector3(w.origin.x, ArenaShape.Height(w.origin) + ringHeight, w.origin.z);
                     float thick = Mathf.Lerp(1f, 0.05f, k);
                     w.ring.localScale = new Vector3(Mathf.Max(0.01f, r), thick * (w.mini ? 0.6f : 1.5f), Mathf.Max(0.01f, r));

@@ -186,6 +186,199 @@ namespace Marmoreal.EditorTools
             Debug.Log("[Marmoreal] Salas añadidas (aditivo).");
         }
 
+        // ================================================================= Salas 4-7 (S6)
+        [MenuItem("Marmoreal/Añadir salas 4-7: Hielo, Forja, Jardín y Panteón (aditivo)")]
+        public static void AddBiomes47()
+        {
+            var scene = EditorSceneManager.GetActiveScene();
+            if (scene.path != MarmorealBuilder.ScenePath) { Debug.LogError("[Marmoreal] Abre la escena Marmoreal antes."); return; }
+            var bm = Object.FindFirstObjectByType<BiomeManager>(FindObjectsInactive.Include);
+            var carrara = AssetDatabase.LoadAssetAtPath<BiomeDef>($"{BioDir}/Biome_Carrara.asset");
+            var volcanica = AssetDatabase.LoadAssetAtPath<BiomeDef>($"{BioDir}/Biome_Volcanica.asset");
+            Transform sala = null;
+            foreach (var r in scene.GetRootGameObjects()) if (r.name == "--- SALA ---") sala = r.transform;
+            if (!bm || !carrara || !sala) { Debug.LogError("[Marmoreal] Antes: menú 'Añadir salas: Volcánica y Cristal'."); return; }
+            var baseChunks = carrara.chunkMaterials;
+            var baseShards = carrara.shardMaterials;
+            var sphere = AssetDatabase.LoadAssetAtPath<Mesh>(MarmorealBuilder.MeshDir + "/Sphere.asset");
+            var obelisk = AssetDatabase.LoadAssetAtPath<Mesh>(MarmorealBuilder.MeshDir + "/Obelisk.asset");
+            var column = AssetDatabase.LoadAssetAtPath<Mesh>(MarmorealBuilder.MeshDir + "/Column.asset");
+
+            // ---------- 4. Catedral de Hielo: suelo resbaladizo ----------
+            var frost = new Color(0.6f, 0.85f, 1f);
+            var hChunks = Tint(baseChunks, "Hielo", m => { m.SetColor("_BaseColor", new Color(0.82f, 0.92f, 1f)); m.SetFloat("_SmoothnessRemapMax", 1f); m.SetFloat("_CoatMask", 1f); });
+            var hSwaps = new Dictionary<string, Material>
+            {
+                ["M_Floor"] = Copy("M_Floor", "Hielo", m => { m.SetColor("_BaseColor", new Color(0.8f, 0.9f, 1f)); m.SetFloat("_SmoothnessRemapMax", 1f); m.SetFloat("_CoatMask", 1f); }),
+                ["M_OuterGround"] = Copy("M_OuterGround", "Hielo", m => m.SetColor("_BaseColor", new Color(0.85f, 0.92f, 1f))),
+                ["M_Column"] = Copy("M_Column", "Hielo", m => { m.SetColor("_BaseColor", new Color(0.75f, 0.88f, 1f)); m.SetFloat("_CoatMask", 1f); }),
+                ["M_Gold"] = Copy("M_Gold", "Hielo", m => m.SetColor("_BaseColor", new Color(0.85f, 0.95f, 1f))),
+                ["M_BrassInlay"] = MarmorealBuilder.Emissive("Biomes/M_Escarcha", new Color(0.8f, 0.95f, 1f), frost, 9f, 0.95f),
+            };
+            var hielo = Def("Biome_Hielo", d =>
+            {
+                d.id = "hielo"; d.displayName = "Catedral de Hielo"; d.campaignStage = 3; d.trialGallery = 105;
+                d.tagline = "Suelo de hielo: más velocidad, poco agarre · usa la inercia y la Embestida.";
+                d.chunkMaterials = hChunks; d.swaps = Swaps(hSwaps);
+                d.sunColor = new Color(0.82f, 0.9f, 1f); d.sunIntensity = 2400f;
+                d.volumeProfile = Profile("VP_Hielo", new Color(0.35f, 0.5f, 0.7f), new Color(0.75f, 0.85f, 0.95f), new Color(0.55f, 0.65f, 0.8f), new Color(0.9f, 0.96f, 1f), new Color(0.85f, 0.92f, 1f));
+                d.rule = BiomeRule.IceFloor; d.ruleA = 0.55f; d.ruleB = 1.3f; d.ruleC = 0.01f;
+            });
+
+            // ---------- 5. Forja de Hierro: metal (más HP, polvo ×3) e imanes ----------
+            var ember = new Color(1f, 0.5f, 0.15f);
+            var fChunks = Tint(baseChunks, "Hierro", m => { m.SetColor("_BaseColor", new Color(0.45f, 0.46f, 0.5f)); m.SetFloat("_Metallic", 0.9f); m.SetFloat("_SmoothnessRemapMax", 0.75f); });
+            var magnetMat = MarmorealBuilder.Emissive("Biomes/M_Iman", new Color(0.3f, 0.3f, 0.33f), ember, 11f, 0.7f);
+            var fSwaps = new Dictionary<string, Material>
+            {
+                ["M_Floor"] = Copy("M_Floor", "Hierro", m => { m.SetColor("_BaseColor", new Color(0.32f, 0.31f, 0.32f)); m.SetFloat("_Metallic", 0.6f); }),
+                ["M_OuterGround"] = Copy("M_OuterGround", "Hierro", m => m.SetColor("_BaseColor", new Color(0.16f, 0.15f, 0.15f))),
+                ["M_Column"] = Copy("M_Column", "Hierro", m => { m.SetColor("_BaseColor", new Color(0.38f, 0.38f, 0.4f)); m.SetFloat("_Metallic", 0.85f); }),
+                ["M_Gold"] = Copy("M_Gold", "Hierro", m => m.SetColor("_BaseColor", new Color(0.95f, 0.5f, 0.2f))),
+                ["M_BrassInlay"] = MarmorealBuilder.Emissive("Biomes/M_Ascua", new Color(1f, 0.55f, 0.2f), ember, 10f, 0.4f),
+            };
+            var forja = Def("Biome_Forja", d =>
+            {
+                d.id = "forja"; d.displayName = "Forja de Hierro"; d.campaignStage = 4; d.trialGallery = 112;
+                d.tagline = "Bloques de metal: ×2 de vida, ×3 de polvo · los imanes del suelo atraen tu canica.";
+                d.chunkMaterials = fChunks; d.shardMaterials = volcanica ? volcanica.shardMaterials : null; d.swaps = Swaps(fSwaps);
+                d.hpMult = 2f; d.dustMult = 3f;
+                d.sunColor = new Color(1f, 0.75f, 0.55f); d.sunIntensity = 1900f;
+                d.volumeProfile = Profile("VP_Forja", new Color(0.08f, 0.06f, 0.06f), new Color(0.45f, 0.25f, 0.12f), new Color(0.1f, 0.06f, 0.04f), new Color(1f, 0.88f, 0.78f), new Color(0.5f, 0.35f, 0.25f));
+                d.rule = BiomeRule.IronForge;
+            });
+
+            // ---------- 6. Jardín de Rosa: los bloques crecen si no los rompes ----------
+            var petal = new Color(1f, 0.45f, 0.7f);
+            var leaf = new Color(0.3f, 0.75f, 0.35f);
+            var jChunks = Tint(baseChunks, "Rosa", m => m.SetColor("_BaseColor", new Color(1f, 0.72f, 0.8f)));
+            var leafMat = Copy("M_Column", "Hoja", m => m.SetColor("_BaseColor", leaf));
+            var jSwaps = new Dictionary<string, Material>
+            {
+                ["M_Floor"] = Copy("M_Floor", "Rosa", m => m.SetColor("_BaseColor", new Color(1f, 0.85f, 0.88f))),
+                ["M_OuterGround"] = Copy("M_OuterGround", "Rosa", m => m.SetColor("_BaseColor", new Color(0.35f, 0.6f, 0.3f))),
+                ["M_Column"] = Copy("M_Column", "Rosa", m => m.SetColor("_BaseColor", new Color(0.95f, 0.75f, 0.8f))),
+                ["M_Gold"] = Copy("M_Gold", "Rosa", m => m.SetColor("_BaseColor", new Color(0.55f, 0.85f, 0.45f))),
+                ["M_BrassInlay"] = MarmorealBuilder.Emissive("Biomes/M_Petalo", petal, petal, 8f, 0.5f),
+            };
+            var jardin = Def("Biome_Jardin", d =>
+            {
+                d.id = "jardin"; d.displayName = "Jardín de Rosa"; d.campaignStage = 5; d.trialGallery = 118;
+                d.tagline = "Los bloques crecen si no los rompes: más vida, pero también más polvo.";
+                d.chunkMaterials = jChunks; d.swaps = Swaps(jSwaps);
+                d.sunColor = new Color(1f, 0.88f, 0.85f); d.sunIntensity = 2600f;
+                d.volumeProfile = Profile("VP_Jardin", new Color(0.4f, 0.55f, 0.85f), new Color(1f, 0.75f, 0.8f), new Color(0.6f, 0.75f, 0.5f), new Color(1f, 0.95f, 0.96f), new Color(1f, 0.85f, 0.9f));
+                d.rule = BiomeRule.GardenGrowth; d.ruleA = 8f; d.ruleB = 1.35f; d.ruleC = 4f;
+            });
+
+            // ---------- 7. Panteón Dorado: todo oro, bloques gigantes, El Coloso de Mármol ----------
+            var goldC = new Color(1f, 0.78f, 0.35f);
+            var pChunks = Tint(baseChunks, "Oro", m => { m.SetColor("_BaseColor", goldC); m.SetFloat("_Metallic", 0.9f); m.SetFloat("_SmoothnessRemapMax", 0.85f); });
+            var pShards = new Material[baseShards.Length];
+            for (int i = 0; i < pShards.Length; i++) pShards[i] = baseShards[baseShards.Length - 1]; // polvo dorado
+            var pSwaps = new Dictionary<string, Material>
+            {
+                ["M_Floor"] = Copy("M_Floor", "Oro", m => { m.SetColor("_BaseColor", new Color(0.12f, 0.1f, 0.09f)); m.SetFloat("_SmoothnessRemapMax", 0.95f); }),
+                ["M_OuterGround"] = Copy("M_OuterGround", "Oro", m => m.SetColor("_BaseColor", new Color(0.08f, 0.07f, 0.06f))),
+                ["M_Column"] = Copy("M_Column", "Oro", m => { m.SetColor("_BaseColor", goldC); m.SetFloat("_Metallic", 0.9f); }),
+                ["M_Gold"] = Copy("M_Gold", "Oro", m => m.SetColor("_BaseColor", new Color(1f, 0.85f, 0.45f))),
+                ["M_BrassInlay"] = MarmorealBuilder.Emissive("Biomes/M_OroVivo", goldC, goldC, 10f, 0.9f),
+            };
+            var panteon = Def("Biome_Panteon", d =>
+            {
+                d.id = "panteon"; d.displayName = "Panteón Dorado"; d.campaignStage = 6; d.trialGallery = 124;
+                d.tagline = "La sala final: todo es oro, los bloques son gigantes y te espera El Coloso de Mármol.";
+                d.chunkMaterials = pChunks; d.shardMaterials = pShards; d.swaps = Swaps(pSwaps);
+                d.sunColor = new Color(1f, 0.85f, 0.6f); d.sunIntensity = 2200f;
+                d.volumeProfile = Profile("VP_Panteon", new Color(0.04f, 0.03f, 0.02f), new Color(0.5f, 0.38f, 0.15f), new Color(0.06f, 0.05f, 0.03f), new Color(1f, 0.92f, 0.78f), new Color(0.6f, 0.5f, 0.3f));
+                d.rule = BiomeRule.GoldenPantheon; d.ruleA = 0.25f; d.ruleB = 1.5f;
+            });
+
+            // ---------- Escena: hijos de --- SALA --- ----------
+            var roomH = Room(sala, "Catedral de Hielo", t =>
+            {
+                for (int i = 0; i < 16; i++)
+                {
+                    float a = i / 16f * Mathf.PI * 2f + 0.1f, r = 45f + (i % 3) * 3f;
+                    var go = MarmorealBuilder.MeshGO($"Carámbano_{i:00}", obelisk, hSwaps["M_Column"], t);
+                    go.transform.position = new Vector3(Mathf.Cos(a) * r, -6f, Mathf.Sin(a) * r);
+                    go.transform.rotation = Quaternion.Euler((i % 2 == 0 ? 1 : -1) * 6f, i * 23f, 0);
+                    go.transform.localScale = new Vector3(1.6f, 2f + (i % 4) * 0.6f, 1.6f);
+                }
+                for (int i = 0; i < 3; i++)
+                {
+                    float a = (i + 0.5f) / 3f * Mathf.PI * 2f;
+                    PointLight(t, $"Luz Fría_{i}", new Vector3(Mathf.Cos(a) * 24f, 6f, Mathf.Sin(a) * 24f), frost, 12000f, 26f, false);
+                }
+            });
+            var roomF = Room(sala, "Forja de Hierro", t =>
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    float a = (i + 0.25f) / 4f * Mathf.PI * 2f, r = 15f;
+                    var pos = new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
+                    pos.y = ArenaShape.Height(pos) + 0.02f;
+                    var go = MarmorealBuilder.MeshGO($"Imán_{i}", sphere, magnetMat, t, false);
+                    go.transform.position = pos;
+                    go.transform.localScale = new Vector3(2.4f, 0.12f, 2.4f);
+                    go.AddComponent<Magnet>();
+                    PointLight(t, $"Brillo del Imán_{i}", pos + Vector3.up * 1.2f, ember, 5000f, 9f, true);
+                }
+                for (int i = 0; i < 12; i++)
+                {
+                    float a = i / 12f * Mathf.PI * 2f + 0.15f, r = 47f + (i % 2) * 4f;
+                    var go = MarmorealBuilder.MeshGO($"Pilar de Hierro_{i:00}", column, fSwaps["M_Column"], t);
+                    go.transform.position = new Vector3(Mathf.Cos(a) * r, -4f, Mathf.Sin(a) * r);
+                    go.transform.localScale = new Vector3(1.4f, 1.2f + (i % 3) * 0.3f, 1.4f);
+                }
+            });
+            var roomJ = Room(sala, "Jardín de Rosa", t =>
+            {
+                var flower = jSwaps["M_BrassInlay"];
+                for (int i = 0; i < 22; i++)
+                {
+                    float a = i / 22f * Mathf.PI * 2f, r = 44f + (i % 4) * 2.5f;
+                    var bush = MarmorealBuilder.MeshGO($"Rosal_{i:00}", sphere, leafMat, t);
+                    bush.transform.position = new Vector3(Mathf.Cos(a) * r, -1.5f, Mathf.Sin(a) * r);
+                    bush.transform.localScale = Vector3.one * (3.5f + i % 3);
+                    var rose = MarmorealBuilder.MeshGO($"Rosa_{i:00}", sphere, flower, bush.transform, false);
+                    rose.transform.localPosition = new Vector3(0.2f, 0.45f, 0.1f);
+                    rose.transform.localScale = Vector3.one * 0.35f;
+                }
+                PointLight(t, "Luz de Jardín", new Vector3(0, 14f, 0), new Color(1f, 0.8f, 0.85f), 16000f, 40f, false);
+            });
+            var roomP = Room(sala, "Panteón Dorado", t =>
+            {
+                for (int i = 0; i < 14; i++)
+                {
+                    float a = i / 14f * Mathf.PI * 2f, r = 46f;
+                    var go = MarmorealBuilder.MeshGO($"Obelisco de Oro_{i:00}", obelisk, pSwaps["M_Column"], t);
+                    go.transform.position = new Vector3(Mathf.Cos(a) * r, -5f, Mathf.Sin(a) * r);
+                    go.transform.localScale = new Vector3(1.8f, 2.6f + (i % 2) * 0.8f, 1.8f);
+                }
+                for (int i = 0; i < 4; i++)
+                {
+                    float a = (i + 0.5f) / 4f * Mathf.PI * 2f;
+                    PointLight(t, $"Luz Dorada_{i}", new Vector3(Mathf.Cos(a) * 25f, 6f, Mathf.Sin(a) * 25f), goldC, 12000f, 26f, false);
+                }
+            });
+
+            // ---------- BiomeManager: añade al final solo lo que falte (mismo índice sala/def) ----------
+            var defs = new List<BiomeDef>(bm.biomes ?? new BiomeDef[0]);
+            var rooms = new List<GameObject>(bm.rooms ?? new GameObject[0]);
+            while (rooms.Count < defs.Count) rooms.Add(null);
+            void Add(BiomeDef d, GameObject room) { if (defs.Contains(d)) return; defs.Add(d); rooms.Add(room); }
+            Add(hielo, roomH); Add(forja, roomF); Add(jardin, roomJ); Add(panteon, roomP);
+            bm.biomes = defs.ToArray();
+            bm.rooms = rooms.ToArray();
+            EditorUtility.SetDirty(bm);
+
+            var cfg = AssetDatabase.LoadAssetAtPath<EconomyConfig>("Assets/Marmoreal/Config/Economy.asset");
+            if (cfg) { cfg.EnsureDefaults(); EditorUtility.SetDirty(cfg); }
+            CampaignBuilder.AddCampaign(); // colores nuevos (material) + guarda escena y assets (aditivo)
+            Debug.Log("[Marmoreal] Salas 4-7 añadidas (aditivo).");
+        }
+
         // ================================================================= Ayudantes
         static BiomeDef Def(string file, System.Action<BiomeDef> fill)
         {

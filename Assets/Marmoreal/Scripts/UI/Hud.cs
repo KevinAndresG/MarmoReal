@@ -51,6 +51,7 @@ namespace Marmoreal
         class LogroRow { public AchievementDef def; public VisualElement el, fill; public Label progress; }
         readonly List<LogroRow> logroRows = new List<LogroRow>();
         int bannerSeq;
+        bool bannerOn;
 
         class Row { public UpgradeDef def; public Button el; public Label lvl, cost, effect, key; }
         readonly List<Row> rows = new List<Row>();
@@ -68,7 +69,7 @@ namespace Marmoreal
         int lastCombo = -1;
         int tutorialStep;
 
-        public bool BlocksGameplay => titleShown || modalOpen || treeOpen || logrosOpen || coleccionOpen || reliquiasOpen;
+        public bool BlocksGameplay => titleShown || cinematic || modalOpen || treeOpen || logrosOpen || coleccionOpen || reliquiasOpen;
         public bool PointerOverUI { get; private set; }
         public string DebugState => $"bound={root != null} sameRoot={root == doc.rootVisualElement} rows={rows.Count} shopChildren={shopList?.childCount} shopPanel={shopList?.panel != null} title={titleShown} gm={GameManager.I != null} t={Time.timeSinceLevelLoad:0} gal={GameManager.I?.S.galleryLevel} dust={GameManager.I?.S.dust:0} statues={GameManager.I?.S.totalStatues} dmg={GameManager.I?.ImpactDamage:0.0} hp={GameManager.I?.MonolithHP(false, false):0} max={GameManager.I?.MaxMonoliths} sp=[{MonolithSpawner.I?.DebugState}] shards={ShardSystem.I?.ActiveShards} {BiomeManager.I?.DebugState} mut={GameManager.I?.S.mutatorId} boss={(MonolithSpawner.I && MonolithSpawner.I.Boss ? MonolithSpawner.I.Boss.BossPhase + "/" + MonolithSpawner.I.Boss.HPLeft.ToString("0") : "-")} {LifeDirector.I?.DebugState}";
 
@@ -748,21 +749,28 @@ namespace Marmoreal
         }
 
         /// <summary>Rótulo grande centrado y animado (poderes, bendiciones, mecenazgos).</summary>
-        public void Banner(string text)
+        public void Banner(string text, int ms = 1300)
         {
             if (banner == null) return;
             int id = ++bannerSeq;
             banner.text = text;
             banner.RemoveFromClassList("out");
             banner.AddToClassList("show");
-            toasts?.AddToClassList("dim"); // los toasts no tapan el rótulo
+            bannerOn = true;
+            toasts?.AddToClassList("dim"); // los toasts se ocultan y los nuevos esperan en cola: nunca pisan el rótulo
             banner.schedule.Execute(() =>
             {
                 if (id != bannerSeq) return;
                 banner.RemoveFromClassList("show");
                 banner.AddToClassList("out");
+            }).StartingIn(ms);
+            banner.schedule.Execute(() =>
+            {
+                if (id != bannerSeq) return;
+                bannerOn = false;
                 toasts?.RemoveFromClassList("dim");
-            }).StartingIn(1300);
+                FlushToasts();
+            }).StartingIn(ms + 500); // tras el fundido de salida
         }
 
         /// <summary>Indicador sobre la Musa activa (pegado al borde si está fuera de pantalla).</summary>
@@ -972,7 +980,7 @@ namespace Marmoreal
             if (!string.IsNullOrEmpty(rep))
             {
                 bool cards = GameManager.I.S.mutatorOffer.Count > 1;
-                OpenModal("CANICA PULIDA", rep + (cards ? "\n\nELIGE UN MUTADOR PARA ESTA VIDA" : ""), "SEGUIR", null, false);
+                OpenModal(GameManager.I.LastWasConsecrate ? "CONSAGRACIÓN" : "CANICA PULIDA", rep + (cards ? "\n\nELIGE UN MUTADOR PARA ESTA VIDA" : ""), "SEGUIR", null, false);
                 ShowMutatorCards();
             }
             lastCombo = -1;
@@ -1036,10 +1044,10 @@ namespace Marmoreal
         public void ShowToast(string text, ToastKind kind)
         {
             if (toasts == null) return;
-            if (modalOpen || holdToasts) // se muestran al cerrar el modal (no se apilan sobre él ni sobre el rótulo)
+            if (modalOpen || holdToasts || bannerOn) // se muestran al cerrar el modal (no se apilan sobre él ni sobre el rótulo)
             {
                 pendingToasts.Add((text, kind));
-                if (pendingToasts.Count > 3) pendingToasts.RemoveAt(0);
+                if (pendingToasts.Count > 4) pendingToasts.RemoveAt(0);
                 return;
             }
             for (int i = toasts.childCount - 1; i >= 0; i--) if (toasts[i].ClassListContains("out")) toasts.RemoveAt(i); // el saliente no se solapa con el nuevo
