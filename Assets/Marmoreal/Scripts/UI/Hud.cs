@@ -58,6 +58,7 @@ namespace Marmoreal
         readonly Dictionary<string, Button> nodes = new Dictionary<string, Button>();
         string selectedNode;
         System.Action modalAction;
+        bool modalClickOnly; // confirmaciones irreversibles: solo con clic, nunca con Intro
 
         class Floater { public Label l; public Vector3 world, vel; public float age, life; public bool on; }
         readonly List<Floater> floaters = new List<Floater>();
@@ -294,7 +295,7 @@ namespace Marmoreal
             var k = Keyboard.current;
             if (k == null) return;
             if (k.escapeKey.wasPressedThisFrame) { if (modalOpen) CloseModal(); else if (treeOpen) CloseTree(); else if (logrosOpen) ToggleLogros(); else if (coleccionOpen) ToggleColeccion(); else if (reliquiasOpen) ToggleRelics(); }
-            if (modalOpen) { if (k.enterKey.wasPressedThisFrame) { var a = modalAction; CloseModal(); a?.Invoke(); } return; }
+            if (modalOpen) { if (k.enterKey.wasPressedThisFrame && !modalClickOnly) { var a = modalAction; CloseModal(); a?.Invoke(); } return; }
             if (k.cKey.wasPressedThisFrame) ToggleColeccion();
             if (k.rKey.wasPressedThisFrame && !coleccionOpen) ToggleRelics();
             if (reliquiasOpen) return;
@@ -911,8 +912,9 @@ namespace Marmoreal
             gm.PendingOffline = (0, 0);
         }
 
-        void OpenModal(string t, string body, string ok, System.Action action, bool cancel = true)
+        void OpenModal(string t, string body, string ok, System.Action action, bool cancel = true, bool clickOnly = false)
         {
+            modalClickOnly = clickOnly;
             modalTitle.text = t;
             modalBody.text = body;
             modalOk.text = ok;

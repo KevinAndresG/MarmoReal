@@ -172,7 +172,7 @@ namespace Marmoreal
         {
             if (d.currency != Currency.Dust || !d.scaleCost || !config.workshopCostScale) return 1.0;
             double power = Math.Max(1.0, (double)GlobalMult * FameMult);
-            return Math.Pow(power, config.workshopCostK) * Math.Pow(config.workshopCostPerPrestige, S.prestigeCount);
+            return Math.Pow(power, config.workshopCostK) * Math.Pow(config.workshopCostPerPrestige, config.consecrateResetsCostGrowth ? PrestigesSinceConsecrate : S.prestigeCount);
         }
 
         public double CostOf(UpgradeDef d) => Math.Ceiling(d.Cost(S.Level(d.id)) * WorkshopCostFactor(d));
@@ -486,7 +486,7 @@ namespace Marmoreal
                     $"Reliquias nuevas: {(newRelics.Count > 0 ? string.Join(", ", newRelics) : "(todas conseguidas: +Ícor)")}\n" +
                     $"Ranuras: {S.relicsEquipped.Count}/{RelicSlots} equipadas · equípalas en RELIQUIAS [R]\n" +
                     $"Esencia al Pulir ×{ConsecrateMult:0.##} desde ahora\n" +
-                    "Se pierden: Esencia y nodos del Árbol · Se conservan: Ícor, Altar, Reliquias, campaña y colección\n\n" + PrestigeReport;
+                    $"Se pierden: Esencia y {100 - Mathf.RoundToInt(config.consecrateKeepTree * 100)} % de los niveles del Árbol · Taller a precio de inicio · Se conservan: Ícor, Altar, Reliquias, campaña y colección\n\n" + PrestigeReport;
             Save();
             AudioFX.I?.Play(Sfx.Prestige);
             Prestiged?.Invoke();
@@ -520,7 +520,11 @@ namespace Marmoreal
             S.prestigesAtConsecrate = S.prestigeCount;
             S.essence = 0;
             foreach (var d in config.upgrades)
-                if (d.currency == Currency.Essence) S.SetLevel(d.id, 0);
+            {
+                if (d.currency != Currency.Essence) continue;
+                int l = S.Level(d.id);
+                S.SetLevel(d.id, l > 0 ? Mathf.Max(1, Mathf.FloorToInt(l * config.consecrateKeepTree)) : 0); // conserva los nodos comprados
+            }
             return got;
         }
 

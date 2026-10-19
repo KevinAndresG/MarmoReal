@@ -338,6 +338,10 @@ namespace Marmoreal
         public int consecrateBonusEvery = 5;
         [Tooltip("Esencia al Pulir ×(1 + esto × Consagraciones)")]
         public float consecrateEssenceBonus = 0.5f;
+        [Tooltip("S7: el ×coste del Taller por Pulido cuenta solo los Pulidos desde la última Consagración")]
+        public bool consecrateResetsCostGrowth = true;
+        [Tooltip("S7: fracción de niveles del Árbol que se conserva al Consagrar (cada nodo comprado guarda al menos 1). 0 = se pierde todo")]
+        [Range(0, 1)] public float consecrateKeepTree = 0.5f;
         [Tooltip("Daño de poderes ×(1 + esto × reliquias poseídas)")]
         public float relicPowerBonus = 0.1f;
         public int relicSlotsBase = 2;

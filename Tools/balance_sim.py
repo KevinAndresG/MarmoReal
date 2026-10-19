@@ -32,6 +32,9 @@ MUT = dict(on=__import__("os").environ.get("SIMMUT", "1") == "1",
            bonus=(0.15 + 0.25 + 0.2 + 0.15 + 0.25 + 0.2 + 0.3) / 7, goal=12)
 # Consagrar (S5): SIMCONS = pulidos entre Consagraciones (0 = nunca). Reinicia Esencia y Árbol; Esencia/Pulido x(1+0.5*n); poder +10%/reliquia
 CONS = int(__import__("os").environ.get("SIMCONS", "0")); CONS_BONUS = 0.5
+# S7: el ×coste por Pulido cuenta solo los Pulidos desde la última Consagración (SIMCRESET=0 = fórmula S5);
+# Consagrar conserva SIMKEEP (fracción) de los niveles del Árbol
+CONS_RESET = int(__import__("os").environ.get("SIMCRESET", "1")); CONS_KEEP = float(__import__("os").environ.get("SIMKEEP", "0.5"))
 SCALE_K = float(__import__("os").environ.get("SIMK", CFG["costScaleK"]))
 CFG["costScaleOn"] = SCALE_K > 0
 SCOPE = __import__("os").environ.get("SIMSCOPE", "all")
@@ -169,7 +172,7 @@ class Sim:
 
     def dust_cost(s, k):
         c = cost(DUST[k], s.lv[k])
-        if CFG["costScaleOn"] and (SCOPE == "all" or DUST[k][2] < 500): c *= (s.V("brillo") * s.V("obra") * s.fame()) ** SCALE_K * CFG["costPrestigeGrowth"] ** s.prest
+        if CFG["costScaleOn"] and (SCOPE == "all" or DUST[k][2] < 500): c *= (s.V("brillo") * s.V("obra") * s.fame()) ** SCALE_K * CFG["costPrestigeGrowth"] ** (s.prest - CONS_RESET * getattr(s, "cons_at", 0))
         return c
 
     def dmax(s, k):
@@ -325,8 +328,8 @@ class Sim:
         s.ess += gn; s.prest += 1
         if CONS and s.prest - getattr(s, "cons_at", 0) >= CONS:
             s.cons = getattr(s, "cons", 0) + 1; s.cons_at = s.prest
-            s.ess = 0; s.tr = {k: 0 for k in s.tr}
-            s.log.append(f"  >> CONSAGRACIÓN #{s.cons} (Esencia y Árbol a 0)")
+            s.ess = 0; s.tr = {k: (max(1, int(v * CONS_KEEP)) if v else 0) for k, v in s.tr.items()}
+            s.log.append(f"  >> CONSAGRACIÓN #{s.cons} (Esencia a 0, Árbol ×{CONS_KEEP})")
         s.st["prestige"] = s.prest
         s.add_icor(ICOR["prestigeBase"] + gn // ICOR["prestigeDiv"])
         s.dust = s.run = 0; s.stat = 0

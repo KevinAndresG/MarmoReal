@@ -45,11 +45,18 @@ namespace Marmoreal
             if (!gm.CanPrestige) { ShowToast($"Llega a la Galería {Num.Roman(gm.config.prestigeMinGallery + 1)} para poder Consagrar", ToastKind.Prestige); return; }
             if (!gm.CanConsecrate) { ShowToast($"Faltan {gm.config.consecrateMinPrestiges - gm.PrestigesSinceConsecrate} Pulidos para Consagrar", ToastKind.Prestige); return; }
             ToggleRelics();
-            OpenModal("CONSAGRAR LA CANICA",
-                $"Pulirás la canica y además PERDERÁS tu Esencia ({Num.F(gm.S.essence)}) y todo el Árbol del Escultor.\n" +
-                "Se conservan Ícor, Altar, campaña, colección y récords.\n\n" +
-                $"Ganas {gm.RelicGain} Reliquia(s) al azar y la Esencia por Pulido sube a ×{1.0 + gm.config.consecrateEssenceBonus * (gm.S.consecrations + 1):0.##}.",
-                "CONSAGRAR", () => gm.DoPrestige(true));
+            var c = gm.config;
+            int keepPct = Mathf.RoundToInt(c.consecrateKeepTree * 100);
+            OpenModal("CONSAGRAR ≠ PULIR",
+                "PULIR reinicia solo el Polvo, el Taller y las Galerías.\nCONSAGRAR es un Pulido más profundo:\n\n" +
+                $"PIERDES · tu Esencia ({Num.F(gm.S.essence)})" + (keepPct > 0 ? $" y {100 - keepPct} % de los niveles del Árbol (cada nodo comprado conserva al menos 1)" : " y todo el Árbol del Escultor") + "\n" +
+                "CONSERVAS · Ícor, Altar, Reliquias, campaña, colección y récords\n" +
+                $"GANAS · {gm.RelicGain} Reliquia(s) al azar · Esencia por Pulido ×{1.0 + c.consecrateEssenceBonus * (gm.S.consecrations + 1):0.##} para siempre" +
+                (c.consecrateResetsCostGrowth ? " · el Taller vuelve a su precio de inicio" : "") + "\n\n" +
+                (gm.S.pieces.Count < 3 && !gm.S.campaignWon ? "AVISO: se recomienda Consagrar tras la Prueba 3 o la victoria." : "Momento recomendado: ya superaste la Prueba 3."),
+                "CONTINUAR", () => OpenModal("¿CONSAGRAR AHORA?",
+                    $"Perderás {Num.F(gm.S.essence)} Esencia y parte del Árbol. No se puede deshacer.\n\nPulsa CONSAGRAR con el ratón para confirmar (Intro no sirve aquí).",
+                    "CONSAGRAR", () => { holdToasts = true; gm.DoPrestige(true); holdToasts = false; }, clickOnly: true));
         }
 
         void RefreshRelics()

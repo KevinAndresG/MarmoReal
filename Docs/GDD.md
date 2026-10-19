@@ -399,6 +399,30 @@ ejecuta `python Tools/balance_sim.py 20` y revisa la tabla de hitos.
 - **Mecenazgos de campaña**: Pieza 1/7…7/7, Obra Maestra (victoria), Consagrado, Relicario.
 - Simulador (`SIMCONS=N python Tools/balance_sim.py 20`): sin modelar el poder de las reliquias, Consagrar es neutro/negativo a corto plazo (N=6 retrasa la Prueba 3 de 5,1 h a 8,4 h; N=10-15 apenas cambia en 20 h). Conviene Consagrar tras la Prueba 3/victoria; el valor real está en los efectos cualitativos.
 
+#### Pulir vs Consagrar y reequilibrio (S7)
+| | Pulir | Consagrar |
+|---|---|---|
+| Reinicia | Polvo, Taller, Galerías | Lo mismo + Esencia + `1 − consecrateKeepTree` (50 %) de los niveles del Árbol (cada nodo comprado conserva ≥ 1) |
+| Conserva | Esencia, Árbol, Ícor, Altar | Ícor, Altar, Reliquias, campaña, colección, récords |
+| Gana | Esencia | Reliquias, Esencia/Pulido ×(1+0,5·n) para siempre, Taller a precio de inicio |
+| Cuándo | Cuando te atascas | Tras la Prueba 3 o la victoria (lo avisa el modal) |
+
+Problema detectado (partida real): el coste del Taller lleva `workshopCostPerPrestige ^ pulidos` (×1,6) y ese contador no se
+reiniciaba al Consagrar, mientras el poder permanente (Brillo/Obra) sí. En la partida del usuario (11 pulidos, 1 Consagración)
+el Taller costaba ×400 sobre la base; con el arreglo, ×2,3. Arreglo (campos editables en `Economy.asset`):
+`consecrateResetsCostGrowth = true` (el exponente usa `PrestigesSinceConsecrate`) y `consecrateKeepTree = 0,5`.
+El modal de Consagrar explica la diferencia y pide una segunda confirmación solo con clic (Intro no confirma).
+
+Simulador, `SIMCONS=10 python Tools/balance_sim.py 20` (`SIMCRESET=0 SIMKEEP=0` = fórmula S5):
+
+| | S5 (antes) | Solo reset de coste | Reset + conservar 50 % Árbol (actual) | Sin Consagrar |
+|---|---|---|---|---|
+| Taller completo, 1.ª vida tras Consagrar | nunca | 28,4 min | 13,6 min | 12,1 min (vida normal) |
+| Galería al Pulir esa vida | 50 | 75 | 97 | 118 |
+| Taller completo, vidas siguientes | nunca ×4, luego 27-48 min | 12-14 min | 12-14 min | 11-13 min |
+| Prueba 7 (campaña) | no en 20 h | 13,9 h | 13,6 h | 18,5 h |
+
+
 ## 6. Juice / feedback
 - Trozos que saltan con física simulada (instanced), polvo emisivo atraído, estatua que asciende y brilla.
 - Números de daño flotantes (críticos grandes y dorados), combo con "pop" (abajo, sobre los buffs), toasts.

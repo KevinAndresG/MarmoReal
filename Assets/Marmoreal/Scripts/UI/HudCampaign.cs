@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -91,9 +92,19 @@ namespace Marmoreal
                 float dist = b.extents.magnitude * 1.5f + 6f, dur = 8f, t = 0f;
                 var cam = rig.transform;
                 Vector3 pos0 = cam.position; Quaternion rot0 = cam.rotation;
+                if (treeOpen) CloseTree(); // ningún panel encima del monumento
+                if (logrosOpen) ToggleLogros();
+                if (coleccionOpen) ToggleColeccion();
+                if (reliquiasOpen) ToggleRelics();
                 rig.enabled = false;
                 hudLayer?.AddToClassList("cine");
                 Banner("EL GRAN MONUMENTO\n<size=40%>cualquier tecla: saltar</size>", (int)(dur * 1000));
+                // Nada tapa el monumento: lo que cruce la línea cámara→monumento (columnas, bloques…) se oculta durante la cinemática
+                var monR = new HashSet<Renderer>(mon.GetComponentsInChildren<Renderer>());
+                var occl = new List<Renderer>();
+                foreach (var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+                    if (r.enabled && !monR.Contains(r) && !(r is ParticleSystemRenderer) && !r.bounds.Contains(c) && !(r.bounds.size.y < 3f && Mathf.Max(r.bounds.size.x, r.bounds.size.z) > 20f)) occl.Add(r); // suelos/mar nunca
+                var hidden = new HashSet<Renderer>();
                 var fwd = -mon.transform.position; // el frente mira al centro del cuenco
                 float a0 = Mathf.Atan2(fwd.x, fwd.z) * Mathf.Rad2Deg;
                 yield return null;
@@ -103,9 +114,22 @@ namespace Marmoreal
                     float k = t / dur;
                     var dir = Quaternion.Euler(0, a0 - 70f + 160f * Mathf.SmoothStep(0, 1, k), 0) * Vector3.forward;
                     cam.position = c + dir * dist * Mathf.Lerp(1.15f, 0.9f, k) + Vector3.up * dist * Mathf.Lerp(0.45f, 0.2f, k);
-                    cam.LookAt(c + Vector3.up * b.extents.y * 0.2f);
+                    var look = c + Vector3.up * b.extents.y * 0.2f;
+                    cam.LookAt(look);
+                    var ray = new Ray(cam.position, look - cam.position);
+                    float far = Vector3.Distance(cam.position, look);
+                    foreach (var r in occl)
+                    {
+                        if (!r) continue;
+                        var rb = r.bounds; rb.Expand(1.2f); // margen ≈ radio del cono de visión cerca del monumento
+                        var near = r.bounds; near.Expand(5f); // tapa la línea o roza la cámara (< 2,5 m)
+                        bool block = near.Contains(cam.position) && r.bounds.extents.magnitude < 12f || rb.IntersectRay(ray, out float d) && d < far;
+                        if (block && hidden.Add(r)) r.forceRenderingOff = true;
+                        else if (!block && hidden.Remove(r)) r.forceRenderingOff = false;
+                    }
                     yield return null;
                 }
+                foreach (var r in hidden) if (r) r.forceRenderingOff = false;
                 cam.SetPositionAndRotation(pos0, rot0);
                 rig.enabled = true;
                 hudLayer?.RemoveFromClassList("cine");

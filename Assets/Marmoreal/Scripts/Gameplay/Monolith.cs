@@ -411,6 +411,7 @@ namespace Marmoreal
         void SetStatueGlow(float k)
         {
             if (statueRenderers == null) return;
+            mpb ??= new MaterialPropertyBlock(); // se pierde en recargas de dominio
             mpb.SetColor(EmissiveColorId, statueGlowColor * (statueGlow * k));
             foreach (var r in statueRenderers) r.SetPropertyBlock(k <= 0 ? null : mpb);
         }
