@@ -55,6 +55,9 @@
                     <ui:Button name="coleccion-btn" class="btn coleccion-btn half" text="COLECCIÓN  [C]" style="margin-left: 6px;" />
                 </ui:VisualElement>
                 <ui:VisualElement class="row">
+                    <ui:Button name="reliquias-btn" class="btn coleccion-btn" text="RELIQUIAS  [R]" style="flex-grow: 1;" />
+                </ui:VisualElement>
+                <ui:VisualElement class="row">
                     <ui:Button name="altar-btn" class="btn altar-btn half" text="ALTAR  [G]" />
                     <ui:Button name="logros-btn" class="btn logros-btn half" text="MECENAZGOS  [L]" style="margin-left: 6px;" />
                 </ui:VisualElement>
@@ -128,6 +131,19 @@
                 <ui:ScrollView name="coleccion-list" class="logros-list" />
                 <ui:Label name="records" class="records" text="" />
                 <ui:Button name="infinite-btn" class="btn buy hidden" text="ENTRAR AL MODO INFINITO" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="reliquias" class="overlay hidden">
+            <ui:VisualElement class="logros-box">
+                <ui:VisualElement class="tree-header-inline">
+                    <ui:Label class="tree-title logros-title" text="RELIQUIAS" />
+                    <ui:Button name="reliquias-close" class="btn" text="CERRAR  [ESC]" />
+                </ui:VisualElement>
+                <ui:Label name="reliquias-info" class="logros-fame coleccion-monument" text="" />
+                <ui:ScrollView name="reliquias-list" class="logros-list" />
+                <ui:Button name="slot-btn" class="btn buy" text="" />
+                <ui:Button name="consagrar-btn" class="btn buy" text="CONSAGRAR" />
             </ui:VisualElement>
         </ui:VisualElement>
 

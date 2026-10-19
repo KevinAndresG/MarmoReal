@@ -174,6 +174,14 @@ MonoBehaviour:
     material: {fileID: 2100000, guid: baabe7c25b9ff66429df5171a170874f, type: 2}
     trailColor: {r: 0.5, g: 0.6, b: 1, a: 1}
     waveColor: {r: 0.9, g: 0.5, b: 1, a: 1}
+  - id: eterna
+    displayName: Eterna
+    unlock: 5
+    threshold: 60
+    hint: "C\xF3mprala con 60 Fragmentos de Eternidad"
+    material: {fileID: 2100000, guid: a4ab130482532c842920c6d4f34a2932, type: 2}
+    trailColor: {r: 0.4, g: 1, b: 0.95, a: 1}
+    waveColor: {r: 0.6, g: 1, b: 1, a: 1}
   infiniteHpPerLife: 0.25
   rankNames:
   - Aprendiz
@@ -181,6 +189,108 @@ MonoBehaviour:
   - Leyenda
   - Deidad
   rankGalleries: 00000000960000002c010000f4010000
+  consecrateMinPrestiges: 10
+  consecrateBonusEvery: 5
+  consecrateEssenceBonus: 0.5
+  relicPowerBonus: 0.1
+  relicSlotsBase: 2
+  relicSlotCosts: 2800000078000000
+  eternityPerGallery: 1
+  eternityPerBoss: 5
+  relics:
+  - id: nova_racimo
+    displayName: Supernova en Racimo
+    glyph: "\u2739"
+    power: supernova
+    description: Tras estallar, la Supernova suelta 4 bombas menores a su alrededor.
+  - id: vortice_gemelo
+    displayName: "V\xF3rtice Escindido"
+    glyph: "\u25CE"
+    power: vortice
+    description: "Al implosionar, el V\xF3rtice se divide en dos v\xF3rtices menores."
+  - id: rayo_inverso
+    displayName: Rayo Inverso
+    glyph: "\u21AF"
+    power: rayo
+    description: "Cada rayo, al acabar su cadena, rebota hacia atr\xE1s por los mismos
+      bloques."
+  - id: meteoros_dorados
+    displayName: Meteoros Dorados
+    glyph: "\u2604"
+    power: meteoros
+    description: El Gran Meteoro convierte en oro 3 bloques.
+  - id: coloso_sismico
+    displayName: "Pisada S\xEDsmica"
+    glyph: "\u2B24"
+    power: coloso
+    description: "Mientras eres Coloso, sueltas ondas que da\xF1an todo alrededor."
+  - id: ingravidez_iman
+    displayName: Ingravidez Imantada
+    glyph: "\u21E1"
+    power: ingravidez
+    description: "La Ingravidez atrae todo el polvo del santuario y golpea \xD71,5."
+  - id: midas_avaro
+    displayName: Corona Avara
+    glyph: "\u265B"
+    power: midas
+    description: "Midas desata adem\xE1s un Frenes\xED de polvo \xD72 durante 10
+      s."
+  - id: reloj_arena
+    displayName: Reloj de Arena
+    glyph: "\u231B"
+    power: 
+    description: "Cada poder lanzado acorta un 15 % la recarga de los dem\xE1s."
+  bossMods:
+  - id: blindado
+    displayName: Blindado
+    description: "vida \xD72"
+    hpMult: 2
+    rewardMult: 1.5
+    scale: 1
+    regenPerSec: 0
+    powerTaken: 1
+    playerTaken: 1
+    fragmentMult: 2
+  - id: regenerante
+    displayName: Regenerante
+    description: recupera vida sin parar
+    hpMult: 1
+    rewardMult: 1.5
+    scale: 1
+    regenPerSec: 0.015
+    powerTaken: 1
+    playerTaken: 1
+    fragmentMult: 2
+  - id: titanico
+    displayName: "Tit\xE1nico"
+    description: "enorme: vida \xD71,6, polvo \xD72"
+    hpMult: 1.6
+    rewardMult: 2
+    scale: 1.3
+    regenPerSec: 0
+    powerTaken: 1
+    playerTaken: 1
+    fragmentMult: 2
+  - id: sordo
+    displayName: Sordo a los Dioses
+    description: "los poderes apenas le da\xF1an"
+    hpMult: 1
+    rewardMult: 1
+    scale: 1
+    regenPerSec: 0
+    powerTaken: 0.3
+    playerTaken: 1
+    fragmentMult: 2
+  - id: coraza
+    displayName: Acorazado
+    description: tus golpes le hacen la mitad
+    hpMult: 1
+    rewardMult: 1
+    scale: 1
+    regenPerSec: 0
+    powerTaken: 1
+    playerTaken: 0.5
+    fragmentMult: 2
   upgrades:
   - id: masa
     displayName: Masa
@@ -2021,3 +2131,63 @@ MonoBehaviour:
     stat: dust
     threshold: 1e+24
     rewardIcor: 6
+  - id: pieza1
+    displayName: Pieza 1/7
+    description: "Consigue la 1.\xAA pieza del Gran Monumento."
+    stat: pieces
+    threshold: 1
+    rewardIcor: 3
+  - id: pieza2
+    displayName: Pieza 2/7
+    description: Consigue 2 piezas del Gran Monumento.
+    stat: pieces
+    threshold: 2
+    rewardIcor: 4
+  - id: pieza3
+    displayName: Pieza 3/7
+    description: Consigue 3 piezas del Gran Monumento.
+    stat: pieces
+    threshold: 3
+    rewardIcor: 5
+  - id: pieza4
+    displayName: Pieza 4/7
+    description: Consigue 4 piezas del Gran Monumento.
+    stat: pieces
+    threshold: 4
+    rewardIcor: 6
+  - id: pieza5
+    displayName: Pieza 5/7
+    description: Consigue 5 piezas del Gran Monumento.
+    stat: pieces
+    threshold: 5
+    rewardIcor: 7
+  - id: pieza6
+    displayName: Pieza 6/7
+    description: Consigue 6 piezas del Gran Monumento.
+    stat: pieces
+    threshold: 6
+    rewardIcor: 8
+  - id: pieza7
+    displayName: Pieza 7/7
+    description: Completa las 7 piezas del Gran Monumento.
+    stat: pieces
+    threshold: 7
+    rewardIcor: 10
+  - id: victoria
+    displayName: Obra Maestra
+    description: "Completa la campa\xF1a del Gran Monumento."
+    stat: campaign
+    threshold: 1
+    rewardIcor: 10
+  - id: consagra1
+    displayName: Consagrado
+    description: Consagra la canica por primera vez.
+    stat: consecrations
+    threshold: 1
+    rewardIcor: 5
+  - id: consagra5
+    displayName: Relicario
+    description: Consagra la canica 5 veces.
+    stat: consecrations
+    threshold: 5
+    rewardIcor: 10

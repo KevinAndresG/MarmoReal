@@ -116,6 +116,8 @@ namespace Marmoreal
             bool ok = Cast(d, false);
             if (!ok) { cooldownLeft[i] = 1.5f; return false; } // evita repetir el intento cada frame
             cooldownLeft[i] = CooldownTotal(i);
+            if (GM.RelicOn("reloj_arena")) // Reliquia: acorta la recarga de los demás
+                for (int j = 0; j < cooldownLeft.Length; j++) if (j != i) cooldownLeft[j] *= 0.85f;
             GM.RegisterPowerUse();
             Hud.I?.Banner($"{d.glyph}  {d.displayName.ToUpperInvariant()}");
             return true;
@@ -131,7 +133,10 @@ namespace Marmoreal
                 case "meteoros": StartCoroutine(Meteors(d.count + Mathf.RoundToInt(GM.Value("enjambre")), d, true)); return true;
                 case "coloso": if (colossusRunning) return false; StartCoroutine(Colossus(d)); return true;
                 case "vortice": StartCoroutine(Vortex(d)); return true;
-                case "midas": return Midas(Mathf.RoundToInt(GM.PowerUpgrade(d.id, d.count) + GM.Value("reymidas")));
+                case "midas":
+                    if (!Midas(Mathf.RoundToInt(GM.PowerUpgrade(d.id, d.count) + GM.Value("reymidas")))) return false;
+                    if (GM.RelicOn("midas_avaro")) GM.StartFrenzy(2f, 10f); // Reliquia
+                    return true;
                 case "rayo":
                     if (!MonolithSpawner.I || MonolithSpawner.I.Nearest(player.position, 999f) == null) { Hud.I?.ShowToast("No hay bloques que fulminar", ToastKind.Info); return false; }
                     StartCoroutine(Lightning(d)); return true;
@@ -186,6 +191,18 @@ namespace Marmoreal
             var rb = player ? player.GetComponent<Rigidbody>() : null;
             if (rb && (rb.position - pos).sqrMagnitude < radius * radius)
                 rb.AddExplosionForce(14f, pos, radius, 1.2f, ForceMode.VelocityChange);
+            if (!GM.RelicOn("nova_racimo")) yield break;
+            // Reliquia: racimo de 4 bombas menores alrededor
+            float a0 = Random.value * 360f;
+            for (int k = 0; k < 4; k++)
+            {
+                yield return new WaitForSeconds(0.18f);
+                Vector3 q = Ground(pos + Quaternion.Euler(0, a0 + k * 90f, 0) * Vector3.forward * radius * 0.75f) + Vector3.up * 0.6f;
+                Shockwave.I?.Blast(q, radius * 0.5f, GM.PowerDamage(d.id, d.potency * 0.45f), HitSource.Power);
+                FlashAt(q, new Color(1f, 0.6f, 0.3f), 0.6f);
+                AudioFX.I?.Play(Sfx.Boom, 0.7f, 1.1f + k * 0.08f);
+                CameraRig.I?.Shake(0.3f);
+            }
         }
 
         bool Levitation(PowerDef d)
@@ -193,7 +210,7 @@ namespace Marmoreal
             var sp = MonolithSpawner.I;
             if (!sp) return false;
             var list = new List<Monolith>(sp.Active);
-            float dmg = GM.PowerDamage(d.id, d.potency) * Mathf.Max(1f, GM.Value("caida"));
+            float dmg = GM.PowerDamage(d.id, d.potency) * Mathf.Max(1f, GM.Value("caida")) * (GM.RelicOn("ingravidez_iman") ? 1.5f : 1f);
             int n = 0;
             foreach (var m in list)
             {
@@ -203,6 +220,7 @@ namespace Marmoreal
                 n++;
             }
             if (n == 0) { Hud.I?.ShowToast("No hay bloques que levantar", ToastKind.Info); return false; }
+            if (GM.RelicOn("ingravidez_iman")) ShardSystem.I?.ForceCollect(3f, 999f); // Reliquia: todo el polvo hacia ti
             AudioFX.I?.Play(Sfx.Dash, 0.9f, 0.45f);
             AudioFX.I?.Play(Sfx.Golden, 0.5f, 0.7f);
             CameraRig.I?.Kick(6f);
@@ -229,6 +247,7 @@ namespace Marmoreal
             // GRAN METEORO: cae donde más bloques hay juntos
             yield return new WaitForSeconds(0.35f);
             StartCoroutine(OneMeteor(DensestPoint(radius * 2f) + Vector3.up * 1.5f, GM.PowerDamage(d.id, d.finale), radius * 2.2f, 2.8f, true));
+            if (GM.RelicOn("meteoros_dorados")) { yield return new WaitForSeconds(meteorFlightTime * 1.8f); Midas(3); } // Reliquia
         }
 
         void FillTargets(List<Monolith> list)
@@ -331,7 +350,19 @@ namespace Marmoreal
             for (float t = 0; t < 0.4f; t += Time.deltaTime) { SetSize(pm, rb, Mathf.Lerp(1f, target, t / 0.4f)); yield return null; }
             SetSize(pm, rb, target);
             if (CameraRig.I) CameraRig.I.extraDistance = 7f;
-            yield return new WaitForSeconds(Mathf.Max(0.5f, dur - 0.8f));
+            for (float t = 0, step = 0; t < Mathf.Max(0.5f, dur - 0.8f); t += Time.deltaTime)
+            {
+                step -= Time.deltaTime;
+                if (step <= 0 && GM.RelicOn("coloso_sismico")) // Reliquia: ondas al rodar
+                {
+                    step = 1.1f;
+                    Vector3 g = Ground(player.position);
+                    Shockwave.I?.Blast(g, 7f * target, GM.PowerDamage(d.id, 8f), HitSource.Power);
+                    CameraRig.I?.Shake(0.25f);
+                    AudioFX.I?.Play(Sfx.Boom, 0.5f, 0.7f);
+                }
+                yield return null;
+            }
             for (float t = 0; t < 0.4f; t += Time.deltaTime) { SetSize(pm, rb, Mathf.Lerp(target, 1f, t / 0.4f)); yield return null; }
             SetSize(pm, rb, 1f);
             GM.colossusMult = 1f;
@@ -346,13 +377,17 @@ namespace Marmoreal
             rb.mass = basePlayerMass * s * s;
         }
 
-        IEnumerator Vortex(PowerDef d)
+        /// <summary>child = vórtice menor de la reliquia "Vórtice Escindido" (nace en start, escala 0,6, mitad de duración).</summary>
+        IEnumerator Vortex(PowerDef d, bool child = false, Vector3 start = default)
         {
-            Vector3 pos = Ground(player.position) + Vector3.up * 2.2f;
-            if (!vortex && vortexPrefab) vortex = Instantiate(vortexPrefab, transform);
+            Vector3 pos = child ? start : Ground(player.position) + Vector3.up * 2.2f;
+            GameObject vortex = child ? GetChildVortex() : this.vortex;
+            if (!child && !vortex && vortexPrefab) vortex = this.vortex = Instantiate(vortexPrefab, transform);
             float h = Mathf.Max(1f, GM.Value("horizonte"));
-            float radius = d.radius * Mathf.Sqrt(h);
-            float dps = GM.PowerDamage(d.id, d.potency) * h;
+            float k = child ? 0.6f : 1f;
+            float radius = d.radius * Mathf.Sqrt(h) * k;
+            float dps = GM.PowerDamage(d.id, d.potency) * h * k;
+            float duration = d.duration * (child ? 0.5f : 1f);
             if (vortex) { vortex.SetActive(true); vortex.transform.position = pos; vortex.transform.localScale = Vector3.zero; }
             AudioFX.I?.Play(Sfx.Boom, 0.8f, 0.4f);
             CameraRig.I?.Kick(-6f);
@@ -360,7 +395,7 @@ namespace Marmoreal
             int sparkIdx = MonolithSpawner.I ? MonolithSpawner.I.ShardIndexFor(0, true) : 0;
             float t = 0f, tick = 0f, hum = 0f;
             Monolith prey = null;
-            while (t < d.duration)
+            while (t < duration)
             {
                 float dt = Time.deltaTime;
                 t += dt; tick += dt; hum -= dt;
@@ -372,7 +407,7 @@ namespace Marmoreal
                     pos = Vector3.MoveTowards(pos, goal, 4.5f * dt);
                 }
                 ShardSystem.I?.AttractTo(pos, 0.4f, radius * 1.6f);
-                float grow = Mathf.Clamp01(t / 0.4f) * Mathf.Clamp01((d.duration - t) / 0.25f + 0.35f);
+                float grow = Mathf.Clamp01(t / 0.4f) * Mathf.Clamp01((duration - t) / 0.25f + 0.35f);
                 if (vortex)
                 {
                     vortex.transform.position = pos;
@@ -382,7 +417,7 @@ namespace Marmoreal
                 if (tick >= 0.25f)
                 {
                     tick -= 0.25f;
-                    float ramp = 0.6f + 0.8f * (t / d.duration); // tritura cada vez más fuerte
+                    float ramp = 0.6f + 0.8f * (t / duration); // tritura cada vez más fuerte
                     MonolithSpawner.I?.InRadius(pos, radius, tmp);
                     foreach (var m in tmp) m.TakeDamage(dps * 0.25f * ramp, m.ClosestPoint(pos), HitSource.Power, false);
                     // Materia que orbita y cae dentro
@@ -405,7 +440,7 @@ namespace Marmoreal
             if (vortex) vortex.SetActive(false);
             if (d.finale > 0f)
             {
-                Shockwave.I?.Blast(pos, radius * 1.5f, GM.PowerDamage(d.id, d.finale) * h, HitSource.Power);
+                Shockwave.I?.Blast(pos, radius * 1.5f, GM.PowerDamage(d.id, d.finale) * h * k, HitSource.Power);
                 Shockwave.I?.Blast(pos, radius * 2f, 0f, HitSource.Power);
             }
             ShardSystem.I?.SpawnSparkle(pos, 50, sparkIdx, 13f);
@@ -416,6 +451,23 @@ namespace Marmoreal
             CameraRig.I?.Shake(0.85f);
             CameraRig.I?.Kick(10f);
             Hud.I?.HitStop(0.06f);
+            if (!child && GM.RelicOn("vortice_gemelo")) // Reliquia: se divide en dos
+            {
+                Vector3 side = Quaternion.Euler(0, Random.value * 360f, 0) * Vector3.forward * radius * 0.8f;
+                StartCoroutine(Vortex(d, true, pos + side));
+                StartCoroutine(Vortex(d, true, pos - side));
+            }
+        }
+
+        readonly List<GameObject> vortexPool = new List<GameObject>();
+        GameObject GetChildVortex()
+        {
+            foreach (var v in vortexPool) if (v && !v.activeSelf) return v;
+            if (!vortexPrefab) return null;
+            var go = Instantiate(vortexPrefab, transform);
+            go.SetActive(false);
+            vortexPool.Add(go);
+            return go;
         }
 
         // ---------------------------------------------------------------- Cadena de Rayos
@@ -456,6 +508,19 @@ namespace Marmoreal
                         if (dd < bd) { bd = dd; next = m; }
                     }
                     cur = next;
+                }
+                if (GM.RelicOn("rayo_inverso")) // Reliquia: rebota de vuelta por la misma cadena
+                {
+                    var back = new List<Monolith>(hit);
+                    for (int r = back.Count - 2; r >= 0; r--)
+                    {
+                        var m = back[r];
+                        if (!m || !m.IsTargetable) continue;
+                        Vector3 p = m.ClosestPoint(m.transform.position + Vector3.up * 3f);
+                        pts.Add(p);
+                        m.TakeDamage(dmg * 0.6f, p, HitSource.Power, false);
+                        ShardSystem.I?.SpawnSparkle(p, 6, 0, 6f);
+                    }
                 }
                 StartCoroutine(DrawBolt(pts));
                 FlashAt(pts[1], lightningColor, 0.8f);

@@ -39,6 +39,7 @@ namespace Marmoreal
         [Tooltip("No brota si la canica está más cerca que esto del punto")]
         public float bossClearRadius = 6f;
         [System.NonSerialized] Monolith boss;
+        [System.NonSerialized] Vector3 bossScale = Vector3.one;
         float bossDelay = 2f;
         /// <summary>Coloso en pie (null si no hay).</summary>
         public Monolith Boss => boss && boss.gameObject.activeSelf && active.Contains(boss) ? boss : null;
@@ -152,17 +153,19 @@ namespace Marmoreal
             var gm = GameManager.I;
             if (!bossPrefab || !gm) return null;
             if (Boss) return Boss;
-            if (!boss) { boss = Instantiate(bossPrefab, transform); boss.name = "Coloso"; boss.gameObject.SetActive(false); }
+            if (!boss) { boss = Instantiate(bossPrefab, transform); boss.name = "Coloso"; boss.gameObject.SetActive(false); bossScale = boss.transform.localScale; }
             var p = bossPoint ? bossPoint : transform;
             boss.transform.SetPositionAndRotation(p.position, Quaternion.Euler(0, Random.Range(0, 4) * 90f, 0));
             int tier = TierFor(gm.S.galleryLevel);
-            double reward = gm.BossReward;
-            boss.Init(this, trial ? gm.TrialHP : gm.BossHP, reward, gm.StatueReward(reward, true), tierMaterials[tier], tier, bossStatuePrefab, false);
-            boss.MakeBoss(trial);
+            var mod = trial ? null : gm.RollBossMod(); // Modo Infinito: 1 modificador aleatorio
+            double reward = gm.BossReward * (mod?.rewardMult ?? 1f);
+            boss.transform.localScale = bossScale * (mod?.scale ?? 1f);
+            boss.Init(this, (trial ? gm.TrialHP : gm.BossHP) * (mod?.hpMult ?? 1f), reward, gm.StatueReward(reward, true), tierMaterials[tier], tier, bossStatuePrefab, false);
+            boss.MakeBoss(trial, mod);
             active.Add(boss);
             AudioFX.I?.Play(Sfx.Boom, 1f, 0.55f);
             CameraRig.I?.Shake(0.7f);
-            Hud.I?.Banner(trial ? "PRUEBA DE LA SALA" : "UN COLOSO DESPIERTA");
+            Hud.I?.Banner(trial ? "PRUEBA DE LA SALA" : mod != null ? $"COLOSO {mod.displayName.ToUpperInvariant()} · {mod.description}" : "UN COLOSO DESPIERTA");
             Hud.I?.ShowToast("Derriba al COLOSO para abrir la siguiente galería", ToastKind.Gallery);
             return boss;
         }

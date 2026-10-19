@@ -33,6 +33,8 @@ namespace Marmoreal
         public bool IsBoss { get; private set; }
         public bool Trial { get; private set; }
         public int BossPhase { get; private set; }
+        /// <summary>Modificador del Coloso del Modo Infinito (null = ninguno).</summary>
+        public BossModDef Mod { get; private set; }
         [Tooltip("Brillo de las grietas del Coloso en las fases II y III")]
         public Color phaseGlow2 = new Color(1f, 0.45f, 0.1f), phaseGlow3 = new Color(1f, 0.08f, 0.04f);
         public float phaseGlowIntensity = 20f;
@@ -95,7 +97,7 @@ namespace Marmoreal
             owner = spawner;
             HP = hp; dealt = 0; pending = 0;
             Golden = golden;
-            IsBoss = false; Trial = false; BossPhase = 0;
+            IsBoss = false; Trial = false; BossPhase = 0; Mod = null;
             Volatile = false;
             transmuted = false;
             tierIndex = tier;
@@ -148,9 +150,9 @@ namespace Marmoreal
         }
 
         /// <summary>Convierte el bloque recién iniciado en Coloso (lo llama MonolithSpawner.SpawnBoss).</summary>
-        public void MakeBoss(bool trial)
+        public void MakeBoss(bool trial, BossModDef mod = null)
         {
-            IsBoss = true; Trial = trial; BossPhase = 0;
+            IsBoss = true; Trial = trial; BossPhase = 0; Mod = mod;
             SetChunkGlow(Color.black);
         }
 
@@ -190,6 +192,12 @@ namespace Marmoreal
             float dt = Time.deltaTime;
             stateTime += dt;
             chipSoundCooldown -= dt;
+            if (Mod != null && Mod.regenPerSec > 0 && CurrentState == State.Active)
+            {
+                double heal = HP * Mod.regenPerSec * dt;
+                dealt = System.Math.Max(0, dealt - heal);
+                pending = System.Math.Max(0, pending - heal);
+            }
 
             switch (CurrentState)
             {
@@ -238,6 +246,7 @@ namespace Marmoreal
         public void TakeDamage(float dmg, Vector3 point, HitSource src, bool crit)
         {
             if (CurrentState != State.Active || dmg <= 0) return;
+            if (Mod != null) dmg *= src == HitSource.Power ? Mod.powerTaken : src == HitSource.Player ? Mod.playerTaken : 1f;
             if (alive.Count == 0) // tras una recarga de dominio la lista se pierde: se reconstruye
                 for (int i = 0; i < chunks.Length; i++) if (chunks[i].gameObject.activeSelf) alive.Add(i);
             pending += dmg;
@@ -384,7 +393,7 @@ namespace Marmoreal
                     Random.insideUnitSphere * 6f + Vector3.up * 6f, owner ? owner.DebrisIndexFor(0, true) : 0, GetInstanceID());
             AudioFX.I?.Play(Sfx.Shatter, 0.9f, Random.Range(0.9f, 1.1f));
             Hud.I?.StatueFreed(c, statueReward, Golden);
-            if (IsBoss) { GameManager.I?.OnBossDefeated(Trial); SetChunkGlow(Color.black); }
+            if (IsBoss) { GameManager.I?.OnBossDefeated(Trial, Mod); SetChunkGlow(Color.black); }
             GameManager.I?.OnStatueFreed(Golden, transmuted);
             if (statue) statue.SetActive(false);
             CurrentState = State.Idle;

@@ -68,7 +68,7 @@ namespace Marmoreal
         int lastCombo = -1;
         int tutorialStep;
 
-        public bool BlocksGameplay => titleShown || modalOpen || treeOpen || logrosOpen || coleccionOpen;
+        public bool BlocksGameplay => titleShown || modalOpen || treeOpen || logrosOpen || coleccionOpen || reliquiasOpen;
         public bool PointerOverUI { get; private set; }
         public string DebugState => $"bound={root != null} sameRoot={root == doc.rootVisualElement} rows={rows.Count} shopChildren={shopList?.childCount} shopPanel={shopList?.panel != null} title={titleShown} gm={GameManager.I != null} t={Time.timeSinceLevelLoad:0} gal={GameManager.I?.S.galleryLevel} dust={GameManager.I?.S.dust:0} statues={GameManager.I?.S.totalStatues} dmg={GameManager.I?.ImpactDamage:0.0} hp={GameManager.I?.MonolithHP(false, false):0} max={GameManager.I?.MaxMonoliths} sp=[{MonolithSpawner.I?.DebugState}] shards={ShardSystem.I?.ActiveShards} {BiomeManager.I?.DebugState} mut={GameManager.I?.S.mutatorId} boss={(MonolithSpawner.I && MonolithSpawner.I.Boss ? MonolithSpawner.I.Boss.BossPhase + "/" + MonolithSpawner.I.Boss.HPLeft.ToString("0") : "-")} {LifeDirector.I?.DebugState}";
 
@@ -123,6 +123,7 @@ namespace Marmoreal
             Q(out resetBtn, "reset-btn"); Q(out tiBuy, "ti-buy"); Q(out modalOk, "modal-ok"); Q(out modalCancel, "modal-cancel"); Q(out modalAlt, "modal-alt"); Q(out treeClose, "tree-close");
             Q(out contractsLbl, "contracts"); Q(out modalCards, "modal-cards"); modalBox = root.Q(className: "modal-box");
             BindCampaign();
+            BindRelics();
 
             treeBtn.clicked += () => ToggleTree(Currency.Essence);
             altarBtn.clicked += () => ToggleTree(Currency.Icor);
@@ -284,16 +285,18 @@ namespace Marmoreal
 
             shopTimer -= Time.unscaledDeltaTime;
             pulseCooldown -= Time.unscaledDeltaTime;
-            if (shopTimer <= 0) { shopTimer = 0.15f; RefreshContracts(); RefreshShop(); if (treeOpen) RefreshTree(); if (logrosOpen) RefreshLogros(); RefreshMonument(); if (coleccionOpen) RefreshColeccion(); }
+            if (shopTimer <= 0) { shopTimer = 0.15f; RefreshContracts(); RefreshShop(); if (treeOpen) RefreshTree(); if (logrosOpen) RefreshLogros(); RefreshMonument(); if (coleccionOpen) RefreshColeccion(); if (reliquiasOpen) RefreshRelics(); }
         }
 
         void HandleKeys(GameManager gm)
         {
             var k = Keyboard.current;
             if (k == null) return;
-            if (k.escapeKey.wasPressedThisFrame) { if (modalOpen) CloseModal(); else if (treeOpen) CloseTree(); else if (logrosOpen) ToggleLogros(); else if (coleccionOpen) ToggleColeccion(); }
+            if (k.escapeKey.wasPressedThisFrame) { if (modalOpen) CloseModal(); else if (treeOpen) CloseTree(); else if (logrosOpen) ToggleLogros(); else if (coleccionOpen) ToggleColeccion(); else if (reliquiasOpen) ToggleRelics(); }
             if (modalOpen) { if (k.enterKey.wasPressedThisFrame) { var a = modalAction; CloseModal(); a?.Invoke(); } return; }
             if (k.cKey.wasPressedThisFrame) ToggleColeccion();
+            if (k.rKey.wasPressedThisFrame && !coleccionOpen) ToggleRelics();
+            if (reliquiasOpen) return;
             if (coleccionOpen) return;
             if (k.tKey.wasPressedThisFrame || k.tabKey.wasPressedThisFrame) ToggleTree(Currency.Essence);
             if (k.gKey.wasPressedThisFrame) ToggleTree(Currency.Icor);
@@ -1039,6 +1042,7 @@ namespace Marmoreal
                 if (pendingToasts.Count > 3) pendingToasts.RemoveAt(0);
                 return;
             }
+            for (int i = toasts.childCount - 1; i >= 0; i--) if (toasts[i].ClassListContains("out")) toasts.RemoveAt(i); // el saliente no se solapa con el nuevo
             while (toasts.childCount >= 3) toasts.RemoveAt(0);
             var l = Lbl("toast", text);
             if (kind == ToastKind.Gold) l.AddToClassList("gold");

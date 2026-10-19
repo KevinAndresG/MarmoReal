@@ -223,7 +223,7 @@ namespace Marmoreal
             MagnetRadius = Value("iman");
             FameMult = 1f + config.famePerAchievement * S.achievements.Count;
             DustMult = Value("pureza") * GlobalMult * FameMult;
-            PowerMult = Value("ira");
+            PowerMult = Value("ira") * (1f + config.relicPowerBonus * S.relics.Count);
             PowerCooldownMult = Mathf.Max(0.3f, Value("eternidad") <= 0 ? 1f : Value("eternidad"));
             CritChance = Mathf.Clamp01(Value("fortuna"));
             MaxMonoliths = Mathf.RoundToInt(Value("cantera"));
@@ -323,6 +323,7 @@ namespace Marmoreal
                     Toast?.Invoke("Las MUSAS empiezan a visitar el santuario: toca sus orbes de luz", ToastKind.Divine);
                 AudioFX.I?.Play(Sfx.GalleryUp);
                 Toast?.Invoke($"GALERÍA {Num.Roman(S.galleryLevel + 1)} — el mármol se endurece, el polvo vale más", ToastKind.Gallery);
+                if (S.infinite) AddEternity(config.eternityPerGallery);
                 GalleryUp?.Invoke(S.galleryLevel);
                 if (S.galleryLevel == config.prestigeMinGallery && S.prestigeCount == 0)
                     Toast?.Invoke("Puedes PULIR la canica: reinicia a cambio de Esencia eterna", ToastKind.Prestige);
@@ -389,11 +390,14 @@ namespace Marmoreal
         public bool CanPrestige => S.galleryLevel >= config.prestigeMinGallery && PrestigeGain >= 1;
 
         public double PrestigeGain => S.galleryLevel < config.prestigeMinGallery ? 0 :
-            Math.Floor(config.prestigeBase * Math.Pow(S.galleryLevel - config.prestigeMinGallery + 3, config.prestigePow));
+            Math.Floor(config.prestigeBase * Math.Pow(S.galleryLevel - config.prestigeMinGallery + 3, config.prestigePow) * ConsecrateMult);
+
+        /// <summary>Esencia ×(1 + bonus × Consagraciones): lo que hace rentable volver a empezar el Árbol.</summary>
+        public double ConsecrateMult => 1.0 + config.consecrateEssenceBonus * S.consecrations;
 
         /// <summary>Esencia que daría pulir en la siguiente galería (para motivar a seguir un poco más).</summary>
         public double PrestigeGainNext =>
-            Math.Floor(config.prestigeBase * Math.Pow(Math.Max(0, S.galleryLevel + 1 - config.prestigeMinGallery) + 3, config.prestigePow));
+            Math.Floor(config.prestigeBase * Math.Pow(Math.Max(0, S.galleryLevel + 1 - config.prestigeMinGallery) + 3, config.prestigePow) * ConsecrateMult);
 
         /// <summary>Texto "qué se abre ahora" del último Pulido (lo muestra la HUD).</summary>
         public string PrestigeReport { get; private set; } = "";
@@ -426,9 +430,13 @@ namespace Marmoreal
             return sb.ToString();
         }
 
-        public void DoPrestige()
+        public void DoPrestige() => DoPrestige(false);
+
+        /// <summary>Pulir. consecrate = Consagrar: la Esencia de esta vida y la acumulada se pierden, el Árbol se reinicia
+        /// y a cambio se ganan Reliquias (Ícor, Altar, campaña, colección y récords se conservan).</summary>
+        public void DoPrestige(bool consecrate)
         {
-            if (!CanPrestige) return;
+            if (!CanPrestige || consecrate && !CanConsecrate) return;
             double gain = PrestigeGain;
             var mu = Mutator;
             double mBonus = MutatorBonus(gain);
@@ -447,6 +455,7 @@ namespace Marmoreal
             S.lifetimeEssence += gain;
             S.prestigeCount++;
             if (S.infinite) S.infiniteLives++;
+            var newRelics = consecrate ? Consecrate() : null;
             var biome = BiomeManager.I ? BiomeManager.I.NextFor(S.prestigeCount) : null;
             if (biome) S.biomeId = biome.id;
             AddIcor(config.icorPrestigeBase + Math.Floor(gain / config.icorPrestigeDivisor), "pulido");
@@ -470,11 +479,84 @@ namespace Marmoreal
             Resonance = 0;
             RecalcStats();
             PrestigeReport = BuildReport(oldP, S.prestigeCount, gain);
+            if (newRelics != null)
+                PrestigeReport = $"CANICA CONSAGRADA (n.º {S.consecrations})\nEsencia y Árbol reiniciados · Esencia al Pulir ×{ConsecrateMult:0.##}\n" +
+                    $"Reliquias nuevas: {(newRelics.Count > 0 ? string.Join(", ", newRelics) : "(todas conseguidas: +Ícor)")}\n" +
+                    $"Equípalas en RELIQUIAS [R]\n\n" + PrestigeReport;
             Save();
             AudioFX.I?.Play(Sfx.Prestige);
             Prestiged?.Invoke();
-            Toast?.Invoke($"Canica pulida · +{Num.F(gain)} Esencia", ToastKind.Prestige);
+            Toast?.Invoke(newRelics != null ? "Canica CONSAGRADA · nuevas Reliquias" : $"Canica pulida · +{Num.F(gain)} Esencia", ToastKind.Prestige);
         }
+
+        // =================== Consagrar y Reliquias (S5) ===================
+
+        public int PrestigesSinceConsecrate => S.prestigeCount - S.prestigesAtConsecrate;
+        /// <summary>Se consagra en el momento de Pulir: hace falta poder Pulir y N pulidos desde la última vez.</summary>
+        public bool CanConsecrate => PrestigesSinceConsecrate >= config.consecrateMinPrestiges;
+        public int RelicGain => 1 + Math.Max(0, PrestigesSinceConsecrate - config.consecrateMinPrestiges) / Math.Max(1, config.consecrateBonusEvery);
+        public int RelicSlots => config.relicSlotsBase + S.relicSlotsBought;
+        public int NextSlotCost => S.relicSlotsBought < config.relicSlotCosts.Length ? config.relicSlotCosts[S.relicSlotsBought] : -1;
+        public bool RelicOn(string id) => S.relicsEquipped.Contains(id);
+
+        // Lo llama DoPrestige(true) tras sumar el pulido (antes de reiniciar la vida, para que "memoria" ya valga 0)
+        List<string> Consecrate()
+        {
+            var got = new List<string>();
+            for (int i = RelicGain; i > 0; i--)
+            {
+                var locked = config.relics.FindAll(r => !S.relics.Contains(r.id));
+                if (locked.Count == 0) { AddIcor(config.trialIcor, "reliquia repetida"); continue; }
+                var r = locked[UnityEngine.Random.Range(0, locked.Count)];
+                S.relics.Add(r.id);
+                got.Add(r.displayName);
+                if (S.relicsEquipped.Count < RelicSlots) S.relicsEquipped.Add(r.id);
+            }
+            S.consecrations++;
+            S.prestigesAtConsecrate = S.prestigeCount;
+            S.essence = 0;
+            foreach (var d in config.upgrades)
+                if (d.currency == Currency.Essence) S.SetLevel(d.id, 0);
+            return got;
+        }
+
+        public void ToggleRelic(string id)
+        {
+            if (!S.relics.Contains(id)) return;
+            if (S.relicsEquipped.Remove(id)) { Save(); return; }
+            if (S.relicsEquipped.Count >= RelicSlots) { Toast?.Invoke($"Ranuras llenas ({RelicSlots}): quita una reliquia primero", ToastKind.Info); return; }
+            S.relicsEquipped.Add(id);
+            Save();
+        }
+
+        public bool BuyRelicSlot()
+        {
+            int c = NextSlotCost;
+            if (c < 0 || S.eternity < c) return false;
+            S.eternity -= c;
+            S.relicSlotsBought++;
+            Save();
+            return true;
+        }
+
+        public bool BuyColor(MarbleColorDef c)
+        {
+            if (c == null || c.unlock != ColorUnlock.Fragments || S.colors.Contains(c.id) || S.eternity < c.threshold) return false;
+            S.eternity -= c.threshold;
+            S.colors.Add(c.id);
+            S.marbleColor = c.id;
+            Save();
+            return true;
+        }
+
+        public void AddEternity(double n)
+        {
+            if (n <= 0) return;
+            S.eternity += n;
+            S.lifetimeEternity += n;
+        }
+
+        public BossModDef RollBossMod() => S.infinite && config.bossMods.Count > 0 ? config.bossMods[UnityEngine.Random.Range(0, config.bossMods.Count)] : null;
 
         // =================== Mutadores ===================
 
@@ -531,8 +613,14 @@ namespace Marmoreal
         public double BossHP => MonolithHP(false, false) * config.bossHPMult;
         public double BossReward => BaseBlockReward * config.bossDustMult;
 
-        public void OnBossDefeated(bool trial)
+        public void OnBossDefeated(bool trial, BossModDef mod = null)
         {
+            if (S.infinite && !trial)
+            {
+                double f = config.eternityPerBoss * (mod != null ? Math.Max(1, mod.fragmentMult) : 1);
+                AddEternity(f);
+                Toast?.Invoke($"+{f} Fragmentos de Eternidad", ToastKind.Divine);
+            }
             var tb = trial ? TrialBiome : null;
             S.bossDoneGallery = S.galleryLevel;
             S.lifeBosses++;
@@ -605,6 +693,7 @@ namespace Marmoreal
             ColorUnlock.Trial => S.pieces.Contains(c.threshold - 1),
             ColorUnlock.Campaign => S.campaignWon,
             ColorUnlock.InfiniteGallery => S.infBestGallery >= c.threshold,
+            ColorUnlock.Fragments => false, // se compra (BuyColor)
             _ => false,
         };
 
@@ -742,6 +831,9 @@ namespace Marmoreal
                 case "musas": return S.musasCaught;
                 case "dust": return S.lifetimeDust;
                 case "icor": return S.lifetimeIcor;
+                case "pieces": return S.pieces.Count;
+                case "campaign": return S.campaignWon ? 1 : 0;
+                case "consecrations": return S.consecrations;
                 default: return 0;
             }
         }

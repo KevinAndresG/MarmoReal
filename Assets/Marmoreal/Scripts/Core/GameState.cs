@@ -78,6 +78,15 @@ namespace Marmoreal
         public double infBestHit;
         public double infBestDps;
 
+        // Consagrar, Reliquias y Fragmentos de Eternidad (S5)
+        public int consecrations;
+        public int prestigesAtConsecrate;             // prestigeCount en la última Consagración
+        public List<string> relics = new List<string>();
+        public List<string> relicsEquipped = new List<string>();
+        public int relicSlotsBought;
+        public double eternity;
+        public double lifetimeEternity;
+
         // Ajustes
         public int quality = -1;
         public bool muted;

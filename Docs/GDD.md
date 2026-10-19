@@ -375,6 +375,14 @@ campaña es lineal. Con 45/65/90: Prueba 1 a **1,8 h**, Prueba 2 a **3,3 h** (+1
 Para retocar: edita `Economy.asset` en el Inspector y replica los números en `Tools/balance_sim.py`;
 ejecuta `python Tools/balance_sim.py 20` y revisa la tabla de hitos.
 
+### Consagrar, Reliquias y Fragmentos de Eternidad (S5)
+- **Consagrar** (botón RELIQUIAS [R] → CONSAGRAR): tras `consecrateMinPrestiges` (10) Pulidos desde la última vez, el Pulido reinicia además Esencia y Árbol del Escultor (se conservan Ícor, Altar, campaña, colección y récords) y da `1 + (extra Pulidos)/consecrateBonusEvery` Reliquias al azar. Cada Consagración: Esencia por Pulido ×(1+0,5·n); cada reliquia poseída: poder +10 %.
+- **Reliquias** (8, `Economy.asset → relics`): Supernova en Racimo, Vórtice Escindido, Rayo Inverso, Meteoros Dorados, Pisada Sísmica (Coloso), Ingravidez Imantada, Corona Avara (Midas), Reloj de Arena. Ranuras: 2 base, +1 por 40 y +1 por 120 Fragmentos. Panel UI Toolkit `reliquias` en Hud.uxml.
+- **Fragmentos de Eternidad** (solo Modo Infinito): 1 por galería, 5 por Coloso (×2 con modificador). Se gastan en ranuras y en la canica Eterna (60).
+- **Jefes del infinito**: cada Coloso lleva 1 modificador aleatorio (`bossMods`: Blindado, Regenerante, Titánico, Sordo a los Dioses, Acorazado). Las Pruebas de campaña no llevan.
+- **Mecenazgos de campaña**: Pieza 1/7…7/7, Obra Maestra (victoria), Consagrado, Relicario.
+- Simulador (`SIMCONS=N python Tools/balance_sim.py 20`): sin modelar el poder de las reliquias, Consagrar es neutro/negativo a corto plazo (N=6 retrasa la Prueba 3 de 5,1 h a 8,4 h; N=10-15 apenas cambia en 20 h). Conviene Consagrar tras la Prueba 3/victoria; el valor real está en los efectos cualitativos.
+
 ## 6. Juice / feedback
 - Trozos que saltan con física simulada (instanced), polvo emisivo atraído, estatua que asciende y brilla.
 - Números de daño flotantes (críticos grandes y dorados), combo con "pop", toasts.

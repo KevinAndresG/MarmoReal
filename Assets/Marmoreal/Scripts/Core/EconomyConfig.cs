@@ -105,7 +105,36 @@ namespace Marmoreal
         public string room;
     }
 
-    public enum ColorUnlock { Start, Prestiges, Trial, Campaign, InfiniteGallery }
+    public enum ColorUnlock { Start, Prestiges, Trial, Campaign, InfiniteGallery, Fragments }
+
+    /// <summary>Reliquia (S5): se gana al Consagrar y, equipada, cambia un poder de forma cualitativa. El efecto lo lee
+    /// PowerSystem por id (GameManager.RelicOn).</summary>
+    [Serializable]
+    public class RelicDef
+    {
+        public string id;
+        public string displayName;
+        public string glyph = "✧";
+        [Tooltip("PowerDef.id al que afecta (vacío = todos)")]
+        public string power;
+        [TextArea] public string description;
+    }
+
+    /// <summary>Modificador aleatorio del Coloso en el Modo Infinito.</summary>
+    [Serializable]
+    public class BossModDef
+    {
+        public string id;
+        public string displayName;
+        public string description;
+        public float hpMult = 1f, rewardMult = 1f, scale = 1f;
+        [Tooltip("Fracción de la vida que recupera por segundo")]
+        public float regenPerSec;
+        [Tooltip("Multiplicador del daño recibido de poderes / de la canica")]
+        public float powerTaken = 1f, playerTaken = 1f;
+        [Tooltip("Fragmentos de Eternidad ×esto al derribarlo")]
+        public int fragmentMult = 1;
+    }
 
     /// <summary>Canica coleccionable: material + colores cosméticos (estela, onda). Nada de poder.</summary>
     [Serializable]
@@ -302,6 +331,24 @@ namespace Marmoreal
         [Tooltip("Galería mínima de cada rango (mismo orden)")]
         public int[] rankGalleries = { 0, 150, 300, 500 };
 
+        [Header("Consagrar y Reliquias (S5)")]
+        [Tooltip("Pulidos desde la última Consagración para poder Consagrar")]
+        public int consecrateMinPrestiges = 10;
+        [Tooltip("+1 reliquia extra por cada X pulidos por encima del mínimo")]
+        public int consecrateBonusEvery = 5;
+        [Tooltip("Esencia al Pulir ×(1 + esto × Consagraciones)")]
+        public float consecrateEssenceBonus = 0.5f;
+        [Tooltip("Daño de poderes ×(1 + esto × reliquias poseídas)")]
+        public float relicPowerBonus = 0.1f;
+        public int relicSlotsBase = 2;
+        [Tooltip("Coste en Fragmentos de cada ranura extra (su número = ranuras comprables)")]
+        public int[] relicSlotCosts = { 40, 120 };
+        [Header("Fragmentos de Eternidad (Modo Infinito)")]
+        public int eternityPerGallery = 1;
+        public int eternityPerBoss = 5;
+        public List<RelicDef> relics = new List<RelicDef>();
+        public List<BossModDef> bossMods = new List<BossModDef>();
+
         public List<UpgradeDef> upgrades = new List<UpgradeDef>();
         public List<MutatorDef> mutators = new List<MutatorDef>();
         public List<LifeEventDef> lifeEvents = new List<LifeEventDef>();
@@ -318,6 +365,7 @@ namespace Marmoreal
         public MutatorDef GetMutator(string id) => string.IsNullOrEmpty(id) ? null : mutators.Find(m => m.id == id);
         public ContractDef GetContract(string id) => contracts.Find(c => c.id == id);
         public MarbleColorDef GetColor(string id) => marbleColors.Find(c => c.id == id);
+        public RelicDef GetRelic(string id) => relics.Find(r => r.id == id);
 
         Dictionary<string, UpgradeDef> map;
 
@@ -370,6 +418,10 @@ namespace Marmoreal
                 if (campaign.Find(x => x.id == c.id) == null) { campaign.Add(c); changed = true; }
             foreach (var c in fresh.marbleColors)
                 if (GetColor(c.id) == null) { marbleColors.Add(c); changed = true; }
+            foreach (var r in fresh.relics)
+                if (GetRelic(r.id) == null) { relics.Add(r); changed = true; }
+            foreach (var b in fresh.bossMods)
+                if (bossMods.Find(x => x.id == b.id) == null) { bossMods.Add(b); changed = true; }
             if (Application.isPlaying) Destroy(fresh); else DestroyImmediate(fresh);
             return changed;
         }
@@ -505,6 +557,16 @@ namespace Marmoreal
                 A("pol6", "Millonario", "Acumula 1M de polvo en total.", "dust", 1e6, 1),
                 A("pol12", "Billonario", "Acumula 1T de polvo en total.", "dust", 1e12, 3),
                 A("pol24", "Inconmensurable", "Acumula 1Sp de polvo en total.", "dust", 1e24, 6),
+                A("pieza1", "Pieza 1/7", "Consigue la 1.ª pieza del Gran Monumento.", "pieces", 1, 3),
+                A("pieza2", "Pieza 2/7", "Consigue 2 piezas del Gran Monumento.", "pieces", 2, 4),
+                A("pieza3", "Pieza 3/7", "Consigue 3 piezas del Gran Monumento.", "pieces", 3, 5),
+                A("pieza4", "Pieza 4/7", "Consigue 4 piezas del Gran Monumento.", "pieces", 4, 6),
+                A("pieza5", "Pieza 5/7", "Consigue 5 piezas del Gran Monumento.", "pieces", 5, 7),
+                A("pieza6", "Pieza 6/7", "Consigue 6 piezas del Gran Monumento.", "pieces", 6, 8),
+                A("pieza7", "Pieza 7/7", "Completa las 7 piezas del Gran Monumento.", "pieces", 7, 10),
+                A("victoria", "Obra Maestra", "Completa la campaña del Gran Monumento.", "campaign", 1, 10),
+                A("consagra1", "Consagrado", "Consagra la canica por primera vez.", "consecrations", 1, 5),
+                A("consagra5", "Relicario", "Consagra la canica 5 veces.", "consecrations", 5, 10),
             };
 
             mutators = new List<MutatorDef>
@@ -559,6 +621,28 @@ namespace Marmoreal
                 MC("nero", "Nero Obsidiana", ColorUnlock.Prestiges, 25, "Pule la canica 25 veces", new Color(0.5f, 0.5f, 0.6f), new Color(0.35f, 0.3f, 0.5f)),
                 MC("dorado", "Dorado", ColorUnlock.Campaign, 0, "Completa la campaña", new Color(1f, 0.8f, 0.3f), new Color(1f, 0.75f, 0.2f)),
                 MC("cosmica", "Cósmica", ColorUnlock.InfiniteGallery, 500, "Galería 500 en el Modo Infinito", new Color(0.5f, 0.6f, 1f), new Color(0.9f, 0.5f, 1f)),
+                MC("eterna", "Eterna", ColorUnlock.Fragments, 60, "Cómprala con 60 Fragmentos de Eternidad", new Color(0.4f, 1f, 0.95f), new Color(0.6f, 1f, 1f)),
+            };
+
+            relics = new List<RelicDef>
+            {
+                new RelicDef { id = "nova_racimo", displayName = "Supernova en Racimo", glyph = "✹", power = "supernova", description = "Tras estallar, la Supernova suelta 4 bombas menores a su alrededor." },
+                new RelicDef { id = "vortice_gemelo", displayName = "Vórtice Escindido", glyph = "◎", power = "vortice", description = "Al implosionar, el Vórtice se divide en dos vórtices menores." },
+                new RelicDef { id = "rayo_inverso", displayName = "Rayo Inverso", glyph = "↯", power = "rayo", description = "Cada rayo, al acabar su cadena, rebota hacia atrás por los mismos bloques." },
+                new RelicDef { id = "meteoros_dorados", displayName = "Meteoros Dorados", glyph = "☄", power = "meteoros", description = "El Gran Meteoro convierte en oro 3 bloques." },
+                new RelicDef { id = "coloso_sismico", displayName = "Pisada Sísmica", glyph = "⬤", power = "coloso", description = "Mientras eres Coloso, sueltas ondas que dañan todo alrededor." },
+                new RelicDef { id = "ingravidez_iman", displayName = "Ingravidez Imantada", glyph = "⇡", power = "ingravidez", description = "La Ingravidez atrae todo el polvo del santuario y golpea ×1,5." },
+                new RelicDef { id = "midas_avaro", displayName = "Corona Avara", glyph = "♛", power = "midas", description = "Midas desata además un Frenesí de polvo ×2 durante 10 s." },
+                new RelicDef { id = "reloj_arena", displayName = "Reloj de Arena", glyph = "⌛", power = "", description = "Cada poder lanzado acorta un 15 % la recarga de los demás." },
+            };
+
+            bossMods = new List<BossModDef>
+            {
+                new BossModDef { id = "blindado", displayName = "Blindado", description = "vida ×2", hpMult = 2f, rewardMult = 1.5f, fragmentMult = 2 },
+                new BossModDef { id = "regenerante", displayName = "Regenerante", description = "recupera vida sin parar", regenPerSec = 0.015f, rewardMult = 1.5f, fragmentMult = 2 },
+                new BossModDef { id = "titanico", displayName = "Titánico", description = "enorme: vida ×1,6, polvo ×2", scale = 1.3f, hpMult = 1.6f, rewardMult = 2f, fragmentMult = 2 },
+                new BossModDef { id = "sordo", displayName = "Sordo a los Dioses", description = "los poderes apenas le dañan", powerTaken = 0.3f, fragmentMult = 2 },
+                new BossModDef { id = "coraza", displayName = "Acorazado", description = "tus golpes le hacen la mitad", playerTaken = 0.5f, fragmentMult = 2 },
             };
             map = null;
         }

@@ -30,6 +30,8 @@ TRIAL = dict(hpMult=2.0, icor=15)
 MUT = dict(on=__import__("os").environ.get("SIMMUT", "1") == "1",
            dust=(3 + 1 + 1 + 1 + 1 + 2 + 0.4) / 7, hp=(2 + 1 + 1 + 1 + 1.3 + 1 + 0.5) / 7,
            bonus=(0.15 + 0.25 + 0.2 + 0.15 + 0.25 + 0.2 + 0.3) / 7, goal=12)
+# Consagrar (S5): SIMCONS = pulidos entre Consagraciones (0 = nunca). Reinicia Esencia y Árbol; Esencia/Pulido x(1+0.5*n); poder +10%/reliquia
+CONS = int(__import__("os").environ.get("SIMCONS", "0")); CONS_BONUS = 0.5
 SCALE_K = float(__import__("os").environ.get("SIMK", CFG["costScaleK"]))
 CFG["costScaleOn"] = SCALE_K > 0
 SCOPE = __import__("os").environ.get("SIMSCOPE", "all")
@@ -313,7 +315,7 @@ class Sim:
 
     def gain(s):
         if s.g < CFG["prestigeMin"]: return 0
-        return math.floor(CFG["prestigeBase"] * (s.g - CFG["prestigeMin"] + 3) ** CFG["prestigePow"])
+        return math.floor(CFG["prestigeBase"] * (s.g - CFG["prestigeMin"] + 3) ** CFG["prestigePow"] * (1 + CONS_BONUS * getattr(s, "cons", 0)))
 
     def prestige(s):
         gn = s.gain()
@@ -321,6 +323,10 @@ class Sim:
         s.log.append(f"  >> PULIDO #{s.prest+1} a {s.t/60:6.1f} min | galería {s.g+1} | +{gn} esencia")
         s.lives.append((s.prest, None if s.done_t is None else (s.done_t - s.life_t0) / 60, (s.t - s.life_t0) / 60))
         s.ess += gn; s.prest += 1
+        if CONS and s.prest - getattr(s, "cons_at", 0) >= CONS:
+            s.cons = getattr(s, "cons", 0) + 1; s.cons_at = s.prest
+            s.ess = 0; s.tr = {k: 0 for k in s.tr}
+            s.log.append(f"  >> CONSAGRACIÓN #{s.cons} (Esencia y Árbol a 0)")
         s.st["prestige"] = s.prest
         s.add_icor(ICOR["prestigeBase"] + gn // ICOR["prestigeDiv"])
         s.dust = s.run = 0; s.stat = 0

@@ -316,3 +316,6 @@
 .logro-row.selected { border-color: #FFFFFF; background-color: rgba(255, 255, 255, 0.10); }
 .coleccion-monument { white-space: normal; font-size: 15px; }
 .records { font-size: 13px; color: var(--ink); margin-top: 8px; white-space: normal; }
+
+.relic-glyph { font-size: 24px; width: 34px; color: var(--gold); -unity-text-align: middle-center; margin-right: 10px; }
+.logro-row.equipped { border-color: #FFFFFF; background-color: rgba(255, 255, 255, 0.10); }

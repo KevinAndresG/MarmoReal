@@ -105,7 +105,7 @@ namespace Marmoreal
             if (!gm || coleccionList == null) return;
             var S = gm.S;
             var cfg = gm.config;
-            string sig = S.marbleColor + "|" + string.Join(",", S.colors);
+            string sig = S.marbleColor + "|" + string.Join(",", S.colors) + "|" + (long)S.eternity;
             if (sig != builtColors)
             {
                 builtColors = sig;
@@ -129,8 +129,10 @@ namespace Marmoreal
                     row.Add(text);
                     var right = new VisualElement();
                     right.AddToClassList("logro-right");
-                    right.Add(Lbl("logro-progress", !have ? "BLOQUEADA" : gm.CurrentColor == c ? "EN USO" : "ELEGIR"));
+                    right.Add(Lbl("logro-progress", !have ? (c.unlock == ColorUnlock.Fragments ? $"COMPRAR {c.threshold} ◈" : "BLOQUEADA") : gm.CurrentColor == c ? "EN USO" : "ELEGIR"));
                     row.Add(right);
+                    if (!have && c.unlock == ColorUnlock.Fragments)
+                        row.RegisterCallback<ClickEvent>(_ => { if (gm.BuyColor(c)) AudioFX.I?.Play(Sfx.Buy, 0.5f); else ShowToast($"Faltan Fragmentos de Eternidad ({Num.F(S.eternity)}/{c.threshold})", ToastKind.Info); });
                     if (have)
                     {
                         string id = c.id;
