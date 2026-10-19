@@ -206,6 +206,7 @@ namespace Marmoreal
             dealt += dmg;
             punch = Mathf.Min(1f, punch + 0.35f + (src == HitSource.Player ? 0.4f : 0f));
             Hud.I?.DamageNumber(point, dmg, crit, src);
+            if (src == HitSource.Player) BiomeManager.I?.OnPlayerHit(this, dmg, point);
 
             int broken = 0;
             while (pending >= chunkHP && alive.Count > 0)

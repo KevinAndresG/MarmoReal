@@ -16,6 +16,8 @@ el builder para "rehacer"**). Diseño completo en `Docs/GDD.md`.
 | `Gameplay/PowerSystem.cs` | Poderes 1-7 (Supernova, Ingravidez, Meteoros+Gran Meteoro, Coloso, Vórtice errante+implosión, Midas, Cadena de Rayos): recargas, pools de prefabs `Bomb`/`Meteor`/`Vortex`/`Lightning`, luz "Destello" (`FlashAt`). `TryCast(i)`, `ResetCooldowns`, `FreeMeteorShower`, `FreeGolden`. |
 | `Gameplay/AllySquad.cs` + `AllyMarble.cs` | Discípulas (canicas aliadas del Taller `gemelas`/`vinculo`) y Legión temporal de las Musas (`SummonLegion`). Prefab `Ally`. |
 | `Editor/ContentV2Builder.cs` | Menú *Marmoreal/Añadir Discípulas, Rayo y Volcánicos (aditivo)*: materiales, prefabs Ally/Lightning/JumpRune, disco del Vórtice y AllySquad en escena. Seguro de repetir. |
+| `Core/BiomeDef.cs` + `Gameplay/BiomeManager.cs` | Salas por Pulido. `BiomeDef` (Config/Biomes): materiales por tier/polvo, `swaps` de materiales de `--- SANTUARIO ---`, Sol, `VolumeProfile`, regla (`BiomeRule` + `ruleA/B/C`, `volatileBonus`), `campaignStage`, `hpMult`/`dustMult`. `BiomeManager` aplica en Play el bioma de `GameState.biomeId` (sin caché: revierte con `swaps` inversos y `biomes[0]`), activa el hijo de `--- SALA ---`, re-renderiza la sonda de reflexión (OnDemand), banner tras cerrar el modal, reglas lava (`PlayerMarble.Launch`, `gm.BreakCombo`) y cristal (`PowerSystem.ReflectBolt`, `FreeShrapnel` en `ShardSystem`). Selección: `NextFor`/`CycleChoice` (botón `modal-alt` del modal de Pulir); `DoPrestige` fija `S.biomeId`. `DebugState` (heat/lava/reflejos) sale en `hud_state.txt`. |
+| `Editor/BiomeBuilder.cs` | Menú *Marmoreal/Añadir salas: Volcánica y Cristal (aditivo)*: materiales en `Materials/Biomes`, `VP_Volcanica`/`VP_Cristal`, `Biome_*.asset`, `--- SALA ---` con decoración y `BiomeManager`. Seguro de repetir. |
 | `Gameplay/MusaSpawner.cs` | Musas: orbe (prefab `Musa`) cada 60-120 s × Favor; al tocarlo, 1 Ícor + bendición aleatoria. |
 | `World/Spinner.cs` | Giro/flotación/pulso decorativo (anillos de vórtice, musa, bomba). |
 | `Core/GameState.cs`, `Core/Num.cs` | Datos guardados; formateo (`Num.F`, `Num.Roman`). |
@@ -76,6 +78,9 @@ Escena: `Assets/Marmoreal/Scenes/Marmoreal.unity` (`--- ILUMINACIÓN ---`, `--- 
 - `System.Diagnostics`/`System.Reflection.BindingFlags` no permitidos en RunCommand.
 - VolumeProfile creado por script: los overrides deben añadirse con `AssetDatabase.AddObjectToAsset` (ver `BuildVolumeProfile`).
 - El perfil por defecto de HDRP trae motion blur: el perfil del santuario lo pone a 0.
+- La "Sonda de Reflexión" en modo OnEnable conserva la sala anterior (suelo con el tinte de otra sala): `BiomeManager`
+  la pasa a OnDemand y llama `RequestRenderNextUpdate()` en cada cambio (desactivar/activar no basta).
+- Esperar en tiempo real entre RunCommands: `PowerShell Start-Sleep` (el `sleep` en primer plano de Bash está bloqueado).
 
 ## Recetas
 **Añadir mejora del Taller:** añade `UpgradeDef` en `Economy.asset` (Inspector o RunCommand editando
@@ -101,6 +106,14 @@ en las vidas 1-3 y +25 % de media cada 3 pulidos (tabla en GDD §5). Acólitos e
 su tope por Pulido es la palanca principal de esa curva; k mueve sobre todo la vida 1 (k ≥ 2,2 la atasca).
 Para barridos, importa el módulo y cambia `bs.SCALE_K`, `bs.CFG["costPrestigeGrowth"]`, `bs.CAPS` antes de `Sim().run_sim(...)`.
 Usa siempre `Hud`/`gm.IsMaxed`/`gm.CostOf` (no `d.maxLevel`/`d.Cost` directos).
+
+**Añadir bioma/sala:** crea `Biome_X.asset` (Create ▸ Marmoreal ▸ Bioma o copia uno): `id` único, `campaignStage`,
+6 `chunkMaterials` (mismo nº que los tiers base) y 7 `shardMaterials` (el último, dorado), `swaps` desde los
+materiales base de `Materials/` (M_Floor, M_Column, M_OuterGround, M_Gold, M_BrassInlay…) a los nuevos, Sol y
+`VolumeProfile` (copia de `VP_Santuario`). Crea un hijo en `--- SALA ---` con su decoración y añade ambos a
+`BiomeManager.biomes`/`rooms` (mismo índice). Regla nueva = valor en `BiomeRule` + su lógica en `BiomeManager`
+(o un gancho como `OnPlayerHit`/`FreeShrapnel`). Un material nunca debe ser `from` y `to` a la vez.
+Probar: forzar Pulidos en Play (`gm.S.galleryLevel = prestigeMinGallery + 2; bm.CycleChoice(p+1); gm.DoPrestige()`).
 
 **Retocar balance:** `python Tools/balance_sim.py 20` → tabla de hitos (objetivos en `Docs/GDD.md §5`).
 Prueba real: piloto automático compra lo más barato; compara `Temp/hud_state.txt` con el simulador.

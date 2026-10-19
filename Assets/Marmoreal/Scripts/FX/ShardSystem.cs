@@ -243,8 +243,10 @@ namespace Marmoreal
         void SimDebris(float dt)
         {
             var gm = GameManager.I;
-            bool metralla = gm && gm.Has("metralla");
-            float metrallaDmg = metralla ? gm.ImpactDamage * gm.Value("metralla") : 0f;
+            bool own = gm && gm.Has("metralla");
+            float free = BiomeManager.I ? BiomeManager.I.FreeShrapnel : 0f; // Gruta de Cristal: metralla gratis
+            bool metralla = own || (gm && free > 0f);
+            float metrallaDmg = metralla ? gm.ImpactDamage * Mathf.Max(own ? gm.Value("metralla") : 0f, free) : 0f;
             var sp = MonolithSpawner.I;
             bool vortex = attractorTimer > 0 && attractorDebrisRadius > 0;
             float vortexSq = attractorDebrisRadius * attractorDebrisRadius;

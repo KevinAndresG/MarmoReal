@@ -36,7 +36,7 @@ namespace Marmoreal
         Label dust, dustRate, essence, statLine, galleryTitle, galleryText, combo, treeEssence, tiName, tiDesc, tiEffect, modalTitle, modalBody, press;
         Label icor, buffs, banner, treeTitle, logrosFame, musaMarker;
         ScrollView shopList, logrosList;
-        Button treeBtn, prestigeBtn, qualityBtn, muteBtn, resetBtn, tiBuy, modalOk, modalCancel, treeClose;
+        Button treeBtn, prestigeBtn, qualityBtn, muteBtn, resetBtn, tiBuy, modalOk, modalCancel, modalAlt, treeClose;
         Button altarBtn, logrosBtn, logrosClose;
 
         /// <summary>Árbol mostrado en el overlay: Esencia = Árbol del Escultor, Ícor = Altar de los Dioses.</summary>
@@ -68,7 +68,7 @@ namespace Marmoreal
 
         public bool BlocksGameplay => titleShown || modalOpen || treeOpen || logrosOpen;
         public bool PointerOverUI { get; private set; }
-        public string DebugState => $"bound={root != null} sameRoot={root == doc.rootVisualElement} rows={rows.Count} shopChildren={shopList?.childCount} shopPanel={shopList?.panel != null} title={titleShown} gm={GameManager.I != null} t={Time.timeSinceLevelLoad:0} gal={GameManager.I?.S.galleryLevel} dust={GameManager.I?.S.dust:0} statues={GameManager.I?.S.totalStatues} dmg={GameManager.I?.ImpactDamage:0.0} hp={GameManager.I?.MonolithHP(false, false):0} max={GameManager.I?.MaxMonoliths} sp=[{MonolithSpawner.I?.DebugState}] shards={ShardSystem.I?.ActiveShards}";
+        public string DebugState => $"bound={root != null} sameRoot={root == doc.rootVisualElement} rows={rows.Count} shopChildren={shopList?.childCount} shopPanel={shopList?.panel != null} title={titleShown} gm={GameManager.I != null} t={Time.timeSinceLevelLoad:0} gal={GameManager.I?.S.galleryLevel} dust={GameManager.I?.S.dust:0} statues={GameManager.I?.S.totalStatues} dmg={GameManager.I?.ImpactDamage:0.0} hp={GameManager.I?.MonolithHP(false, false):0} max={GameManager.I?.MaxMonoliths} sp=[{MonolithSpawner.I?.DebugState}] shards={ShardSystem.I?.ActiveShards} {BiomeManager.I?.DebugState}";
 
         void Awake()
         {
@@ -118,7 +118,7 @@ namespace Marmoreal
             Q(out logrosList, "logros-list");
             Q(out altarBtn, "altar-btn"); Q(out logrosBtn, "logros-btn"); Q(out logrosClose, "logros-close");
             Q(out treeBtn, "tree-btn"); Q(out prestigeBtn, "prestige-btn"); Q(out qualityBtn, "quality-btn"); Q(out muteBtn, "mute-btn");
-            Q(out resetBtn, "reset-btn"); Q(out tiBuy, "ti-buy"); Q(out modalOk, "modal-ok"); Q(out modalCancel, "modal-cancel"); Q(out treeClose, "tree-close");
+            Q(out resetBtn, "reset-btn"); Q(out tiBuy, "ti-buy"); Q(out modalOk, "modal-ok"); Q(out modalCancel, "modal-cancel"); Q(out modalAlt, "modal-alt"); Q(out treeClose, "tree-close");
 
             treeBtn.clicked += () => ToggleTree(Currency.Essence);
             altarBtn.clicked += () => ToggleTree(Currency.Icor);
@@ -132,6 +132,7 @@ namespace Marmoreal
             tiBuy.clicked += BuySelectedNode;
             modalOk.clicked += () => { var a = modalAction; CloseModal(); a?.Invoke(); };
             modalCancel.clicked += CloseModal;
+            if (modalAlt != null) modalAlt.clicked += () => { var gm = GameManager.I; BiomeManager.I?.CycleChoice(gm.S.prestigeCount + 1); AudioFX.I?.Play(Sfx.Buy, 0.4f); AskPrestige(); };
             treeCanvas.generateVisualContent += DrawTreeLines;
             treeCanvas.RegisterCallback<GeometryChangedEvent>(_ => LayoutTree());
 
@@ -842,12 +843,17 @@ namespace Marmoreal
                 return;
             }
             string next = MarbleNames[Mathf.Min(gm.S.prestigeCount + 1, MarbleNames.Length - 1)];
+            var bm = BiomeManager.I;
+            var room = bm ? bm.NextFor(gm.S.prestigeCount + 1) : null;
+            bool choose = room && bm.CanChoose(gm.S.prestigeCount + 1);
+            string sala = room ? $"\n\nSala siguiente: {room.displayName}{(choose ? "  (elige con CAMBIAR SALA)" : "")}\n{room.tagline}" : "";
             OpenModal("PULIR LA CANICA",
                 $"Reinicias el Polvo, el Taller y las Galerías.\nConservas la Esencia, el Árbol, el Ícor y el Altar.\n\n" +
                 $"Ícor por pulir: +{Num.F(gm.config.icorPrestigeBase + System.Math.Floor(gm.PrestigeGain / gm.config.icorPrestigeDivisor))}\n" +
                 $"Ganarás  +{Num.F(gm.PrestigeGain)} ESENCIA   (una galería más: +{Num.F(gm.PrestigeGainNext)})\n" +
-                $"Tu canica renacerá en mármol {next}.",
+                $"Tu canica renacerá en mármol {next}." + sala,
                 "PULIR", () => { gm.DoPrestige(); });
+            if (modalAlt != null) modalAlt.style.display = choose ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         void AskReset()
@@ -875,6 +881,7 @@ namespace Marmoreal
             modalBody.text = body;
             modalOk.text = ok;
             modalCancel.style.display = cancel ? DisplayStyle.Flex : DisplayStyle.None;
+            if (modalAlt != null) modalAlt.style.display = DisplayStyle.None;
             modalAction = action;
             modalOpen = true;
             modal.RemoveFromClassList("hidden");

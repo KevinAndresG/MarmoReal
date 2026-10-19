@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46bb5a26e3310e14986e87589645c550, type: 3}
+  m_Name: Biome_Carrara
+  m_EditorClassIdentifier: Assembly-CSharp::Marmoreal.BiomeDef
+  id: carrara
+  displayName: Santuario de Carrara
+  tagline: "El taller original: m\xE1rmol blanco y luz de atardecer."
+  campaignStage: 0
+  hpMult: 1
+  dustMult: 1
+  chunkMaterials:
+  - {fileID: 2100000, guid: 3985e9da9e225b24ca643a53086abf00, type: 2}
+  - {fileID: 2100000, guid: 3acde3ac89b8537428508c850e9ccca2, type: 2}
+  - {fileID: 2100000, guid: 227cc8fbfa9d7b64d851068fb2145c80, type: 2}
+  - {fileID: 2100000, guid: ad1be9a0df3b9084685b3c2afec433c9, type: 2}
+  - {fileID: 2100000, guid: 924a087f66fe91248b1080295ed29571, type: 2}
+  - {fileID: 2100000, guid: b791345ac1887d742b21fd43d3e628a1, type: 2}
+  shardMaterials:
+  - {fileID: 2100000, guid: 084fde3239a55274594bf9133c709b56, type: 2}
+  - {fileID: 2100000, guid: c9433d77fab37de4cabf6688f5984cea, type: 2}
+  - {fileID: 2100000, guid: 4affcfb21cb8fa744aff3e763b8b157c, type: 2}
+  - {fileID: 2100000, guid: 440adb39d99fb1b4cae151c6897dd23b, type: 2}
+  - {fileID: 2100000, guid: 8c74ca62a0ba92f4eb8dfe88091d814c, type: 2}
+  - {fileID: 2100000, guid: 86f7b6290e6ffe44fa19f1296d7f6437, type: 2}
+  - {fileID: 2100000, guid: 62ff226269efe7649a2947773eb45578, type: 2}
+  swaps: []
+  sunColor: {r: 1, g: 1, b: 1, a: 1}
+  sunIntensity: 2600
+  volumeProfile: {fileID: 11400000, guid: 0956d61071ed97d4cbe5f4b4d8468ee6, type: 2}
+  rule: 0
+  ruleA: 0
+  ruleB: 0
+  ruleC: 0
+  volatileBonus: 0

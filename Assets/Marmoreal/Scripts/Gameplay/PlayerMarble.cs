@@ -100,6 +100,13 @@ namespace Marmoreal
         /// Teletransporte seguro: con interpolación hay que mover el Rigidbody (no solo el Transform),
         /// si no la física devuelve la canica a la posición anterior en cada paso.
         /// </summary>
+        /// <summary>Impulso externo (lava de la Cantera Volcánica).</summary>
+        public void Launch(Vector3 velocity)
+        {
+            rb.linearVelocity = velocity;
+            rb.WakeUp();
+        }
+
         public void Respawn()
         {
             rb.linearVelocity = Vector3.zero;

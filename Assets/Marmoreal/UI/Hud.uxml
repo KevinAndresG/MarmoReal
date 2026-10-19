@@ -106,6 +106,7 @@
                 <ui:Label name="modal-body" class="modal-body" text="" />
                 <ui:VisualElement class="row">
                     <ui:Button name="modal-ok" class="btn buy" text="ACEPTAR" />
+                    <ui:Button name="modal-alt" class="btn" text="CAMBIAR SALA" />
                     <ui:Button name="modal-cancel" class="btn" text="CANCELAR" />
                 </ui:VisualElement>
             </ui:VisualElement>

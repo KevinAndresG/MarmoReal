@@ -211,6 +211,22 @@ Desde la Galería II aparece un orbe de luz (con haz y marcador en pantalla) cad
   **estalla** (×12 del daño en 7 m) y puede encadenar otros volcánicos. Material `M_Chunk_Volcanic`, cifras en
   `Economy.asset` (sección *Bloques volcánicos*).
 
+### 4.11c Salas (biomas por Pulido)
+Cada vida transcurre en una **Sala**: mismo cuenco, otro look (materiales del santuario, bloques, polvo, Sol,
+cielo/niebla) y **una regla**. Datos en `Assets/Marmoreal/Config/Biomes/Biome_*.asset` (`BiomeDef`), aplicados en
+Play por `BiomeManager` (`--- SISTEMAS ---`); decoración/luces propias bajo `--- SALA ---/<sala>` (editable a mano).
+| Sala | Etapa | Look | Regla (`rule`, `ruleA/B/C`) |
+|---|---|---|---|
+| Santuario de Carrara | 0 | mármol blanco/negro, atardecer | ninguna |
+| Cantera Volcánica | 1 | basalto, juntas y grietas de lava, cielo rojo | +25 % bloques volcánicos (desde la Galería I); **lava**: si vas a < 2,5 m/s 1,6 s seguidos, el suelo te lanza por los aires y pierdes el combo (chispas de aviso) |
+| Gruta de Cristal | 2 | cristal azul con luz interior, bosque de cristales | cada golpe tuyo tiene 35 % de **reflejar un rayo** (50 % del daño) al bloque más cercano; los trozos son **metralla gratis** (×0,4 del daño de impacto, o tu nivel de Metralla si es mayor) |
+- **Selección**: rotación fija en los primeros pulidos (vida 1 Carrara → 2 Volcánica → 3 Cristal); desde el 3.er
+  Pulido el modal de Pulir muestra la sala siguiente (por defecto sigue la rotación) y el botón **CAMBIAR SALA**
+  alterna entre las desbloqueadas (hoy: las ya visitadas; S4 lo ligará a superar la Prueba de cada sala).
+- Guardado: `GameState.biomeId` (partidas antiguas → `carrara`). Banner con nombre y regla al entrar; el resumen
+  de "Canica pulida" incluye la sala.
+- Economía: `hpMult`/`dustMult` por sala (hoy 1,0 en las tres, para la campaña S4) — el simulador no cambia.
+
 ### 4.12 Mecenazgos (logros)
 28 hitos (estatuas, dorados, galería, pulidos, combo, poderes, Musas, polvo total). Cada uno da Ícor
 y **Fama** (+2 % de polvo permanente, aditivo). Se comprueban cada segundo y son retroactivos.
@@ -316,5 +332,5 @@ Ver `CLAUDE.md` y el skill `.claude/skills/marmoreal-dev`.
 - Eventos temporales ("Luna de Ónice": todo dorado 30 s); más bendiciones de Musas.
 - Tercer árbol / reliquias equipables (slots que modifican los poderes: Supernova en racimo, Vórtice móvil…).
 - Más estatuas (manos, caballos, rostros) y bloques con forma (columnas, arcos).
-- Segunda sala (desbloqueable con Obra Maestra) con gravedad/inclinación distinta.
+- Más salas (Hielo, Forja, Jardín, Panteón; ver `Docs/ANALISIS_PROGRESION.md` §3B) con `BiomeDef` nuevos.
 - Música adaptativa por galería.

@@ -50,6 +50,7 @@ namespace Marmoreal
         public int lastLifeGalleries;
         public double lastLifeDust;
         public double lastLifeBestHit;
+        public string biomeId = "carrara"; // sala actual (BiomeDef.id); partidas antiguas → carrara
 
         // Ajustes
         public int quality = -1;

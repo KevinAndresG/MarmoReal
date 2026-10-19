@@ -67,6 +67,7 @@ namespace Marmoreal
         // ---- Estado volátil ----
         public int Combo { get; private set; }
         public float ComboTimer { get; private set; }
+        public void BreakCombo() => Combo = 0;
         public float ComboMult => 1f + Mathf.Min(Combo, config.comboMaxHits) * config.comboStep;
         public float Resonance { get; private set; }
         public double DustPerSecond { get; private set; }
@@ -254,11 +255,14 @@ namespace Marmoreal
             double hp = config.monolithBaseHP * Math.Pow(config.hpGrowthPerGallery, S.galleryLevel);
             if (large) hp *= config.largeBlockHPMult;
             if (golden) hp *= config.goldenHPMult;
+            var b = BiomeManager.I ? BiomeManager.I.Current : null;
+            if (b) hp *= b.hpMult;
             return hp;
         }
 
         /// <summary>Polvo base de un bloque pequeño en la galería actual (ya con multiplicadores).</summary>
-        public double BaseBlockReward => config.blockBaseReward * DustMult * Math.Pow(config.rewardGrowthPerGallery, S.galleryLevel);
+        public double BaseBlockReward => config.blockBaseReward * DustMult * Math.Pow(config.rewardGrowthPerGallery, S.galleryLevel)
+            * (BiomeManager.I && BiomeManager.I.Current ? BiomeManager.I.Current.dustMult : 1f);
 
         /// <summary>Polvo total que suelta el bloque al tallarse entero (sin la estatua).</summary>
         public double BlockReward(bool large, bool golden)
@@ -378,6 +382,8 @@ namespace Marmoreal
             sb.AppendLine($"{Num.Time(S.lastLifeSeconds)} · {S.lastLifeStatues} estatuas · hasta Galería {Num.Roman(S.lastLifeGalleries)} · {Num.F(S.lastLifeDust)} polvo · mejor golpe {Num.F(S.lastLifeBestHit)}");
             sb.AppendLine($"Esencia +{Num.F(gain)}");
             sb.AppendLine();
+            var room = BiomeManager.I ? BiomeManager.I.Current : null;
+            if (room) { sb.AppendLine($"SALA: {room.displayName.ToUpperInvariant()}"); sb.AppendLine(room.tagline); sb.AppendLine(); }
             sb.AppendLine("QUÉ SE ABRE AHORA");
             bool any = false;
             foreach (var d in config.upgrades)
@@ -409,6 +415,8 @@ namespace Marmoreal
             S.essence += gain;
             S.lifetimeEssence += gain;
             S.prestigeCount++;
+            var biome = BiomeManager.I ? BiomeManager.I.NextFor(S.prestigeCount) : null;
+            if (biome) S.biomeId = biome.id;
             AddIcor(config.icorPrestigeBase + Math.Floor(gain / config.icorPrestigeDivisor), "pulido");
             S.dust = 0;
             S.runDust = 0;

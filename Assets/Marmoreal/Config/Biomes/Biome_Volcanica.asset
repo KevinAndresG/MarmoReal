@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46bb5a26e3310e14986e87589645c550, type: 3}
+  m_Name: Biome_Volcanica
+  m_EditorClassIdentifier: Assembly-CSharp::Marmoreal.BiomeDef
+  id: volcanica
+  displayName: "Cantera Volc\xE1nica"
+  tagline: "+25 % bloques volc\xE1nicos \xB7 el suelo arde: \xA1no te quedes quieta!"
+  campaignStage: 1
+  hpMult: 1
+  dustMult: 1
+  chunkMaterials:
+  - {fileID: 2100000, guid: 9c3281ce24192ba46b9f2b9512db48ac, type: 2}
+  - {fileID: 2100000, guid: 60de6083ed348f94287faed366e69ea8, type: 2}
+  - {fileID: 2100000, guid: 867c34a0f74ea5f4c89f298abb098f8b, type: 2}
+  - {fileID: 2100000, guid: a19feef0526709a48b39017b3065eff0, type: 2}
+  - {fileID: 2100000, guid: 9338a4654d055b94fb0855f63368e0ee, type: 2}
+  - {fileID: 2100000, guid: e17d5cad0afe06e47982c15d1fe06112, type: 2}
+  shardMaterials:
+  - {fileID: 2100000, guid: 275cc693eca817d468d515faf87ce8c8, type: 2}
+  - {fileID: 2100000, guid: a6295eb82314c31428e8f94142fb940f, type: 2}
+  - {fileID: 2100000, guid: aa75704ee5d8f3a439c13b9d0d42d23b, type: 2}
+  - {fileID: 2100000, guid: e32836e0ce220514d875e2a6c678beb1, type: 2}
+  - {fileID: 2100000, guid: 7664eff15d56d484780733497e5ced14, type: 2}
+  - {fileID: 2100000, guid: d34bd2deb63af17499fd9d7bdce19e2d, type: 2}
+  - {fileID: 2100000, guid: 62ff226269efe7649a2947773eb45578, type: 2}
+  swaps:
+  - from: {fileID: 2100000, guid: ef95eacd7b53e694ab946a9c380cbde0, type: 2}
+    to: {fileID: 2100000, guid: cc5e08f975cf7f14b92b44867129e902, type: 2}
+  - from: {fileID: 2100000, guid: 9109bea7110f8f44488de273e06106be, type: 2}
+    to: {fileID: 2100000, guid: 6ca6fe7c21504a9499462f0adcc2c601, type: 2}
+  - from: {fileID: 2100000, guid: 49ab415c654b0e1418109ca25fef33b6, type: 2}
+    to: {fileID: 2100000, guid: 41ef0d3a7ee42bc45a5e723ce15c46ab, type: 2}
+  - from: {fileID: 2100000, guid: 7f6172170e92b07448660bfd62e1b8ce, type: 2}
+    to: {fileID: 2100000, guid: 0f653fd8ed19f454a82564ae77e572c7, type: 2}
+  - from: {fileID: 2100000, guid: 76bef62160265ca448bc6d4a3533531c, type: 2}
+    to: {fileID: 2100000, guid: 145a7dca1b567144090cd43db46f4a96, type: 2}
+  sunColor: {r: 1, g: 0.62, b: 0.45, a: 1}
+  sunIntensity: 1800
+  volumeProfile: {fileID: 11400000, guid: f75f97096c2bbb2498f3d0423996b1a7, type: 2}
+  rule: 1
+  ruleA: 2.5
+  ruleB: 1.6
+  ruleC: 0
+  volatileBonus: 0.25

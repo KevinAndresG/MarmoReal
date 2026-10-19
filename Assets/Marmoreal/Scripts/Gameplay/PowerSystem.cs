@@ -470,6 +470,27 @@ namespace Marmoreal
         }
 
         /// <summary>Dibuja el rayo en zigzag entre los puntos y lo apaga parpadeando.</summary>
+        /// <summary>Gruta de Cristal: el bloque golpeado refleja un rayo al bloque más cercano.</summary>
+        public void ReflectBolt(Monolith from, Vector3 point, float dmg)
+        {
+            var sp = MonolithSpawner.I;
+            if (!sp || dmg <= 0) return;
+            Monolith next = null; float bd = 14f * 14f;
+            foreach (var m in sp.Active)
+            {
+                if (!m || m == from || !m.IsTargetable) continue;
+                float dd = (m.transform.position - point).sqrMagnitude;
+                if (dd < bd) { bd = dd; next = m; }
+            }
+            if (!next) return;
+            Vector3 p = next.ClosestPoint(point + Vector3.up * 2f);
+            next.TakeDamage(dmg, p, HitSource.Power, false);
+            ShardSystem.I?.SpawnSparkle(p, 6, 0, 6f);
+            StartCoroutine(DrawBolt(new List<Vector3> { point + Vector3.up * 0.5f, p }));
+            FlashAt(p, lightningColor, 0.4f);
+            AudioFX.I?.Play(Sfx.Tink, 0.5f, Random.Range(1.6f, 2.0f));
+        }
+
         IEnumerator DrawBolt(List<Vector3> pts)
         {
             var lr = GetBolt();

@@ -105,7 +105,10 @@ namespace Marmoreal
             var pool = golden && goldenStatuePrefabs != null && goldenStatuePrefabs.Length > 0 ? goldenStatuePrefabs : statuePrefabs;
             var fab = pool != null && pool.Length > 0 ? pool[Random.Range(0, pool.Length)] : null;
             m.Init(this, hp, reward, statue, golden ? goldenMaterial : tierMaterials[tier], tier, fab, golden);
-            if (!golden && volatileMaterial && gm.S.galleryLevel >= gm.config.volatileUnlockGallery && Random.value < gm.config.volatileChance)
+            var biome = BiomeManager.I ? BiomeManager.I.Current : null;
+            float volBonus = biome ? biome.volatileBonus : 0f;
+            bool volOpen = gm.S.galleryLevel >= gm.config.volatileUnlockGallery;
+            if (!golden && volatileMaterial && (volOpen || volBonus > 0) && Random.value < (volOpen ? gm.config.volatileChance : 0f) + volBonus)
             {
                 m.SetVolatile(volatileMaterial);
                 if (!volatileHintShown) { volatileHintShown = true; Hud.I?.ShowToast("Bloque VOLCÁNICO: al romperlo estalla y daña a sus vecinos", ToastKind.Info); }
