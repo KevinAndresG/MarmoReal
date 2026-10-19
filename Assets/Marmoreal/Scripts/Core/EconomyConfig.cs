@@ -177,9 +177,9 @@ namespace Marmoreal
         [Header("Coste del Taller escalado por poder permanente")]
         public bool workshopCostScale = true;
         [Tooltip("k: coste × (Brillo×Obra×Fama)^k. 0 = sin escalado")]
-        public float workshopCostK = 2f;
+        public float workshopCostK = 1.8f;
         [Tooltip("Coste × este valor ^ nº de pulidos (más contenido por vida cuanto más pules)")]
-        public float workshopCostPerPrestige = 1.14f;
+        public float workshopCostPerPrestige = 1.6f;
 
         [Header("Mecenazgos")]
         [Tooltip("Fama: +X polvo por cada mecenazgo conseguido (aditivo)")]
@@ -251,7 +251,7 @@ namespace Marmoreal
                 U("pureza", "Pureza", "Más polvo por cada fragmento.", "✦", 45, 1.75, 500, EffectMode.Exponential, 1f, 1.2f, "×{0}"),
                 Cap(U("fortuna", "Fortuna", "Probabilidad de golpe crítico (×3).", "★", 150, 1.9, 18, EffectMode.Linear, 0.05f, 0.025f, "{0}", 1), 1, 30),
                 Cap(U("cantera", "Cantera", "Más bloques de mármol a la vez.", "▣", 80, 2.15, 12, EffectMode.Linear, 5f, 1f, "{0} bloques", 1), 1, 30),
-                Hito(Cap(U("acolitos", "Acólitos", "Esferas que tallan por ti, incluso sin mirar.", "○", 150, 3.0, 12, EffectMode.Linear, 0f, 1f, "{0} acólitos", 2), 1.5f, 50), "runGalleries", 3, "subir 3 galerías en esta vida"),
+                Hito(Cap(U("acolitos", "Acólitos", "Esferas que tallan por ti, incluso sin mirar.", "○", 150, 3.0, 12, EffectMode.Linear, 0f, 1f, "{0} acólitos", 2), 3.25f, 60), "runGalleries", 3, "subir 3 galerías en esta vida"),
                 U("cincel", "Cincel", "Daño de los acólitos.", "⚒", 220, 1.6, 500, EffectMode.Exponential, 1.6f, 1.28f, "{0} daño", 2),
                 U("resonancia", "Resonancia", "Poder y radio de la onda [F]. Sin límite.", "≋", 300, 1.7, 999, EffectMode.Linear, 1f, 0.35f, "×{0}", 3),
                 Cap(U("cargas", "Doble Embestida", "Cargas de Embestida [Shift]: encadena varias seguidas antes de recargar. Cada 2 pulidos, una carga más.", "»", 600, 6, 3, EffectMode.Linear, 1f, 1f, "{0} cargas", 2), 0.5f, 8),

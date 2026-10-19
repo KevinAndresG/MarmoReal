@@ -59,6 +59,12 @@ Escena: `Assets/Marmoreal/Scenes/Marmoreal.unity` (`--- ILUMINACIÓN ---`, `--- 
   recarga de dominio a mitad de partida (corrutinas cortadas, clips de audio nulos). Para → edita → compila → Play.
 - Si `Unity_RunCommand` falla con "No logs available" (visto en la Sesión 1), usa `Unity_ManageEditor` (Play/Stop/GetState) y
   `Unity_ManageMenuItem` (parámetros `Action`/`MenuPath` con mayúscula) para ejecutar los menús aditivos (migran `Economy.asset`).
+  En la Sesión 1b volvió a funcionar sin tocar nada tras comprobar `Unity_ManageEditor GetProjectRoot` (fallo transitorio
+  del puente: editor ocupado/otro editor). Si persiste: dar foco al editor de Unity o reabrir el proyecto y repetir.
+- Dentro de RunCommand, `CompilationPipeline` choca con `Unity.CompilationPipeline`: escribe
+  `UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation()` con el nombre completo.
+- Cambiar valores ya existentes de `Economy.asset` desde RunCommand: `AssetDatabase.LoadAssetAtPath<EconomyConfig>`, editar,
+  `EditorUtility.SetDirty` + `AssetDatabase.SaveAssets()` (diff mínimo; `EnsureDefaults()` no sobrescribe valores existentes).
 - El puente Unity MCP habla con **el último editor abierto**: si hay otro proyecto abierto, comprueba
   `Unity_ManageEditor GetProjectRoot` antes de ejecutar nada.
 - Desde `Unity_RunCommand` los **estáticos** (`GameManager.I`, etc.) pueden verse `null`: usa
@@ -90,6 +96,10 @@ del simulador. Añádelo también a `FillDefaults()` para que `EnsureDefaults()`
 `unlockStat/unlockThreshold` (`GameManager.RunStat`, `OnVolatileBroken` lo llama `Monolith.Erupt`); resumen al Pulir =
 `GameManager.PrestigeReport` (modal en `Hud.OnPrestiged`). Estado de vida en `GameState` (`lifeStartGallery`, `runVolatile`, `lastLife*`).
 Simulador: `CAPS`, `MILESTONE`, env `SIMK` (k), `SIMPG` (crecimiento/pulido), tabla "Vida | Taller completo".
+Calibración actual (S1b): k 1,8 · crecimiento 1,6/Pulido · Acólitos +3,25/Pulido (límite 60) → Taller completo ~12 min
+en las vidas 1-3 y +25 % de media cada 3 pulidos (tabla en GDD §5). Acólitos es el cuello de botella del Taller completo:
+su tope por Pulido es la palanca principal de esa curva; k mueve sobre todo la vida 1 (k ≥ 2,2 la atasca).
+Para barridos, importa el módulo y cambia `bs.SCALE_K`, `bs.CFG["costPrestigeGrowth"]`, `bs.CAPS` antes de `Sim().run_sim(...)`.
 Usa siempre `Hud`/`gm.IsMaxed`/`gm.CostOf` (no `d.maxLevel`/`d.Cost` directos).
 
 **Retocar balance:** `python Tools/balance_sim.py 20` → tabla de hitos (objetivos en `Docs/GDD.md §5`).

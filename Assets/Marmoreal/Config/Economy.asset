@@ -63,8 +63,8 @@ MonoBehaviour:
   volatileBlastRadius: 7
   allyResonancePerHit: 0.03
   workshopCostScale: 1
-  workshopCostK: 2
-  workshopCostPerPrestige: 1.14
+  workshopCostK: 1.8
+  workshopCostPerPrestige: 1.6
   famePerAchievement: 0.02
   upgrades:
   - id: masa
@@ -213,8 +213,8 @@ MonoBehaviour:
     effectFormat: "{0} ac\xF3litos"
     unlockGallery: 2
     scaleCost: 1
-    maxLevelPerPrestige: 1.5
-    maxLevelLimit: 50
+    maxLevelPerPrestige: 3.25
+    maxLevelLimit: 60
     unlockStat: runGalleries
     unlockThreshold: 3
     unlockHint: "subir 3 galer\xEDas en esta vida"

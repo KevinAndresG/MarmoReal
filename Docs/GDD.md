@@ -249,6 +249,34 @@ Calibrado con `Tools/balance_sim.py` (jugador que compra lo más barato y pule a
 después baja a ~5-7 min y **no crece** el 30 % cada 3 pulidos (pendiente: más topes/mejoras "vivas" o k mayor;
 con k=2,4 la vida 1 se atasca y nunca completa el Taller). Los topes ilimitados de Resonancia/Vínculo cuentan fuera de esa medida.
 
+**Sesión 1b (curva del Taller completo) — antes / después.** El cuello de botella del Taller completo es
+**Acólitos** (coste ×3 por nivel) en todas las vidas desde la 2.ª, así que su tope por Pulido es el motor de la curva;
+el crecimiento de coste por Pulido lo acompaña. Además se arregló un artefacto del simulador (la fracción de bloques
+se perdía en cada corte de la tabla y retrasaba el 1.er Pulido ~4 min); las cifras "antes" ya usan el simulador corregido.
+
+| Parámetro | Antes | Después |
+|---|---|---|
+| `workshopCostK` (k) | 2,0 | **1,8** |
+| `workshopCostPerPrestige` | 1,14 | **1,6** |
+| Acólitos: tope +/Pulido · límite | +1,5 · 50 | **+3,25 · 60** |
+| Resto de topes, Resonancia/Vínculo | — | sin cambios (vivas, sin tope) |
+
+| Métrica (`python Tools/balance_sim.py 20`) | Antes | Después |
+|---|---|---|
+| 1.er Pulido | 52,2 min · Gal. 29 | 50,2 min · Gal. 29 |
+| 5.º Pulido | 206 min · Gal. 68 | 225 min · Gal. 66 |
+| 10.º Pulido | 684 min · Gal. 117 | 641 min · Gal. 102 |
+| Pulidos en 20 h · galería máx. | 15 · 136 | 16 · 113 |
+| Taller completo, vidas 1-15 (min) | 12 10 8 8 8 7 7 5 6 6 6 7 6 7 | 13 11 11 12 13 14 20 14 13 16 15 18 24 34 30 |
+| Media por bloques de 3 vidas | 10,0 · 7,5 · 6,3 · 6,3 | **11,8 · 13,1 · 15,4 · 16,3 · 29,0** |
+| Crecimiento cada 3 pulidos | −14 % de media | **+25 % de media** (+11, +18, +6, +78 %) |
+| Atascos (galerías de > 5 min en 20 h) | 42 | 46 (tope de atasco: 10 min, igual) |
+
+Ruido conocido: el Taller completo salta cuando entra un poder nuevo con su mejora `pw_*` (vidas 5-7: Rayo/Vórtice)
+y cae cuando llega el Toque de Midas (vida 8, Pulido de +400 Esencia). Son eventos de contenido, no de la curva;
+si molestan, la palanca es el coste base de esas `pw_*`, no k. Con k ≥ 2,2 la vida 1 vuelve a no completar el Taller;
+con Acólitos ≥ +3,5/Pulido aparecen vidas sin Taller completo (vida 7).
+
 Con Poderes, Musas y Fama el primer Pulido llega a los ~45 min en la Galería ~30 (antes ~40 min,
 Galería 22): el muro sigue ahí, pero llegas un poco más lejos y se gana más Esencia.
 

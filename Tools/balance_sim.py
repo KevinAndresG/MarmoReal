@@ -19,7 +19,7 @@ CFG = dict(
     prestigeMin=8, prestigeBase=0.3, prestigePow=1.6,
     acolyteInterval=1.1, volatileChance=0.06, volatileUnlock=2,
     # Coste del Taller escalado por poder permanente: × (GlobalMult × Fama)^k (EconomyConfig.workshopCostScale*)
-    costPrestigeGrowth=float(__import__('os').environ.get('SIMPG',1.14)), costScaleOn=True, costScaleK=2.0,
+    costPrestigeGrowth=float(__import__('os').environ.get('SIMPG',1.6)), costScaleOn=True, costScaleK=1.8,
 )
 SCALE_K = float(__import__("os").environ.get("SIMK", CFG["costScaleK"]))
 CFG["costScaleOn"] = SCALE_K > 0
@@ -51,7 +51,7 @@ DUST = {
 # Topes que suben con cada Pulido: id: (niveles extra por pulido, tope absoluto). UpgradeDef.maxLevelPerPrestige / maxLevelLimit
 CAPS = {
     "inercia": (1, 60), "iman": (1, 60), "fortuna": (1, 30), "cantera": (1, 30),
-    "acolitos": (1.5, 50), "cargas": (0.5, 8), "gemelas": (1, 24),
+    "acolitos": (3.25, 60), "cargas": (0.5, 8), "gemelas": (1, 24),
 }
 # Ayudantes por hito de ESTA vida: id: (estadística, umbral). UpgradeDef.unlockStat / unlockThreshold
 # run_galleries = galerías subidas en esta vida (no cuenta la Memoria); run_volatile = volcánicos rotos en esta vida
@@ -318,7 +318,7 @@ class Sim:
         s.g0 = s.g; s.run_vol = 0.0; s.done_t = None; s.life_t0 = s.t
 
     def run_sim(s, seconds):
-        acc_hp = 0.0
+        acc_hp = getattr(s, "acc_hp", 0.0)   # persiste entre llamadas (los cortes de la tabla no pierden la fracción)
         if not hasattr(s, "life_t0"): s.life_t0 = 0
         while s.t < seconds:
             s.t += 1
@@ -347,6 +347,7 @@ class Sim:
                     s.log.append(f"{s.t/60:7.1f} min  Galería {s.g+1:3d}  (+{(s.t-s.tg)/60:5.1f} min)  dps={d:10.3g}  polvo/s={earned:10.3g}")
                     s.tg = s.t
                     hp, _ = s.block_hp()
+            s.acc_hp = acc_hp
             if s.run > 1e300: s.log.append("OVERFLOW"); break
             s.buy_cheapest()
             if s.done_t is None and s.workshop_done(): s.done_t = s.t
