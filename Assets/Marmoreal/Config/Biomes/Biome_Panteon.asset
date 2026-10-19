@@ -46,8 +46,8 @@ MonoBehaviour:
     to: {fileID: 2100000, guid: d957ed8f8aaf54f41bb160de6df3ed78, type: 2}
   - from: {fileID: 2100000, guid: 76bef62160265ca448bc6d4a3533531c, type: 2}
     to: {fileID: 2100000, guid: 665f1b61bace14e4688ac75289362ab1, type: 2}
-  sunColor: {r: 1, g: 0.85, b: 0.6, a: 1}
-  sunIntensity: 2200
+  sunColor: {r: 1, g: 0.948, b: 0.86, a: 1}
+  sunIntensity: 2600
   volumeProfile: {fileID: 11400000, guid: 3a537f846c29d354e894d6c3693bcf0e, type: 2}
   rule: 6
   ruleA: 0.25

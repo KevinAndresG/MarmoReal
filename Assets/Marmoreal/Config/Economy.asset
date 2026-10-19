@@ -205,9 +205,8 @@ MonoBehaviour:
   - Leyenda
   - Deidad
   rankGalleries: 00000000960000002c010000f4010000
-  consecrateMinPrestiges: 10
-  consecrateBonusEvery: 5
-  consecrateEssenceBonus: 0.5
+  consecrateMinPrestiges: 5
+  consecrateEssenceBonus: 0.25
   relicPowerBonus: 0.1
   relicSlotsBase: 2
   relicSlotCosts: 2800000078000000

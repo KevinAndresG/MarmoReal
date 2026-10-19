@@ -35,6 +35,9 @@ CONS = int(__import__("os").environ.get("SIMCONS", "0")); CONS_BONUS = 0.5
 # S7: el ×coste por Pulido cuenta solo los Pulidos desde la última Consagración (SIMCRESET=0 = fórmula S5);
 # Consagrar conserva SIMKEEP (fracción) de los niveles del Árbol
 CONS_RESET = int(__import__("os").environ.get("SIMCRESET", "1")); CONS_KEEP = float(__import__("os").environ.get("SIMKEEP", "0.5"))
+# S8: Reliquia como hito (sin reinicio): cada SIMHITO Pulidos +1 Consagración (Esencia ×(1+SIMHBONUS·n)); 0 = off
+HITO = int(__import__("os").environ.get("SIMHITO", "0"))
+if HITO: CONS_BONUS = float(__import__("os").environ.get("SIMHBONUS", "0.5"))
 SCALE_K = float(__import__("os").environ.get("SIMK", CFG["costScaleK"]))
 CFG["costScaleOn"] = SCALE_K > 0
 SCOPE = __import__("os").environ.get("SIMSCOPE", "all")
@@ -330,6 +333,9 @@ class Sim:
             s.cons = getattr(s, "cons", 0) + 1; s.cons_at = s.prest
             s.ess = 0; s.tr = {k: (max(1, int(v * CONS_KEEP)) if v else 0) for k, v in s.tr.items()}
             s.log.append(f"  >> CONSAGRACIÓN #{s.cons} (Esencia a 0, Árbol ×{CONS_KEEP})")
+        if HITO and s.prest % HITO == 0:
+            s.cons = getattr(s, "cons", 0) + 1
+            s.log.append(f"  >> RELIQUIA (hito {s.cons})")
         s.st["prestige"] = s.prest
         s.add_icor(ICOR["prestigeBase"] + gn // ICOR["prestigeDiv"])
         s.dust = s.run = 0; s.stat = 0

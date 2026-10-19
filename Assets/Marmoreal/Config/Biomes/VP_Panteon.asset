@@ -92,13 +92,13 @@ MonoBehaviour:
     m_Value: 40
   meanFreePath:
     m_OverrideState: 1
-    m_Value: 110
+    m_Value: 150
   enableVolumetricFog:
     m_OverrideState: 1
     m_Value: 0
   albedo:
     m_OverrideState: 1
-    m_Value: {r: 0.6, g: 0.5, b: 0.3, a: 1}
+    m_Value: {r: 0.84, g: 0.8, b: 0.72, a: 1}
   globalLightProbeDimmer:
     m_OverrideState: 1
     m_Value: 1
@@ -498,7 +498,7 @@ MonoBehaviour:
     m_Value: 8
   colorFilter:
     m_OverrideState: 1
-    m_Value: {r: 1, g: 0.92, b: 0.78, a: 1}
+    m_Value: {r: 1, g: 0.99, b: 0.974, a: 1}
   hueShift:
     m_OverrideState: 1
     m_Value: 0
@@ -883,13 +883,13 @@ MonoBehaviour:
     m_Value: 0
   top:
     m_OverrideState: 1
-    m_Value: {r: 0.04, g: 0.03, b: 0.02, a: 1}
+    m_Value: {r: 0.079, g: 0.078, b: 0.1, a: 1}
   middle:
     m_OverrideState: 1
-    m_Value: {r: 0.5, g: 0.38, b: 0.15, a: 1}
+    m_Value: {r: 0.632, g: 0.485, b: 0.296, a: 1}
   bottom:
     m_OverrideState: 1
-    m_Value: {r: 0.06, g: 0.05, b: 0.03, a: 1}
+    m_Value: {r: 0.099, g: 0.081, b: 0.061, a: 1}
   gradientDiffusion:
     m_OverrideState: 1
     m_Value: 1.6

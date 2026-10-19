@@ -80,7 +80,8 @@ namespace Marmoreal
 
         // Consagrar, Reliquias y Fragmentos de Eternidad (S5)
         public int consecrations;
-        public int prestigesAtConsecrate;             // prestigeCount en la última Consagración
+        public int prestigesAtConsecrate;             // prestigeCount en la última Consagración antigua (reiniciaba el Árbol); base del ×coste del Taller
+        public int relicPrestige;                     // S8: prestigeCount del último hito de Reliquia
         public List<string> relics = new List<string>();
         public List<string> relicsEquipped = new List<string>();
         public int relicSlotsBought;

@@ -401,7 +401,6 @@ namespace Marmoreal
 
         /// <summary>Texto "qué se abre ahora" del último Pulido (lo muestra la HUD).</summary>
         public string PrestigeReport { get; private set; } = "";
-        public bool LastWasConsecrate { get; private set; }
 
         string BuildReport(int oldP, int newP, double gain)
         {
@@ -431,13 +430,10 @@ namespace Marmoreal
             return sb.ToString();
         }
 
-        public void DoPrestige() => DoPrestige(false);
-
-        /// <summary>Pulir. consecrate = Consagrar: la Esencia de esta vida y la acumulada se pierden, el Árbol se reinicia
-        /// y a cambio se ganan Reliquias (Ícor, Altar, campaña, colección y récords se conservan).</summary>
-        public void DoPrestige(bool consecrate)
+        /// <summary>Pulir: el único reinicio (Polvo, Taller, Galerías). Cada consecrateMinPrestiges Pulidos trae además una Reliquia.</summary>
+        public void DoPrestige()
         {
-            if (!CanPrestige || consecrate && !CanConsecrate) return;
+            if (!CanPrestige) return;
             double gain = PrestigeGain;
             var mu = Mutator;
             double mBonus = MutatorBonus(gain);
@@ -456,7 +452,7 @@ namespace Marmoreal
             S.lifetimeEssence += gain;
             S.prestigeCount++;
             if (S.infinite) S.infiniteLives++;
-            var newRelics = consecrate ? Consecrate() : null;
+            string newRelic = S.prestigeCount - S.relicPrestige >= Math.Max(1, config.consecrateMinPrestiges) ? GrantRelic() : null;
             var biome = BiomeManager.I ? BiomeManager.I.NextFor(S.prestigeCount) : null;
             if (biome) S.biomeId = biome.id;
             AddIcor(config.icorPrestigeBase + Math.Floor(gain / config.icorPrestigeDivisor), "pulido");
@@ -480,52 +476,36 @@ namespace Marmoreal
             Resonance = 0;
             RecalcStats();
             PrestigeReport = BuildReport(oldP, S.prestigeCount, gain);
-            LastWasConsecrate = newRelics != null;
-            if (newRelics != null)
-                PrestigeReport = $"CONSAGRACIÓN N.º {S.consecrations}\n" +
-                    $"Reliquias nuevas: {(newRelics.Count > 0 ? string.Join(", ", newRelics) : "(todas conseguidas: +Ícor)")}\n" +
-                    $"Ranuras: {S.relicsEquipped.Count}/{RelicSlots} equipadas · equípalas en RELIQUIAS [R]\n" +
-                    $"Esencia al Pulir ×{ConsecrateMult:0.##} desde ahora\n" +
-                    $"Se pierden: Esencia y {100 - Mathf.RoundToInt(config.consecrateKeepTree * 100)} % de los niveles del Árbol · Taller a precio de inicio · Se conservan: Ícor, Altar, Reliquias, campaña y colección\n\n" + PrestigeReport;
+            if (newRelic != null)
+                PrestigeReport = $"★ RELIQUIA NUEVA (hito {S.consecrations}): {newRelic}\n" +
+                    $"Ranuras: {S.relicsEquipped.Count}/{RelicSlots} equipadas · RELIQUIAS [R] · Esencia al Pulir ×{ConsecrateMult:0.##}\n\n" + PrestigeReport;
             Save();
             AudioFX.I?.Play(Sfx.Prestige);
             Prestiged?.Invoke();
-            Toast?.Invoke(newRelics != null ? "Canica CONSAGRADA · nuevas Reliquias" : $"Canica pulida · +{Num.F(gain)} Esencia", ToastKind.Prestige);
+            Toast?.Invoke($"Canica pulida · +{Num.F(gain)} Esencia" + (newRelic != null ? " · ¡Reliquia nueva!" : ""), ToastKind.Prestige);
         }
 
         // =================== Consagrar y Reliquias (S5) ===================
 
         public int PrestigesSinceConsecrate => S.prestigeCount - S.prestigesAtConsecrate;
-        /// <summary>Se consagra en el momento de Pulir: hace falta poder Pulir y N pulidos desde la última vez.</summary>
-        public bool CanConsecrate => PrestigesSinceConsecrate >= config.consecrateMinPrestiges;
-        public int RelicGain => 1 + Math.Max(0, PrestigesSinceConsecrate - config.consecrateMinPrestiges) / Math.Max(1, config.consecrateBonusEvery);
+        /// <summary>Pulidos que faltan para el siguiente hito de Reliquia.</summary>
+        public int PrestigesToRelic => Math.Max(0, config.consecrateMinPrestiges - (S.prestigeCount - S.relicPrestige));
         public int RelicSlots => config.relicSlotsBase + S.relicSlotsBought;
         public int NextSlotCost => S.relicSlotsBought < config.relicSlotCosts.Length ? config.relicSlotCosts[S.relicSlotsBought] : -1;
         public bool RelicOn(string id) => S.relicsEquipped.Contains(id);
 
-        // Lo llama DoPrestige(true) tras sumar el pulido (antes de reiniciar la vida, para que "memoria" ya valga 0)
-        List<string> Consecrate()
+        // Hito de Reliquia (S8): lo llama DoPrestige tras sumar el Pulido. No reinicia nada; prestigesAtConsecrate queda
+        // congelado en la última Consagración antigua para no encarecer el Taller de quien ya perdió su Árbol.
+        string GrantRelic()
         {
-            var got = new List<string>();
-            for (int i = RelicGain; i > 0; i--)
-            {
-                var locked = config.relics.FindAll(r => !S.relics.Contains(r.id));
-                if (locked.Count == 0) { AddIcor(config.trialIcor, "reliquia repetida"); continue; }
-                var r = locked[UnityEngine.Random.Range(0, locked.Count)];
-                S.relics.Add(r.id);
-                got.Add(r.displayName);
-                if (S.relicsEquipped.Count < RelicSlots) S.relicsEquipped.Add(r.id);
-            }
             S.consecrations++;
-            S.prestigesAtConsecrate = S.prestigeCount;
-            S.essence = 0;
-            foreach (var d in config.upgrades)
-            {
-                if (d.currency != Currency.Essence) continue;
-                int l = S.Level(d.id);
-                S.SetLevel(d.id, l > 0 ? Mathf.Max(1, Mathf.FloorToInt(l * config.consecrateKeepTree)) : 0); // conserva los nodos comprados
-            }
-            return got;
+            S.relicPrestige = S.prestigeCount;
+            var locked = config.relics.FindAll(r => !S.relics.Contains(r.id));
+            if (locked.Count == 0) { AddIcor(config.trialIcor, "reliquia repetida"); return "(todas conseguidas: +Ícor)"; }
+            var r = locked[UnityEngine.Random.Range(0, locked.Count)];
+            S.relics.Add(r.id);
+            if (S.relicsEquipped.Count < RelicSlots) S.relicsEquipped.Add(r.id);
+            return r.displayName;
         }
 
         public void ToggleRelic(string id)
@@ -889,6 +869,7 @@ namespace Marmoreal
             }
             S ??= new GameState();
             if (S.version < 2) { S.legacyStage = S.prestigeCount; S.version = 2; } // conserva las salas ya visitadas
+            if (S.relicPrestige < S.prestigesAtConsecrate) S.relicPrestige = S.prestigesAtConsecrate; // S8: hitos desde la última Consagración
         }
 
         public void ResetSave()

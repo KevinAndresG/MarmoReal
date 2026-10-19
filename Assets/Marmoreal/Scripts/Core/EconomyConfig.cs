@@ -331,17 +331,13 @@ namespace Marmoreal
         [Tooltip("Galería mínima de cada rango (mismo orden)")]
         public int[] rankGalleries = { 0, 150, 300, 500 };
 
-        [Header("Consagrar y Reliquias (S5)")]
-        [Tooltip("Pulidos desde la última Consagración para poder Consagrar")]
-        public int consecrateMinPrestiges = 10;
-        [Tooltip("+1 reliquia extra por cada X pulidos por encima del mínimo")]
-        public int consecrateBonusEvery = 5;
-        [Tooltip("Esencia al Pulir ×(1 + esto × Consagraciones)")]
-        public float consecrateEssenceBonus = 0.5f;
-        [Tooltip("S7: el ×coste del Taller por Pulido cuenta solo los Pulidos desde la última Consagración")]
+        [Header("Hito de Reliquia (antes Consagrar) y Reliquias")]
+        [Tooltip("S8: cada N Pulidos el Pulido entrega 1 Reliquia y cuenta 1 Consagración (no reinicia nada)")]
+        public int consecrateMinPrestiges = 5;
+        [Tooltip("Esencia al Pulir ×(1 + esto × Consagraciones/hitos de Reliquia)")]
+        public float consecrateEssenceBonus = 0.25f;
+        [Tooltip("Partidas con Consagraciones antiguas (S5-S7, reiniciaban el Árbol): el ×coste del Taller por Pulido cuenta solo los Pulidos desde la última de ellas")]
         public bool consecrateResetsCostGrowth = true;
-        [Tooltip("S7: fracción de niveles del Árbol que se conserva al Consagrar (cada nodo comprado guarda al menos 1). 0 = se pierde todo")]
-        [Range(0, 1)] public float consecrateKeepTree = 0.5f;
         [Tooltip("Daño de poderes ×(1 + esto × reliquias poseídas)")]
         public float relicPowerBonus = 0.1f;
         public int relicSlotsBase = 2;

@@ -143,7 +143,6 @@
                 <ui:Label name="reliquias-info" class="logros-fame coleccion-monument" text="" />
                 <ui:ScrollView name="reliquias-list" class="logros-list" />
                 <ui:Button name="slot-btn" class="btn buy" text="" />
-                <ui:Button name="consagrar-btn" class="btn buy" text="CONSAGRAR" />
             </ui:VisualElement>
         </ui:VisualElement>
 

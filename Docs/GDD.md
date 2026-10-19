@@ -158,7 +158,8 @@ Nodos en MAYÚSCULAS = **mecánicas nuevas** (cambian cómo se juega, no solo n�
 
 ### 4.7 Prestigio (Pulir)
 - Requiere Galería IX (índice 8). Esencia = ⌊0.3 · (galería − 8 + 3)^1.6⌋.
-- Reinicia polvo, Taller y galerías; conserva Esencia y Árbol. *Memoria* da galerías iniciales.
+- Único reinicio del juego (S8): polvo, Taller y galerías; conserva Esencia, Árbol, Ícor, Altar y lo demás. *Memoria* da galerías iniciales.
+- Cada 5 Pulidos trae una Reliquia (hito, ver §5 "Tres capas").
 - El botón muestra la ganancia actual **y la de la siguiente galería** para tentar a seguir.
 
 ### 4.8 Ícor (moneda divina, permanente)
@@ -391,37 +392,41 @@ ni el crecimiento del Jardín. Probadas: 120 (sala 4 = 10 h), 110/125 (5 h + 8,7
 Para retocar: edita `Economy.asset` en el Inspector y replica los números en `Tools/balance_sim.py`;
 ejecuta `python Tools/balance_sim.py 20` y revisa la tabla de hitos.
 
-### Consagrar, Reliquias y Fragmentos de Eternidad (S5)
-- **Consagrar** (botón RELIQUIAS [R] → CONSAGRAR): tras `consecrateMinPrestiges` (10) Pulidos desde la última vez, el Pulido reinicia además Esencia y Árbol del Escultor (se conservan Ícor, Altar, campaña, colección y récords) y da `1 + (extra Pulidos)/consecrateBonusEvery` Reliquias al azar. Cada Consagración: Esencia por Pulido ×(1+0,5·n); cada reliquia poseída: poder +10 %.
+### Tres capas de progreso y un solo reinicio (S8)
+| Capa | Moneda / árbol | Duración |
+|---|---|---|
+| Vida | **Polvo** → **Taller** | Se reinicia en cada **Pulido** (junto con las Galerías) |
+| Escultor | **Esencia** → **Árbol del Escultor** [T] | Permanente: se acumula Pulido tras Pulido |
+| Divinidades | **Ícor** → **Altar** [G] | Permanente |
+
+**Pulir es el único reinicio.** Conserva Esencia, Árbol, Ícor, Altar, Reliquias, campaña, colección y récords.
+"Consagrar" ya no es un botón: es un **hito de Reliquia** que llega solo con el Pulido.
+
+### Hito de Reliquia (antes Consagrar), Reliquias y Fragmentos de Eternidad
+- Cada `consecrateMinPrestiges` (**5**) Pulidos, el Pulido entrega **1 Reliquia** al azar (se equipa si hay ranura libre) y suma
+  1 Consagración (`GameState.consecrations`, cuenta para los Mecenazgos *Consagrado*/*Relicario*). Sin pérdidas ni confirmaciones.
+  El modal de Pulir avisa "Reliquia nueva a los N Pulidos" / "★ Este Pulido trae una RELIQUIA nueva"; el resumen del Pulido abre
+  con "★ RELIQUIA NUEVA". El panel RELIQUIAS [R] muestra los Pulidos que faltan. Contador: `GameState.relicPrestige`
+  (migración: se inicia en `prestigesAtConsecrate`).
+- Cada Consagración/hito: Esencia por Pulido ×(1 + `consecrateEssenceBonus`·n), **0,25** (antes 0,5, ver tabla); cada reliquia poseída: poder +10 %.
+- Partidas con Consagraciones antiguas (S5-S7, que reiniciaban el Árbol): `prestigesAtConsecrate` queda congelado y, con
+  `consecrateResetsCostGrowth`, el ×coste del Taller por Pulido cuenta solo los Pulidos desde entonces (así no se encarece el
+  Taller de quien perdió el Árbol). Las partidas nuevas tienen 0 → crecimiento normal ×1,6/Pulido.
 - **Reliquias** (8, `Economy.asset → relics`): Supernova en Racimo, Vórtice Escindido, Rayo Inverso, Meteoros Dorados, Pisada Sísmica (Coloso), Ingravidez Imantada, Corona Avara (Midas), Reloj de Arena. Ranuras: 2 base, +1 por 40 y +1 por 120 Fragmentos. Panel UI Toolkit `reliquias` en Hud.uxml.
 - **Fragmentos de Eternidad** (solo Modo Infinito): 1 por galería, 5 por Coloso (×2 con modificador). Se gastan en ranuras y en la canica Eterna (60).
 - **Jefes del infinito**: cada Coloso lleva 1 modificador aleatorio (`bossMods`: Blindado, Regenerante, Titánico, Sordo a los Dioses, Acorazado). Las Pruebas de campaña no llevan.
 - **Mecenazgos de campaña**: Pieza 1/7…7/7, Obra Maestra (victoria), Consagrado, Relicario.
-- Simulador (`SIMCONS=N python Tools/balance_sim.py 20`): sin modelar el poder de las reliquias, Consagrar es neutro/negativo a corto plazo (N=6 retrasa la Prueba 3 de 5,1 h a 8,4 h; N=10-15 apenas cambia en 20 h). Conviene Consagrar tras la Prueba 3/victoria; el valor real está en los efectos cualitativos.
 
-#### Pulir vs Consagrar y reequilibrio (S7)
-| | Pulir | Consagrar |
-|---|---|---|
-| Reinicia | Polvo, Taller, Galerías | Lo mismo + Esencia + `1 − consecrateKeepTree` (50 %) de los niveles del Árbol (cada nodo comprado conserva ≥ 1) |
-| Conserva | Esencia, Árbol, Ícor, Altar | Ícor, Altar, Reliquias, campaña, colección, récords |
-| Gana | Esencia | Reliquias, Esencia/Pulido ×(1+0,5·n) para siempre, Taller a precio de inicio |
-| Cuándo | Cuando te atascas | Tras la Prueba 3 o la victoria (lo avisa el modal) |
+Simulador `SIMHITO=5 SIMHBONUS=x python Tools/balance_sim.py 20` (hito cada 5 Pulidos, sin reinicio):
 
-Problema detectado (partida real): el coste del Taller lleva `workshopCostPerPrestige ^ pulidos` (×1,6) y ese contador no se
-reiniciaba al Consagrar, mientras el poder permanente (Brillo/Obra) sí. En la partida del usuario (11 pulidos, 1 Consagración)
-el Taller costaba ×400 sobre la base; con el arreglo, ×2,3. Arreglo (campos editables en `Economy.asset`):
-`consecrateResetsCostGrowth = true` (el exponente usa `PrestigesSinceConsecrate`) y `consecrateKeepTree = 0,5`.
-El modal de Consagrar explica la diferencia y pide una segunda confirmación solo con clic (Intro no confirma).
+| | Antes S8: sin Consagrar | Antes S8: Consagrar cada 10 (S7) | Hito ×0,5 | **Hito ×0,25 (actual)** | Hito ×0,15 |
+|---|---|---|---|---|---|
+| Prueba 3 | 5,14 h | — | 5,12 h | 5,14 h | 5,14 h |
+| Prueba 5 | 10,15 h | — | 7,69 h | 8,50 h | 8,54 h |
+| Prueba 7 (campaña) | 18,5 h | 13,6 h | 11,4 h (bajo objetivo) | **13,4 h** | 13,6 h |
+| Taller completo, vidas 1-15 | 11-20 min | 12-14 min | 10-16 min | 11-16 min | 11-18 min |
 
-Simulador, `SIMCONS=10 python Tools/balance_sim.py 20` (`SIMCRESET=0 SIMKEEP=0` = fórmula S5):
-
-| | S5 (antes) | Solo reset de coste | Reset + conservar 50 % Árbol (actual) | Sin Consagrar |
-|---|---|---|---|---|
-| Taller completo, 1.ª vida tras Consagrar | nunca | 28,4 min | 13,6 min | 12,1 min (vida normal) |
-| Galería al Pulir esa vida | 50 | 75 | 97 | 118 |
-| Taller completo, vidas siguientes | nunca ×4, luego 27-48 min | 12-14 min | 12-14 min | 11-13 min |
-| Prueba 7 (campaña) | no en 20 h | 13,9 h | 13,6 h | 18,5 h |
-
+Con ×0,5 la campaña bajaba de 12 h (objetivo 12-20 h), así que se bajó a 0,25.
 
 ## 6. Juice / feedback
 - Trozos que saltan con física simulada (instanced), polvo emisivo atraído, estatua que asciende y brilla.
@@ -429,13 +434,15 @@ Simulador, `SIMCONS=10 python Tools/balance_sim.py 20` (`SIMCRESET=0 SIMKEEP=0` 
 - **Rótulos y toasts nunca se pisan** (S6): mientras hay rótulo (`Hud.Banner`) los toasts se ocultan y los nuevos esperan en
   cola (`pendingToasts`, se vacía al acabar el rótulo o al cerrar un modal). El toast de galería usa la clase `gallery`, que
   también es el panel de arriba: `.toast.gallery` la anula (`position: relative`) — era el solape antiguo.
-- El modal de Consagrar se titula **CONSAGRACIÓN** (`GameManager.LastWasConsecrate`) con su resumen (reliquias, ranuras, ×Esencia, qué se pierde).
 - Hit-stop, temblor por trauma², FOV kick en la embestida y a alta velocidad, estela.
 - Audio 100 % procedural: impactos, cincel, notas pentatónicas al recoger, acordes de estatua y
   galería, ondas graves, pad ambiental en bucle, reverb de sala.
 
 ## 7. Arte y rendimiento
 - HDRP con exposición fija (EV 9.5), cielo degradado cálido, niebla, bloom, SSAO, SSR, ACES.
+- Salas (S8): misma luz que Carrara (Sol 2600 lux casi blanco, niebla 150 m, cielo con la luminancia del Santuario y solo un leve matiz,
+  `colorFilter` casi neutro en los `VP_*`). La identidad va en los materiales (suelo/columnas/exterior en `Materials/Biomes`, tonos claros)
+  y en luces de acento de la sala (cristal azul, lava naranja). No tintar la escena entera.
 - Texturas de mármol procedurales tileables (6 variedades + suelo de damero con juntas de latón).
 - Material con *clear coat* en superficies pulidas; mármol en bruto rugoso en los bloques.
 - Optimización: polvo y escombros con `Graphics.RenderMeshInstanced` (sin GameObjects, sin

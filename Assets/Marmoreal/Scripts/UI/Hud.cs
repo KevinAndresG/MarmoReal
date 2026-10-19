@@ -888,6 +888,7 @@ namespace Marmoreal
                 $"Ícor por pulir: +{Num.F(gm.config.icorPrestigeBase + System.Math.Floor(gm.PrestigeGain / gm.config.icorPrestigeDivisor))}\n" +
                 $"Ganarás  +{Num.F(gm.PrestigeGain)} ESENCIA   (una galería más: +{Num.F(gm.PrestigeGainNext)})\n" +
                 sala.TrimStart('\n') +
+                (gm.PrestigesToRelic <= 1 ? "\n\n★ Este Pulido trae una RELIQUIA nueva" : $"\n\nReliquia nueva a los {gm.PrestigesToRelic} Pulidos") +
                 (gm.MutatorStatus().Length > 0 ? $"\n\nMutador: {gm.MutatorStatus()}" + (gm.MutatorBonus(gm.PrestigeGain) > 0 ? $"  (+{Num.F(gm.MutatorBonus(gm.PrestigeGain))} Esencia)" : "") : ""),
                 "PULIR", () => { holdToasts = true; gm.DoPrestige(); holdToasts = false; });
             if (modalAlt != null) modalAlt.style.display = choose ? DisplayStyle.Flex : DisplayStyle.None;
@@ -982,7 +983,7 @@ namespace Marmoreal
             if (!string.IsNullOrEmpty(rep))
             {
                 bool cards = GameManager.I.S.mutatorOffer.Count > 1;
-                OpenModal(GameManager.I.LastWasConsecrate ? "CONSAGRACIÓN" : "CANICA PULIDA", rep + (cards ? "\n\nELIGE UN MUTADOR PARA ESTA VIDA" : ""), "SEGUIR", null, false);
+                OpenModal("CANICA PULIDA", rep + (cards ? "\n\nELIGE UN MUTADOR PARA ESTA VIDA" : ""), "SEGUIR", null, false);
                 ShowMutatorCards();
             }
             lastCombo = -1;
