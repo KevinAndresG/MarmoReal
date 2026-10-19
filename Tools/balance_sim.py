@@ -23,6 +23,10 @@ CFG = dict(
 )
 # S3: Coloso cada 10 galerías (Economy.asset boss*) y mutador medio (media de las 7 cartas no seguras)
 BOSS = dict(every=10, hpMult=50, dustMult=40, icor=3, icorPerTier=1)
+# Campaña (S4): Prueba de cada sala al llegar a su galería (BiomeDef.trialGallery, nº visible). Jefe = Coloso × hpMult.
+# La sala por defecto al Pulir es la de la Prueba pendiente, así que la campaña es lineal. env SIMTRIALS="45,65,90".
+TRIALS = [int(x) for x in __import__("os").environ.get("SIMTRIALS", "45,65,90").split(",")]
+TRIAL = dict(hpMult=2.0, icor=15)
 MUT = dict(on=__import__("os").environ.get("SIMMUT", "1") == "1",
            dust=(3 + 1 + 1 + 1 + 1 + 2 + 0.4) / 7, hp=(2 + 1 + 1 + 1 + 1.3 + 1 + 0.5) / 7,
            bonus=(0.15 + 0.25 + 0.2 + 0.15 + 0.25 + 0.2 + 0.3) / 7, goal=12)
@@ -328,6 +332,7 @@ class Sim:
     def run_sim(s, seconds):
         acc_hp = getattr(s, "acc_hp", 0.0)   # persiste entre llamadas (los cortes de la tabla no pierden la fracción)
         if not hasattr(s, "life_t0"): s.life_t0 = 0
+        if not hasattr(s, "stage"): s.stage = 0; s.trial_t = []
         while s.t < seconds:
             s.t += 1
             hp, _ = s.block_hp()
@@ -350,6 +355,13 @@ class Sim:
             s.dust += earned; s.run += earned
             while acc_hp >= 1:
                 acc_hp -= 1; s.stat += 1
+                if s.stat >= s.needed() and s.stage < len(TRIALS) and s.g + 1 >= TRIALS[s.stage]:
+                    # Prueba de la sala: jefe = Coloso × TRIAL.hpMult; da la pieza y abre la sala siguiente
+                    acc_hp -= BOSS["hpMult"] * TRIAL["hpMult"] / ((1 - CFG["largeShare"]) + CFG["largeShare"] * CFG["largeMult"])
+                    s.add_icor(TRIAL["icor"]); s.trial_t.append(s.t); s.boss_g = s.g
+                    s.log.append(f"  ## PRUEBA {s.stage+1} superada a {s.t/60:6.1f} min | galería {s.g+1} | pulidos {s.prest}")
+                    s.stage += 1; s.stat -= 1
+                    continue
                 if s.stat >= s.needed() and (s.g + 1) % BOSS["every"] == 0 and getattr(s, "boss_g", -1) != s.g:
                     # Coloso: HP = hpMult bloques pequeños (≈ hpMult / 1,48 bloques medios); cierra la galería
                     s.boss_g = s.g; s.bosses = getattr(s, "bosses", 0) + 1
@@ -383,7 +395,11 @@ if __name__ == "__main__":
         s.run_sim(m * 60)
         print(f"[{m:5d} min] galería {s.g+1:3d} | pulidos {s.prest:2d} | esencia libre {s.ess:7.0f} | árbol {sum(s.tr.values()):4d} niv"
               f" | ícor {s.icor_life:6.0f} (altar {sum(s.al.values()):3d} niv) | mecenazgos {len(s.ach):2d}")
-    print("\n".join(l for l in s.log if os.environ.get("SIMLOG") or "PULIDO" in l or "PODER" in l))
+    print("\n".join(l for l in s.log if os.environ.get("SIMLOG") or "PULIDO" in l or "PODER" in l or "PRUEBA" in l))
+    prev = 0
+    for i, t in enumerate(getattr(s, "trial_t", [])):
+        print(f"Prueba {i+1} (galería {TRIALS[i]}): {t/3600:4.2f} h  (sala: {(t-prev)/3600:4.2f} h)"); prev = t
+    if len(getattr(s, "trial_t", [])) < len(TRIALS): print(f"Pruebas superadas: {len(s.trial_t)}/{len(TRIALS)} en {HOURS} h")
     print(f"Colosos derrotados: {getattr(s, 'bosses', 0)} | mutador medio: {'sí' if MUT['on'] else 'no'}")
     print("Vida | Taller completo (min) | duración vida (min)")
     for p, done, life in s.lives:

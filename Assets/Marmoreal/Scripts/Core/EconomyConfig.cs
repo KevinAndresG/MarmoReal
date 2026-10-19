@@ -95,6 +95,33 @@ namespace Marmoreal
         public float rewardEssencePct;
     }
 
+    /// <summary>Pieza del Gran Monumento (campaña S4). Índice = campaignStage de la sala que la da.</summary>
+    [Serializable]
+    public class CampaignPieceDef
+    {
+        public string id;
+        public string displayName;
+        [Tooltip("Sala que la da (texto; la sala jugable es el BiomeDef con ese campaignStage)")]
+        public string room;
+    }
+
+    public enum ColorUnlock { Start, Prestiges, Trial, Campaign, InfiniteGallery }
+
+    /// <summary>Canica coleccionable: material + colores cosméticos (estela, onda). Nada de poder.</summary>
+    [Serializable]
+    public class MarbleColorDef
+    {
+        public string id;
+        public string displayName;
+        public ColorUnlock unlock;
+        [Tooltip("Pulidos / nº de Prueba (1-7) / galería del infinito, según unlock")]
+        public int threshold;
+        public string hint;
+        public Material material;
+        public Color trailColor = Color.white;
+        public Color waveColor = Color.white;
+    }
+
     [Serializable]
     public class UpgradeDef
     {
@@ -259,6 +286,22 @@ namespace Marmoreal
         public int contractsPerLife = 3;
         public int contractsUnlockPrestige = 1;
 
+        [Header("Campaña: El Gran Monumento (Pruebas en BiomeDef.trialGallery)")]
+        [Tooltip("Piezas para ganar la campaña (7 con todas las salas; hoy 3 jugables)")]
+        public int campaignPiecesRequired = 3;
+        [Tooltip("Vida del jefe de la Prueba = Coloso × esto")]
+        public float trialHPMult = 2f;
+        public int trialIcor = 15;
+        public List<CampaignPieceDef> campaign = new List<CampaignPieceDef>();
+        public List<MarbleColorDef> marbleColors = new List<MarbleColorDef>();
+
+        [Header("Modo Infinito")]
+        [Tooltip("Vida de los bloques +X por cada Pulido en el infinito")]
+        public float infiniteHpPerLife = 0.25f;
+        public string[] rankNames = { "Aprendiz", "Maestro", "Leyenda", "Deidad" };
+        [Tooltip("Galería mínima de cada rango (mismo orden)")]
+        public int[] rankGalleries = { 0, 150, 300, 500 };
+
         public List<UpgradeDef> upgrades = new List<UpgradeDef>();
         public List<MutatorDef> mutators = new List<MutatorDef>();
         public List<LifeEventDef> lifeEvents = new List<LifeEventDef>();
@@ -274,6 +317,7 @@ namespace Marmoreal
 
         public MutatorDef GetMutator(string id) => string.IsNullOrEmpty(id) ? null : mutators.Find(m => m.id == id);
         public ContractDef GetContract(string id) => contracts.Find(c => c.id == id);
+        public MarbleColorDef GetColor(string id) => marbleColors.Find(c => c.id == id);
 
         Dictionary<string, UpgradeDef> map;
 
@@ -322,6 +366,10 @@ namespace Marmoreal
                 if (lifeEvents.Find(x => x.id == e.id) == null) { lifeEvents.Add(e); changed = true; }
             foreach (var c in fresh.contracts)
                 if (GetContract(c.id) == null) { contracts.Add(c); changed = true; }
+            foreach (var c in fresh.campaign)
+                if (campaign.Find(x => x.id == c.id) == null) { campaign.Add(c); changed = true; }
+            foreach (var c in fresh.marbleColors)
+                if (GetColor(c.id) == null) { marbleColors.Add(c); changed = true; }
             if (Application.isPlaying) Destroy(fresh); else DestroyImmediate(fresh);
             return changed;
         }
@@ -487,6 +535,31 @@ namespace Marmoreal
                 new ContractDef { id = "coloso", description = "Derrota a un Coloso", kind = ContractKind.Boss, target = 1, rewardIcor = 4 },
                 new ContractDef { id = "estatuas", description = "Libera {0} estatuas en esta vida", kind = ContractKind.Statues, target = 80, rewardEssencePct = 0.15f },
             };
+
+            campaign = new List<CampaignPieceDef>
+            {
+                new CampaignPieceDef { id = "base", displayName = "Base", room = "Santuario de Carrara" },
+                new CampaignPieceDef { id = "columnas", displayName = "Columnas", room = "Cantera Volcánica" },
+                new CampaignPieceDef { id = "torso", displayName = "Torso", room = "Gruta de Cristal" },
+                new CampaignPieceDef { id = "brazos", displayName = "Brazos", room = "Catedral de Hielo" },
+                new CampaignPieceDef { id = "rostro", displayName = "Rostro", room = "Forja de Hierro" },
+                new CampaignPieceDef { id = "corona", displayName = "Corona", room = "Jardín de Rosa" },
+                new CampaignPieceDef { id = "alma", displayName = "Alma", room = "Panteón Dorado" },
+            };
+
+            // ponytail: los materiales los asigna el menú aditivo de campaña (CampaignBuilder); null = el de Carrara
+            marbleColors = new List<MarbleColorDef>
+            {
+                MC("carrara", "Carrara", ColorUnlock.Start, 0, "Inicio", new Color(1f, 0.95f, 0.85f), new Color(1f, 0.9f, 0.7f)),
+                MC("rosa", "Rosa", ColorUnlock.Prestiges, 1, "Pule la canica por 1.ª vez", new Color(1f, 0.6f, 0.7f), new Color(1f, 0.55f, 0.7f)),
+                MC("verde", "Verde", ColorUnlock.Trial, 1, "Supera la Prueba 1", new Color(0.45f, 1f, 0.6f), new Color(0.4f, 1f, 0.55f)),
+                MC("rojo", "Rojo Volcánico", ColorUnlock.Trial, 2, "Supera la Prueba 2", new Color(1f, 0.35f, 0.15f), new Color(1f, 0.4f, 0.1f)),
+                MC("violeta", "Violeta Cristal", ColorUnlock.Trial, 3, "Supera la Prueba 3", new Color(0.75f, 0.45f, 1f), new Color(0.7f, 0.4f, 1f)),
+                MC("celeste", "Celeste Hielo", ColorUnlock.Trial, 4, "Supera la Prueba 4", new Color(0.55f, 0.9f, 1f), new Color(0.5f, 0.85f, 1f)),
+                MC("nero", "Nero Obsidiana", ColorUnlock.Prestiges, 25, "Pule la canica 25 veces", new Color(0.5f, 0.5f, 0.6f), new Color(0.35f, 0.3f, 0.5f)),
+                MC("dorado", "Dorado", ColorUnlock.Campaign, 0, "Completa la campaña", new Color(1f, 0.8f, 0.3f), new Color(1f, 0.75f, 0.2f)),
+                MC("cosmica", "Cósmica", ColorUnlock.InfiniteGallery, 500, "Galería 500 en el Modo Infinito", new Color(0.5f, 0.6f, 1f), new Color(0.9f, 0.5f, 1f)),
+            };
             map = null;
         }
 
@@ -498,6 +571,9 @@ namespace Marmoreal
 
         static UpgradeDef Cap(UpgradeDef u, float perPrestige, int limit) { u.maxLevelPerPrestige = perPrestige; u.maxLevelLimit = limit; return u; }
         static UpgradeDef Hito(UpgradeDef u, string stat, int threshold, string hint) { u.unlockStat = stat; u.unlockThreshold = threshold; u.unlockHint = hint; return u; }
+
+        static MarbleColorDef MC(string id, string n, ColorUnlock u, int th, string hint, Color trail, Color wave)
+            => new MarbleColorDef { id = id, displayName = n, unlock = u, threshold = th, hint = hint, trailColor = trail, waveColor = wave };
 
         static AchievementDef A(string id, string n, string d, string stat, double th, int icor)
             => new AchievementDef { id = id, displayName = n, description = d, stat = stat, threshold = th, rewardIcor = icor };

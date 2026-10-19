@@ -76,6 +76,111 @@ MonoBehaviour:
   eventIntervalMax: 260
   contractsPerLife: 3
   contractsUnlockPrestige: 1
+  campaignPiecesRequired: 3
+  trialHPMult: 2
+  trialIcor: 15
+  campaign:
+  - id: base
+    displayName: Base
+    room: Santuario de Carrara
+  - id: columnas
+    displayName: Columnas
+    room: "Cantera Volc\xE1nica"
+  - id: torso
+    displayName: Torso
+    room: Gruta de Cristal
+  - id: brazos
+    displayName: Brazos
+    room: Catedral de Hielo
+  - id: rostro
+    displayName: Rostro
+    room: Forja de Hierro
+  - id: corona
+    displayName: Corona
+    room: "Jard\xEDn de Rosa"
+  - id: alma
+    displayName: Alma
+    room: "Pante\xF3n Dorado"
+  marbleColors:
+  - id: carrara
+    displayName: Carrara
+    unlock: 0
+    threshold: 0
+    hint: Inicio
+    material: {fileID: 2100000, guid: 6e3ba749c5941214199e6215f4f410e9, type: 2}
+    trailColor: {r: 1, g: 0.95, b: 0.85, a: 1}
+    waveColor: {r: 1, g: 0.9, b: 0.7, a: 1}
+  - id: rosa
+    displayName: Rosa
+    unlock: 1
+    threshold: 1
+    hint: "Pule la canica por 1.\xAA vez"
+    material: {fileID: 2100000, guid: 011b00d3c6bb8614c9a7529467f32f18, type: 2}
+    trailColor: {r: 1, g: 0.6, b: 0.7, a: 1}
+    waveColor: {r: 1, g: 0.55, b: 0.7, a: 1}
+  - id: verde
+    displayName: Verde
+    unlock: 2
+    threshold: 1
+    hint: Supera la Prueba 1
+    material: {fileID: 2100000, guid: 99c2f8d9cd4b5084a9fbd7813bb63faf, type: 2}
+    trailColor: {r: 0.45, g: 1, b: 0.6, a: 1}
+    waveColor: {r: 0.4, g: 1, b: 0.55, a: 1}
+  - id: rojo
+    displayName: "Rojo Volc\xE1nico"
+    unlock: 2
+    threshold: 2
+    hint: Supera la Prueba 2
+    material: {fileID: 2100000, guid: 419f08b44af05ef46a32ddd3f734b4cf, type: 2}
+    trailColor: {r: 1, g: 0.35, b: 0.15, a: 1}
+    waveColor: {r: 1, g: 0.4, b: 0.1, a: 1}
+  - id: violeta
+    displayName: Violeta Cristal
+    unlock: 2
+    threshold: 3
+    hint: Supera la Prueba 3
+    material: {fileID: 2100000, guid: f439b87fe2803e54288ad71c3d633b21, type: 2}
+    trailColor: {r: 0.75, g: 0.45, b: 1, a: 1}
+    waveColor: {r: 0.7, g: 0.4, b: 1, a: 1}
+  - id: celeste
+    displayName: Celeste Hielo
+    unlock: 2
+    threshold: 4
+    hint: Supera la Prueba 4
+    material: {fileID: 2100000, guid: c19bcf649deb6a044a97d525ad970dfc, type: 2}
+    trailColor: {r: 0.55, g: 0.9, b: 1, a: 1}
+    waveColor: {r: 0.5, g: 0.85, b: 1, a: 1}
+  - id: nero
+    displayName: Nero Obsidiana
+    unlock: 1
+    threshold: 25
+    hint: Pule la canica 25 veces
+    material: {fileID: 2100000, guid: 2d8478326f5685e4fba39f11f0d833d3, type: 2}
+    trailColor: {r: 0.5, g: 0.5, b: 0.6, a: 1}
+    waveColor: {r: 0.35, g: 0.3, b: 0.5, a: 1}
+  - id: dorado
+    displayName: Dorado
+    unlock: 3
+    threshold: 0
+    hint: "Completa la campa\xF1a"
+    material: {fileID: 2100000, guid: 8563febc3cca0fe41929615b8295089b, type: 2}
+    trailColor: {r: 1, g: 0.8, b: 0.3, a: 1}
+    waveColor: {r: 1, g: 0.75, b: 0.2, a: 1}
+  - id: cosmica
+    displayName: "C\xF3smica"
+    unlock: 4
+    threshold: 500
+    hint: "Galer\xEDa 500 en el Modo Infinito"
+    material: {fileID: 2100000, guid: baabe7c25b9ff66429df5171a170874f, type: 2}
+    trailColor: {r: 0.5, g: 0.6, b: 1, a: 1}
+    waveColor: {r: 0.9, g: 0.5, b: 1, a: 1}
+  infiniteHpPerLife: 0.25
+  rankNames:
+  - Aprendiz
+  - Maestro
+  - Leyenda
+  - Deidad
+  rankGalleries: 00000000960000002c010000f4010000
   upgrades:
   - id: masa
     displayName: Masa

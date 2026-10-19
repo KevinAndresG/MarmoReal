@@ -83,6 +83,8 @@ namespace Marmoreal
         public event Action<AchievementDef> AchievementUnlocked;
         /// <summary>Cae un Coloso (true = Prueba de sala; gancho para la campaña).</summary>
         public event Action<bool> BossDefeated;
+        public event Action<int> TrialPassed;   // campaignStage de la pieza conseguida
+        public event Action CampaignWon;
 
         float saveTimer;
         readonly double[] dustWindow = new double[10];
@@ -134,7 +136,8 @@ namespace Marmoreal
             if (overflowTimer > 0) Resonance = 1f;
 
             achievementTimer -= dt;
-            if (achievementTimer <= 0) { achievementTimer = 1f; CheckAchievements(); CheckHitos(); }
+            if (achievementTimer <= 0) { achievementTimer = 1f; CheckAchievements(); CheckHitos(); CheckColors(); UpdateRecords(); }
+            if (S.infinite) S.infSeconds += dt;
 
             saveTimer += dt;
             if (saveTimer >= autosaveInterval) { saveTimer = 0; Save(); }
@@ -273,6 +276,7 @@ namespace Marmoreal
             if (b) hp *= b.hpMult;
             var mu = Mutator;
             if (mu != null) hp *= mu.hpMult;
+            if (S.infinite) hp *= 1 + config.infiniteHpPerLife * S.infiniteLives;
             return hp;
         }
 
@@ -309,7 +313,7 @@ namespace Marmoreal
             }
             else if (UnityEngine.Random.value < config.icorStatueChance) AddIcor(1, "estatua");
             S.statuesThisGallery++;
-            if (BossDue) S.statuesThisGallery = Mathf.Min(S.statuesThisGallery, StatuesNeeded - 1); // el Coloso cierra la galería
+            if (BossDue || TrialDue) S.statuesThisGallery = Mathf.Min(S.statuesThisGallery, StatuesNeeded - 1); // el Coloso cierra la galería
             if (S.statuesThisGallery >= StatuesNeeded)
             {
                 S.statuesThisGallery = 0;
@@ -369,6 +373,7 @@ namespace Marmoreal
             ComboTimer = config.comboWindow;
             AddResonance(config.resonancePerImpact);
             if (damage > S.bestHit) S.bestHit = damage;
+            if (S.infinite && damage > S.infBestHit) S.infBestHit = damage;
         }
 
         public void AddResonance(float v) => Resonance = Mathf.Clamp01(Resonance + v * ResonanceGain);
@@ -441,6 +446,7 @@ namespace Marmoreal
             S.essence += gain;
             S.lifetimeEssence += gain;
             S.prestigeCount++;
+            if (S.infinite) S.infiniteLives++;
             var biome = BiomeManager.I ? BiomeManager.I.NextFor(S.prestigeCount) : null;
             if (biome) S.biomeId = biome.id;
             AddIcor(config.icorPrestigeBase + Math.Floor(gain / config.icorPrestigeDivisor), "pulido");
@@ -496,7 +502,7 @@ namespace Marmoreal
         void RollMutatorOffer()
         {
             S.mutatorOffer.Clear();
-            var safe = config.mutators.Find(m => m.safe);
+            var safe = S.infinite ? null : config.mutators.Find(m => m.safe); // infinito: sin carta segura
             if (safe != null) S.mutatorOffer.Add(safe.id);
             var pool = config.mutators.FindAll(m => !m.safe);
             while (S.mutatorOffer.Count < 3 && pool.Count > 0)
@@ -505,7 +511,7 @@ namespace Marmoreal
                 S.mutatorOffer.Add(pool[i].id);
                 pool.RemoveAt(i);
             }
-            S.mutatorId = safe != null ? safe.id : "";
+            S.mutatorId = safe != null ? safe.id : S.mutatorOffer.Count > 0 ? S.mutatorOffer[0] : "";
         }
 
         public void ChooseMutator(string id)
@@ -527,12 +533,109 @@ namespace Marmoreal
 
         public void OnBossDefeated(bool trial)
         {
+            var tb = trial ? TrialBiome : null;
             S.bossDoneGallery = S.galleryLevel;
             S.lifeBosses++;
             S.statuesThisGallery = Mathf.Max(S.statuesThisGallery, StatuesNeeded - 1); // su estatua cierra la galería
             AddIcor(config.bossIcor + config.bossIcorPerTier * (BossTier - 1), "Coloso");
-            Toast?.Invoke("¡COLOSO derribado! La galería se abre", ToastKind.Gallery);
+            Toast?.Invoke(tb ? "¡PRUEBA SUPERADA! La galería se abre" : "¡COLOSO derribado! La galería se abre", ToastKind.Gallery);
             BossDefeated?.Invoke(trial);
+            if (tb) CompleteTrial(tb.campaignStage);
+        }
+
+        // =================== Campaña: El Gran Monumento ===================
+
+        /// <summary>Sala actual si su Prueba está pendiente (tiene trialGallery y su pieza no se ha conseguido).</summary>
+        public BiomeDef TrialBiome
+        {
+            get
+            {
+                var b = BiomeManager.I ? BiomeManager.I.Current : null;
+                return b && b.trialGallery > 0 && b.campaignStage < config.campaign.Count && !S.pieces.Contains(b.campaignStage) ? b : null;
+            }
+        }
+        /// <summary>¿Toca el jefe de la Prueba? Cierra la galería hasta que caiga (como el Coloso).</summary>
+        public bool TrialDue { get { var b = TrialBiome; return b && S.galleryLevel + 1 >= b.trialGallery && MonolithSpawner.I && MonolithSpawner.I.bossPrefab; } }
+        public double TrialHP => BossHP * config.trialHPMult;
+        public int PiecesNeeded => Mathf.Clamp(config.campaignPiecesRequired, 1, Mathf.Max(1, config.campaign.Count));
+
+        public void CompleteTrial(int stage)
+        {
+            if (S.pieces.Contains(stage)) return;
+            S.pieces.Add(stage);
+            var piece = stage < config.campaign.Count ? config.campaign[stage] : null;
+            AddIcor(config.trialIcor, "Prueba");
+            Toast?.Invoke($"PIEZA DEL MONUMENTO: {piece?.displayName?.ToUpperInvariant()}  ({S.pieces.Count}/{PiecesNeeded})", ToastKind.Divine);
+            var next = BiomeManager.I ? BiomeManager.I.ByStage(stage + 1) : null;
+            if (next) Toast?.Invoke($"Nueva sala desbloqueada: {next.displayName}. Llévala al Pulir", ToastKind.Prestige);
+            CheckColors();
+            TrialPassed?.Invoke(stage);
+            if (!S.campaignWon && S.pieces.Count >= PiecesNeeded)
+            {
+                S.campaignWon = true;
+                S.campaignSeconds = S.playSeconds;
+                CheckColors();
+                CampaignWon?.Invoke();
+            }
+            Save();
+        }
+
+        public void EnterInfinite()
+        {
+            if (!S.campaignWon) return;
+            S.infinite = true;
+            S.victoryShown = true;
+            Toast?.Invoke("MODO INFINITO: las salas rotan, los mutadores no perdonan. Persigue tus récords", ToastKind.Prestige);
+            Save();
+        }
+
+        public MarbleColorDef CurrentColor => config.GetColor(S.marbleColor) ?? (config.marbleColors.Count > 0 ? config.marbleColors[0] : null);
+
+        public void SelectColor(string id)
+        {
+            if (!S.colors.Contains(id)) return;
+            S.marbleColor = id;
+            Save();
+        }
+
+        public bool ColorEarned(MarbleColorDef c) => c.unlock switch
+        {
+            ColorUnlock.Start => true,
+            ColorUnlock.Prestiges => S.prestigeCount >= c.threshold,
+            ColorUnlock.Trial => S.pieces.Contains(c.threshold - 1),
+            ColorUnlock.Campaign => S.campaignWon,
+            ColorUnlock.InfiniteGallery => S.infBestGallery >= c.threshold,
+            _ => false,
+        };
+
+        void CheckColors()
+        {
+            foreach (var c in config.marbleColors)
+            {
+                if (S.colors.Contains(c.id) || !ColorEarned(c)) continue;
+                S.colors.Add(c.id);
+                if (c.unlock == ColorUnlock.Start) continue;
+                S.marbleColor = c.id; // estrenar la nueva canica
+                Toast?.Invoke($"Nueva canica: {c.displayName}. Cámbiala en COLECCIÓN [C]", ToastKind.Divine);
+            }
+        }
+
+        void UpdateRecords()
+        {
+            if (!S.infinite) return;
+            S.infBestGallery = Mathf.Max(S.infBestGallery, S.galleryLevel + 1);
+            if (DustPerSecond > S.infBestDps) S.infBestDps = DustPerSecond;
+        }
+
+        public string Rank
+        {
+            get
+            {
+                string r = config.rankNames.Length > 0 ? config.rankNames[0] : "";
+                for (int i = 0; i < config.rankNames.Length && i < config.rankGalleries.Length; i++)
+                    if (S.infBestGallery >= config.rankGalleries[i]) r = config.rankNames[i];
+                return r;
+            }
         }
 
         // =================== Contratos ===================
@@ -685,6 +788,7 @@ namespace Marmoreal
                 catch (Exception e) { Debug.LogWarning("[Marmoreal] Guardado corrupto, empezando de cero: " + e.Message); }
             }
             S ??= new GameState();
+            if (S.version < 2) { S.legacyStage = S.prestigeCount; S.version = 2; } // conserva las salas ya visitadas
         }
 
         public void ResetSave()

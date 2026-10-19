@@ -50,18 +50,50 @@ namespace Marmoreal
         int IndexOf(BiomeDef d) => Array.IndexOf(biomes, d);
 
         // =================== Selección al Pulir ===================
-        /// <summary>Tras las primeras salas en rotación fija se puede elegir entre las desbloqueadas.</summary>
-        public bool CanChoose(int newPrestige) => biomes != null && newPrestige >= biomes.Length;
+        /// <summary>¿Hay más de una sala desbloqueada para elegir al Pulir?</summary>
+        public bool CanChoose(int newPrestige)
+        {
+            int n = 0;
+            if (biomes != null) for (int i = 0; i < biomes.Length; i++) if (Unlocked(i)) n++;
+            return n > 1;
+        }
 
-        // ponytail: desbloqueo = haber llegado a esa sala en la rotación; S4 lo cambiará por superar la Prueba.
-        public bool Unlocked(int i) => GameManager.I && biomes[i].campaignStage <= GameManager.I.S.prestigeCount;
+        /// <summary>Campaña: la primera sala se abre sola; cada Prueba superada abre la siguiente.
+        /// Migración: las partidas de antes de la S4 conservan las salas que ya visitaron (legacyStage).</summary>
+        public bool Unlocked(int i)
+        {
+            var gm = GameManager.I;
+            if (!gm || biomes == null || i < 0 || i >= biomes.Length || !biomes[i]) return false;
+            int st = biomes[i].campaignStage;
+            return st == 0 || st <= gm.S.legacyStage || gm.S.pieces.Contains(st - 1);
+        }
 
+        public BiomeDef ByStage(int stage)
+        {
+            if (biomes != null) foreach (var b in biomes) if (b && b.campaignStage == stage) return b;
+            return null;
+        }
+
+        /// <summary>Sala del próximo Pulido: la elegida; si no, la de la Prueba pendiente más temprana;
+        /// con todo superado (o en el Modo Infinito), rotación mezclada entre las desbloqueadas (determinista por Pulido).</summary>
         public BiomeDef NextFor(int newPrestige)
         {
             if (biomes == null || biomes.Length == 0) return null;
-            if (!CanChoose(newPrestige)) return biomes[newPrestige % biomes.Length];
             if (pendingChoice >= 0 && pendingChoice < biomes.Length && Unlocked(pendingChoice)) return biomes[pendingChoice];
-            return biomes[newPrestige % biomes.Length];
+            var gm = GameManager.I;
+            BiomeDef pending = null;
+            var open = new System.Collections.Generic.List<BiomeDef>();
+            for (int i = 0; i < biomes.Length; i++)
+            {
+                if (!Unlocked(i)) continue;
+                var b = biomes[i];
+                open.Add(b);
+                if (b.trialGallery > 0 && gm && !gm.S.pieces.Contains(b.campaignStage) && (!pending || b.campaignStage < pending.campaignStage)) pending = b;
+            }
+            if (pending && gm && !gm.S.infinite) return pending;
+            if (open.Count > 1) open.Remove(Current);
+            if (open.Count == 0) return biomes[0];
+            return open[(newPrestige * 7 + 3) % open.Count];
         }
 
         /// <summary>Botón del modal de Pulido: pasa a la siguiente sala desbloqueada.</summary>

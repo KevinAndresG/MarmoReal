@@ -88,12 +88,13 @@ namespace Marmoreal
             if (subscribed != gm) { gm.Prestiged += ResetAll; subscribed = gm; }
             if (points.Count == 0) CollectPoints(); // tras recarga de dominio
             cooldown -= Time.deltaTime;
-            if (gm.BossDue && !Boss)
+            bool trial = gm.TrialDue;
+            if ((trial || gm.BossDue) && !Boss)
             {
                 bossDelay -= Time.deltaTime;
                 Vector3 bp = bossPoint ? bossPoint.position : transform.position;
                 Vector3 d = player ? player.position - bp : Vector3.one * 99f; d.y = 0;
-                if (bossDelay <= 0 && d.sqrMagnitude > bossClearRadius * bossClearRadius) SpawnBoss(false);
+                if (bossDelay <= 0 && d.sqrMagnitude > bossClearRadius * bossClearRadius) SpawnBoss(trial);
             }
             else bossDelay = 2f;
             int target = Mathf.Min(gm.MaxMonoliths, points.Count);
@@ -156,7 +157,7 @@ namespace Marmoreal
             boss.transform.SetPositionAndRotation(p.position, Quaternion.Euler(0, Random.Range(0, 4) * 90f, 0));
             int tier = TierFor(gm.S.galleryLevel);
             double reward = gm.BossReward;
-            boss.Init(this, gm.BossHP, reward, gm.StatueReward(reward, true), tierMaterials[tier], tier, bossStatuePrefab, false);
+            boss.Init(this, trial ? gm.TrialHP : gm.BossHP, reward, gm.StatueReward(reward, true), tierMaterials[tier], tier, bossStatuePrefab, false);
             boss.MakeBoss(trial);
             active.Add(boss);
             AudioFX.I?.Play(Sfx.Boom, 1f, 0.55f);

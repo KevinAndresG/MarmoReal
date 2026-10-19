@@ -18,6 +18,16 @@ namespace Marmoreal
         public Transform[] rings;
         public float expandTime = 0.55f;
         public float ringHeight = 0.6f;
+        [System.NonSerialized] MaterialPropertyBlock tint;
+
+        /// <summary>Color de la onda según la canica elegida (Colección).</summary>
+        public void SetTint(Color c)
+        {
+            tint ??= new MaterialPropertyBlock();
+            tint.SetColor("_BaseColor", c);
+            tint.SetColor("_EmissiveColor", c.linear * 1024f);
+            foreach (var r in rings) if (r && r.TryGetComponent<Renderer>(out var mr)) mr.SetPropertyBlock(tint);
+        }
 
         class Wave
         {
@@ -129,7 +139,11 @@ namespace Marmoreal
 
                 if (w.ring)
                 {
-                    if (!w.ring.gameObject.activeSelf) w.ring.gameObject.SetActive(true);
+                    if (!w.ring.gameObject.activeSelf)
+                    {
+                        w.ring.gameObject.SetActive(true);
+                        if (tint != null && w.ring.TryGetComponent<Renderer>(out var mr)) mr.SetPropertyBlock(tint); // clones nuevos
+                    }
                     w.ring.position = new Vector3(w.origin.x, ArenaShape.Height(w.origin) + ringHeight, w.origin.z);
                     float thick = Mathf.Lerp(1f, 0.05f, k);
                     w.ring.localScale = new Vector3(Mathf.Max(0.01f, r), thick * (w.mini ? 0.6f : 1.5f), Mathf.Max(0.01f, r));

@@ -220,9 +220,10 @@ Play por `BiomeManager` (`--- SISTEMAS ---`); decoración/luces propias bajo `--
 | Santuario de Carrara | 0 | mármol blanco/negro, atardecer | ninguna |
 | Cantera Volcánica | 1 | basalto, juntas y grietas de lava, cielo rojo | +25 % bloques volcánicos (desde la Galería I); **lava**: si vas a < 2,5 m/s 1,6 s seguidos, el suelo te lanza por los aires y pierdes el combo (chispas de aviso) |
 | Gruta de Cristal | 2 | cristal azul con luz interior, bosque de cristales | cada golpe tuyo tiene 35 % de **reflejar un rayo** (50 % del daño) al bloque más cercano; los trozos son **metralla gratis** (×0,4 del daño de impacto, o tu nivel de Metralla si es mayor) |
-- **Selección**: rotación fija en los primeros pulidos (vida 1 Carrara → 2 Volcánica → 3 Cristal); desde el 3.er
-  Pulido el modal de Pulir muestra la sala siguiente (por defecto sigue la rotación) y el botón **CAMBIAR SALA**
-  alterna entre las desbloqueadas (hoy: las ya visitadas; S4 lo ligará a superar la Prueba de cada sala).
+- **Selección (S4)**: la 1.ª sala está abierta; cada **Prueba superada** abre la siguiente (`BiomeManager.Unlocked`:
+  etapa 0, o pieza de la etapa anterior, o `GameState.legacyStage` = pulidos que tenía una partida anterior a la S4).
+  Por defecto el Pulido lleva a la sala con la Prueba pendiente más temprana; con todo superado o en el Modo Infinito,
+  rotación mezclada entre las desbloqueadas. **CAMBIAR SALA** alterna entre las desbloqueadas.
 - Guardado: `GameState.biomeId` (partidas antiguas → `carrara`). Banner con nombre y regla al entrar; el resumen
   de "Canica pulida" incluye la sala.
 - Economía: `hpMult`/`dustMult` por sala (hoy 1,0 en las tres, para la campaña S4) — el simulador no cambia.
@@ -261,6 +262,26 @@ Datos en `Economy.asset` (listas `mutators`, `lifeEvents`, `contracts` y cabecer
   Cadena de 4 volcánicos (Ícor 3), combo 80 (Ícor 2), 4 poderes en 10 s (Ícor 3; solo si tienes 4 poderes),
   3 estatuas doradas (+10 % de la Esencia de Pulir), derrotar un Coloso (Ícor 4), 80 estatuas (+15 %).
   El resumen al Pulir muestra el mutador (cumplido/no) y los contratos cumplidos.
+
+### 4.11e Campaña: El Gran Monumento, Colección y Modo Infinito (S4)
+- **Meta**: 7 piezas (Base, Columnas, Torso, Brazos, Rostro, Corona, Alma) en `Economy.asset → campaign`
+  (índice = `campaignStage` de la sala). Se ganan con `campaignPiecesRequired` piezas (hoy **3**, una por sala
+  jugable; subir a 7 cuando existan las salas 4-7: Hielo, Hierro, Rosa, Panteón Dorado).
+- **Prueba de sala**: al llegar a `BiomeDef.trialGallery` (nº visible: Carrara **45**, Volcánica **65**, Cristal **90**)
+  brota el jefe (`SpawnBoss(trial: true)`, vida = Coloso × `trialHPMult` 2) y cierra la galería. Al caer: pieza,
+  +`trialIcor` 15 Ícor, color de canica y la sala siguiente se abre (`GameManager.CompleteTrial`).
+- **HUD**: barra de 7 piezas bajo la galería (Hud.uxml `monument`, `piece-0..6`; clases `got`/`trial`/`future`) y
+  pista "Prueba de X: Galería N". **Monumento físico** `--- MONUMENTO ---` (componente `Monument`, un hijo por pieza
+  que se activa al conseguirla), detrás de la columnata.
+- **Colección [C]** (`marbleColors`): Carrara (inicio) · Rosa (1.er Pulido) · Verde (Prueba 1) · Rojo (Prueba 2) ·
+  Violeta (Prueba 3) · Celeste (Prueba 4) · Nero (25 pulidos) · Dorado (campaña) · Cósmica (galería 500 en el infinito).
+  Cada una: material `M_Player_*`, color de estela y de la onda. Solo cosmético. Al desbloquear se estrena sola.
+- **Victoria**: modal con tiempo de campaña, estatuas, pulidos, mejor golpe y galería máxima; desbloquea el Modo
+  Infinito (entrar ahora o desde Colección).
+- **Modo Infinito** (`GameState.infinite`): salas mezcladas, sin carta de mutador segura, vida de los bloques
+  ×(1 + `infiniteHpPerLife` 0,25 × pulidos en el infinito). Récords (galería máx., tiempo, mejor golpe, polvo/s) y
+  rango por galería: Aprendiz 0 → Maestro 150 → Leyenda 300 → Deidad 500 (`rankNames`/`rankGalleries`).
+- **Respawn**: si hay un Coloso/jefe en pie y el punto de reaparición cae dentro de su radio, la canica aparece fuera.
 
 ### 4.12 Mecenazgos (logros)
 28 hitos (estatuas, dorados, galería, pulidos, combo, poderes, Musas, polvo total). Cada uno da Ícor
@@ -346,6 +367,10 @@ de polvo, Ícor 3 + 1 por Coloso anterior) y el mutador medio como polvo ×1,34 
 Esencia si la vida sube 12 galerías (`SIMMUT=0` lo apaga). Resultado (20 h): el Taller completo apenas cambia
 (vidas 1-15: 12 11 12 11 13 12 11 12 12 13 14 15 17 20 19 min), 1.er Pulido ~50 min, 16 pulidos (antes 15).
 Los Colosos suman ~+55 % de Ícor en 20 h (con +2 Ícor por tier era +85 %: por eso `bossIcorPerTier` = 1).
+
+**S4 (campaña):** la Prueba se modela como 2 × Coloso al llegar a su galería (`TRIALS`, env `SIMTRIALS`); la
+campaña es lineal. Con 45/65/90: Prueba 1 a **1,8 h**, Prueba 2 a **3,3 h** (+1,5 h), Prueba 3 a **5,1 h** (+1,8 h)
+→ objetivo 1,5-3 h por sala cumplido; campaña de 3 salas ≈ 5 h (7 salas ≈ 12-18 h extrapolando).
 
 Para retocar: edita `Economy.asset` en el Inspector y replica los números en `Tools/balance_sim.py`;
 ejecuta `python Tools/balance_sim.py 20` y revisa la tabla de hitos.

@@ -296,3 +296,23 @@
 .mut-name { font-size: 15px; color: var(--gold); -unity-font-style: bold; white-space: normal; -unity-text-align: middle-center; }
 .mut-desc { font-size: 12px; color: var(--ink); white-space: normal; -unity-text-align: middle-center; margin-top: 4px; -unity-font-style: normal; }
 .mut-goal { font-size: 11px; color: var(--essence); white-space: normal; -unity-text-align: middle-center; margin-top: 4px; -unity-font-style: normal; }
+
+/* ---------------- Gran Monumento (campaña) y Colección ---------------- */
+.monument { margin-top: 6px; align-items: center; width: 100%; }
+.monument-title { font-size: 11px; letter-spacing: 3px; color: var(--gold); -unity-font-style: bold; margin: 0; padding: 0; }
+.monument-pieces { flex-direction: row; justify-content: center; margin-top: 3px; }
+.piece {
+    font-size: 10px; margin: 0 2px; padding: 2px 5px; border-radius: 4px; color: rgba(243,238,230,0.6);
+    border-width: 1px; border-color: rgba(255,255,255,0.10); background-color: rgba(0,0,0,0.25);
+}
+.piece.got { color: #1A1206; background-color: var(--gold); border-color: #FFF2C8; -unity-font-style: bold; }
+.piece.trial { border-color: var(--divine); color: var(--divine); }
+.piece.future { opacity: 0.35; border-color: rgba(255,255,255,0.04); }
+.monument-hint { font-size: 11px; color: var(--divine); margin: 2px 0 0 0; padding: 0; }
+.coleccion-btn { color: #CFE8FF; }
+.coleccion-btn.flash { background-color: rgba(150, 200, 255, 0.4); }
+.color-swatch { width: 28px; height: 28px; border-radius: 14px; margin-right: 12px; border-width: 2px; border-color: rgba(255,255,255,0.3); }
+.logro-row.locked { opacity: 0.45; }
+.logro-row.selected { border-color: #FFFFFF; background-color: rgba(255, 255, 255, 0.10); }
+.coleccion-monument { white-space: normal; font-size: 15px; }
+.records { font-size: 13px; color: var(--ink); margin-top: 8px; white-space: normal; }

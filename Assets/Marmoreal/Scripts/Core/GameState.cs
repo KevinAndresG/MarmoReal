@@ -14,7 +14,7 @@ namespace Marmoreal
     [Serializable]
     public class GameState
     {
-        public int version = 1;
+        public int version = 2; // 1 = antes de la campaña (S4)
         public double dust;
         public double runDust;
         public double lifetimeDust;
@@ -60,6 +60,23 @@ namespace Marmoreal
         public int lifeGolden;
         public List<string> contracts = new List<string>();
         public List<string> contractsDone = new List<string>();
+
+        // Campaña: El Gran Monumento (S4)
+        public int legacyStage = -1;                  // migración: salas ya visitadas antes de la S4 (campaignStage <= esto)
+        public List<int> pieces = new List<int>();    // piezas conseguidas (= campaignStage de cada Prueba superada)
+        public List<string> colors = new List<string>(); // canicas desbloqueadas (MarbleColorDef.id)
+        public string marbleColor = "";
+        public bool campaignWon;
+        public float campaignSeconds;
+        public bool victoryShown;
+
+        // Modo Infinito
+        public bool infinite;
+        public int infiniteLives;
+        public int infBestGallery;
+        public float infSeconds;
+        public double infBestHit;
+        public double infBestDps;
 
         // Ajustes
         public int quality = -1;

@@ -32,6 +32,8 @@ namespace Marmoreal
         public int campaignStage;
         [Tooltip("Multiplicadores de economía de la sala (campaña S4)")]
         public float hpMult = 1f, dustMult = 1f;
+        [Tooltip("Prueba de la sala: al llegar a esta Galería (nº visible, 1-based) aparece el jefe. 0 = sin Prueba")]
+        public int trialGallery;
 
         [Header("Bloques (mismo nº que los tiers base; vacío = los de la escena)")]
         public Material[] chunkMaterials;

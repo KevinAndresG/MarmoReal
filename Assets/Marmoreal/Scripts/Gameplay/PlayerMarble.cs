@@ -21,6 +21,7 @@ namespace Marmoreal
         [Tooltip("Material de la canica por número de pulidos (0 = Carrara, 1 = Rosa, ...)")]
         public Material[] prestigeMaterials;
         public TrailRenderer trail;
+        [System.NonSerialized] string appliedColor;
         public float radius = 0.75f;
         public float acceleration = 26f;
         public float airControl = 0.35f;
@@ -109,25 +110,49 @@ namespace Marmoreal
 
         public void Respawn()
         {
+            var p = respawnPoint;
+            // Con un Coloso/jefe en pie, nunca reaparecer dentro de él: punto fuera de su radio de despeje
+            var sp = MonolithSpawner.I;
+            var boss = sp ? sp.Boss : null;
+            if (boss)
+            {
+                Vector3 bp = boss.transform.position, d = p - bp; d.y = 0;
+                float r = sp.bossClearRadius + 1.5f;
+                if (d.sqrMagnitude < r * r)
+                {
+                    if (d.sqrMagnitude < 0.01f) d = Vector3.back;
+                    p = bp + d.normalized * r;
+                    p.y = respawnPoint.y + ArenaShape.Height(p);
+                }
+            }
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
-            rb.position = respawnPoint;
-            transform.position = respawnPoint;
+            rb.position = p;
+            transform.position = p;
             Physics.SyncTransforms();
             rb.WakeUp();
             dashTimer = 0; Slamming = false;
             AudioFX.I?.Play(Sfx.Dash, 0.4f, 0.7f);
         }
 
+        /// <summary>Canica elegida en la Colección: material + estela + color de la onda (solo cosmético).</summary>
         public void ApplyLook()
         {
-            if (!body || prestigeMaterials == null || prestigeMaterials.Length == 0 || !GameManager.I) return;
-            body.sharedMaterial = prestigeMaterials[Mathf.Min(GameManager.I.S.prestigeCount, prestigeMaterials.Length - 1)];
+            var gm = GameManager.I;
+            if (!body || !gm) return;
+            appliedColor = gm.S.marbleColor;
+            var c = gm.CurrentColor;
+            if (c != null && c.material) body.sharedMaterial = c.material;
+            else if (prestigeMaterials != null && prestigeMaterials.Length > 0) body.sharedMaterial = prestigeMaterials[0];
+            if (c == null) return;
+            if (trail) trail.material.SetColor("_UnlitColor", c.trailColor);
+            Shockwave.I?.SetTint(c.waveColor);
         }
 
         void Update()
         {
             if (GameManager.I && subscribed != GameManager.I) { GameManager.I.Prestiged += OnPrestige; subscribed = GameManager.I; ApplyLook(); }
+            if (GameManager.I && appliedColor != GameManager.I.S.marbleColor) ApplyLook();
             bool blocked = Hud.I && Hud.I.BlocksGameplay;
             moveInput = Vector2.zero;
             if (!blocked)

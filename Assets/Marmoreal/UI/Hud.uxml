@@ -27,6 +27,19 @@
                     <ui:VisualElement name="gallery-fill" class="bar-fill gold" picking-mode="Ignore" />
                 </ui:VisualElement>
                 <ui:Label name="gallery-text" class="small" text="0 / 8 estatuas liberadas" picking-mode="Ignore" />
+                <ui:VisualElement name="monument" class="monument" picking-mode="Ignore">
+                    <ui:Label name="monument-title" class="monument-title" text="EL GRAN MONUMENTO  0/3" picking-mode="Ignore" />
+                    <ui:VisualElement class="monument-pieces" picking-mode="Ignore">
+                        <ui:Label name="piece-0" class="piece" text="Base" picking-mode="Ignore" />
+                        <ui:Label name="piece-1" class="piece" text="Columnas" picking-mode="Ignore" />
+                        <ui:Label name="piece-2" class="piece" text="Torso" picking-mode="Ignore" />
+                        <ui:Label name="piece-3" class="piece" text="Brazos" picking-mode="Ignore" />
+                        <ui:Label name="piece-4" class="piece" text="Rostro" picking-mode="Ignore" />
+                        <ui:Label name="piece-5" class="piece" text="Corona" picking-mode="Ignore" />
+                        <ui:Label name="piece-6" class="piece" text="Alma" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                    <ui:Label name="monument-hint" class="monument-hint" text="" picking-mode="Ignore" />
+                </ui:VisualElement>
                 <ui:VisualElement name="toasts" class="toasts" picking-mode="Ignore" />
             </ui:VisualElement>
 
@@ -37,7 +50,10 @@
             <ui:VisualElement name="shop" class="panel shop">
                 <ui:Label class="panel-title" text="TALLER" />
                 <ui:ScrollView name="shop-list" class="shop-list" />
-                <ui:Button name="tree-btn" class="btn tree-btn" text="ÁRBOL DEL ESCULTOR  [T]" />
+                <ui:VisualElement class="row">
+                    <ui:Button name="tree-btn" class="btn tree-btn" text="ÁRBOL DEL ESCULTOR  [T]" style="flex-grow: 2; flex-basis: 0;" />
+                    <ui:Button name="coleccion-btn" class="btn coleccion-btn half" text="COLECCIÓN  [C]" style="margin-left: 6px;" />
+                </ui:VisualElement>
                 <ui:VisualElement class="row">
                     <ui:Button name="altar-btn" class="btn altar-btn half" text="ALTAR  [G]" />
                     <ui:Button name="logros-btn" class="btn logros-btn half" text="MECENAZGOS  [L]" style="margin-left: 6px;" />
@@ -98,6 +114,20 @@
                 <ui:Label name="logros-fame" class="logros-fame" text="FAMA" />
                 <ui:Label class="small" text="Cada mecenazgo da Ícor y Fama permanente (+% polvo). Nunca se pierden." />
                 <ui:ScrollView name="logros-list" class="logros-list" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="coleccion" class="overlay hidden">
+            <ui:VisualElement class="logros-box">
+                <ui:VisualElement class="tree-header-inline">
+                    <ui:Label class="tree-title logros-title" text="COLECCIÓN" />
+                    <ui:Button name="coleccion-close" class="btn" text="CERRAR  [ESC]" />
+                </ui:VisualElement>
+                <ui:Label name="coleccion-monument" class="logros-fame coleccion-monument" text="EL GRAN MONUMENTO" />
+                <ui:Label class="small" text="Elige tu canica. Cada color cambia la estela y la onda; ninguno da poder extra." />
+                <ui:ScrollView name="coleccion-list" class="logros-list" />
+                <ui:Label name="records" class="records" text="" />
+                <ui:Button name="infinite-btn" class="btn buy hidden" text="ENTRAR AL MODO INFINITO" />
             </ui:VisualElement>
         </ui:VisualElement>
 

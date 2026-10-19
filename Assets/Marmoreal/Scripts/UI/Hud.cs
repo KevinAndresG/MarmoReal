@@ -12,7 +12,7 @@ namespace Marmoreal
     /// y es editable en UI Builder; este script solo rellena datos y anima.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
-    public class Hud : MonoBehaviour
+    public partial class Hud : MonoBehaviour
     {
         static Hud _i;
         /// <summary>Singleton resistente a recargas de dominio (se re-busca si se pierde).</summary>
@@ -27,7 +27,6 @@ namespace Marmoreal
         public string symbolFontFamily = "Segoe UI Symbol";
         public int floaterPool = 56;
 
-        static readonly string[] MarbleNames = { "Carrara", "Rosa Portogallo", "Verde Alpi", "Nero Marquina", "Calacatta Oro" };
 
         UIDocument doc;
         VisualElement hudLayer;
@@ -69,7 +68,7 @@ namespace Marmoreal
         int lastCombo = -1;
         int tutorialStep;
 
-        public bool BlocksGameplay => titleShown || modalOpen || treeOpen || logrosOpen;
+        public bool BlocksGameplay => titleShown || modalOpen || treeOpen || logrosOpen || coleccionOpen;
         public bool PointerOverUI { get; private set; }
         public string DebugState => $"bound={root != null} sameRoot={root == doc.rootVisualElement} rows={rows.Count} shopChildren={shopList?.childCount} shopPanel={shopList?.panel != null} title={titleShown} gm={GameManager.I != null} t={Time.timeSinceLevelLoad:0} gal={GameManager.I?.S.galleryLevel} dust={GameManager.I?.S.dust:0} statues={GameManager.I?.S.totalStatues} dmg={GameManager.I?.ImpactDamage:0.0} hp={GameManager.I?.MonolithHP(false, false):0} max={GameManager.I?.MaxMonoliths} sp=[{MonolithSpawner.I?.DebugState}] shards={ShardSystem.I?.ActiveShards} {BiomeManager.I?.DebugState} mut={GameManager.I?.S.mutatorId} boss={(MonolithSpawner.I && MonolithSpawner.I.Boss ? MonolithSpawner.I.Boss.BossPhase + "/" + MonolithSpawner.I.Boss.HPLeft.ToString("0") : "-")} {LifeDirector.I?.DebugState}";
 
@@ -123,6 +122,7 @@ namespace Marmoreal
             Q(out treeBtn, "tree-btn"); Q(out prestigeBtn, "prestige-btn"); Q(out qualityBtn, "quality-btn"); Q(out muteBtn, "mute-btn");
             Q(out resetBtn, "reset-btn"); Q(out tiBuy, "ti-buy"); Q(out modalOk, "modal-ok"); Q(out modalCancel, "modal-cancel"); Q(out modalAlt, "modal-alt"); Q(out treeClose, "tree-close");
             Q(out contractsLbl, "contracts"); Q(out modalCards, "modal-cards"); modalBox = root.Q(className: "modal-box");
+            BindCampaign();
 
             treeBtn.clicked += () => ToggleTree(Currency.Essence);
             altarBtn.clicked += () => ToggleTree(Currency.Icor);
@@ -181,6 +181,8 @@ namespace Marmoreal
             gm.StatsChanged += RefreshShopNow;
             gm.OfflineEarned += ShowOffline;
             gm.AchievementUnlocked += OnAchievement;
+            gm.TrialPassed += OnTrialPassed;
+            gm.CampaignWon += OnCampaignWon;
             subscribed = gm;
         }
 
@@ -195,6 +197,8 @@ namespace Marmoreal
             gm.StatsChanged -= RefreshShopNow;
             gm.OfflineEarned -= ShowOffline;
             gm.AchievementUnlocked -= OnAchievement;
+            gm.TrialPassed -= OnTrialPassed;
+            gm.CampaignWon -= OnCampaignWon;
         }
 
         void Q<T>(out T el, string name) where T : VisualElement
@@ -280,15 +284,17 @@ namespace Marmoreal
 
             shopTimer -= Time.unscaledDeltaTime;
             pulseCooldown -= Time.unscaledDeltaTime;
-            if (shopTimer <= 0) { shopTimer = 0.15f; RefreshContracts(); RefreshShop(); if (treeOpen) RefreshTree(); if (logrosOpen) RefreshLogros(); }
+            if (shopTimer <= 0) { shopTimer = 0.15f; RefreshContracts(); RefreshShop(); if (treeOpen) RefreshTree(); if (logrosOpen) RefreshLogros(); RefreshMonument(); if (coleccionOpen) RefreshColeccion(); }
         }
 
         void HandleKeys(GameManager gm)
         {
             var k = Keyboard.current;
             if (k == null) return;
-            if (k.escapeKey.wasPressedThisFrame) { if (modalOpen) CloseModal(); else if (treeOpen) CloseTree(); else if (logrosOpen) ToggleLogros(); }
+            if (k.escapeKey.wasPressedThisFrame) { if (modalOpen) CloseModal(); else if (treeOpen) CloseTree(); else if (logrosOpen) ToggleLogros(); else if (coleccionOpen) ToggleColeccion(); }
             if (modalOpen) { if (k.enterKey.wasPressedThisFrame) { var a = modalAction; CloseModal(); a?.Invoke(); } return; }
+            if (k.cKey.wasPressedThisFrame) ToggleColeccion();
+            if (coleccionOpen) return;
             if (k.tKey.wasPressedThisFrame || k.tabKey.wasPressedThisFrame) ToggleTree(Currency.Essence);
             if (k.gKey.wasPressedThisFrame) ToggleTree(Currency.Icor);
             if (k.lKey.wasPressedThisFrame) ToggleLogros();
@@ -860,16 +866,16 @@ namespace Marmoreal
                 AudioFX.I?.Play(Sfx.Deny, 0.6f);
                 return;
             }
-            string next = MarbleNames[Mathf.Min(gm.S.prestigeCount + 1, MarbleNames.Length - 1)];
             var bm = BiomeManager.I;
             var room = bm ? bm.NextFor(gm.S.prestigeCount + 1) : null;
             bool choose = room && bm.CanChoose(gm.S.prestigeCount + 1);
-            string sala = room ? $"\n\nSala siguiente: {room.displayName}{(choose ? "  (elige con CAMBIAR SALA)" : "")}\n{room.tagline}" : "";
+            string sala = room ? $"\n\nSala siguiente: {room.displayName}{(choose ? "  (elige con CAMBIAR SALA)" : "")}\n{room.tagline}" +
+                (room.trialGallery > 0 && !gm.S.pieces.Contains(room.campaignStage) ? $"\nPrueba de la sala: Galería {Num.Roman(room.trialGallery)}" : "") : "";
             OpenModal("PULIR LA CANICA",
                 $"Reinicias el Polvo, el Taller y las Galerías.\nConservas la Esencia, el Árbol, el Ícor y el Altar.\n\n" +
                 $"Ícor por pulir: +{Num.F(gm.config.icorPrestigeBase + System.Math.Floor(gm.PrestigeGain / gm.config.icorPrestigeDivisor))}\n" +
                 $"Ganarás  +{Num.F(gm.PrestigeGain)} ESENCIA   (una galería más: +{Num.F(gm.PrestigeGainNext)})\n" +
-                $"Tu canica renacerá en mármol {next}." + sala +
+                sala.TrimStart('\n') +
                 (gm.MutatorStatus().Length > 0 ? $"\n\nMutador: {gm.MutatorStatus()}" + (gm.MutatorBonus(gm.PrestigeGain) > 0 ? $"  (+{Num.F(gm.MutatorBonus(gm.PrestigeGain))} Esencia)" : "") : ""),
                 "PULIR", () => { holdToasts = true; gm.DoPrestige(); holdToasts = false; });
             if (modalAlt != null) modalAlt.style.display = choose ? DisplayStyle.Flex : DisplayStyle.None;

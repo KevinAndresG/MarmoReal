@@ -20,6 +20,7 @@ el builder para "rehacer"**). Diseño completo en `Docs/GDD.md`.
 | `Editor/BiomeBuilder.cs` | Menú *Marmoreal/Añadir salas: Volcánica y Cristal (aditivo)*: materiales en `Materials/Biomes`, `VP_Volcanica`/`VP_Cristal`, `Biome_*.asset`, `--- SALA ---` con decoración y `BiomeManager`. Seguro de repetir. |
 | `Gameplay/LifeDirector.cs` | Eventos temporales (`lifeEvents`: `StartEvent(id)`, `ActiveEvent`, `GoldenBonus` que lee el spawner) y progreso de contratos por sondeo de `GameState` (`Progress(c)`, `PanelText()` para la HUD). Objeto en `--- SISTEMAS ---`. |
 | Mutadores / Coloso / contratos | `GameManager`: `Mutator` (aplicado en `RecalcStats` y `MonolithHP`; `noDash` en `PlayerMarble.TryDash`, `disabledPower` en `PowerSystem.TryCast`, `volatileBonus` en el spawner), `RollMutatorOffer`/`ChooseMutator` (cartas en `Hud.ShowMutatorCards`, contenedor `modal-cards`), `MutatorBonus` al Pulir; `BossDue` (cierra la galería), `OnBossDefeated` + evento `BossDefeated(trial)`; `RollContracts`/`CompleteContract`. Coloso: `MonolithSpawner.SpawnBoss(trial)` (prefab `Monolith_Coloso`, `bossPoint`), `Monolith.MakeBoss`/`BossPhase`. Estado en `GameState` (`mutatorId`, `mutatorOffer`, `bossDoneGallery`, `lifeBosses`, `lifeGolden`, `contracts`, `contractsDone`). |
+| Campaña (S4) | `GameManager`: `TrialBiome`/`TrialDue`/`TrialHP`, `CompleteTrial(stage)` (pieza, Ícor, sala siguiente; eventos `TrialPassed`, `CampaignWon`), `CheckColors`/`SelectColor`/`CurrentColor`, `EnterInfinite`, `UpdateRecords`, `Rank`. Datos: `EconomyConfig.campaign` (7 `CampaignPieceDef`), `marbleColors` (`MarbleColorDef`), `campaignPiecesRequired`, `trialHPMult`, `trialIcor`, `infiniteHpPerLife`, `rankNames/rankGalleries`; `BiomeDef.trialGallery`. `GameState`: `pieces`, `colors`, `marbleColor`, `campaignWon`, `victoryShown`, `infinite*`, `legacyStage` (migración v1→v2 en `Load`). `BiomeManager.Unlocked` = etapa 0 / pieza anterior / legacy; `NextFor` = Prueba pendiente o rotación. `World/Monument.cs` (`--- MONUMENTO ---`). HUD en `UI/HudCampaign.cs` (partial de `Hud`): barra `monument`, overlay `coleccion` [C], victoria. `PlayerMarble.ApplyLook` (material/estela) + `Shockwave.SetTint`; `Respawn` evita al jefe. Menú *Marmoreal/Añadir campaña: Monumento y Colección (aditivo)* (`Editor/CampaignBuilder.cs`). |
 | `Gameplay/MusaSpawner.cs` | Musas: orbe (prefab `Musa`) cada 60-120 s × Favor; al tocarlo, 1 Ícor + bendición aleatoria. |
 | `World/Spinner.cs` | Giro/flotación/pulso decorativo (anillos de vórtice, musa, bomba). |
 | `Core/GameState.cs`, `Core/Num.cs` | Datos guardados; formateo (`Num.F`, `Num.Roman`). |
@@ -131,6 +132,12 @@ campo nuevo + leerlo donde aplique (stats en `GameManager.RecalcStats`). Actuali
 **Probar el Coloso:** en Play, `gm.S.galleryLevel = 9 (o 19…); gm.S.bossDoneGallery = -1;` y alejar la canica del centro
 (`bossClearRadius`); para ver las fases, `boss.TakeDamage(boss.HP*0.4f, …)`. Con la partida del usuario (daño enorme) cae al
 instante: pon a 0 los niveles del Taller y `RecalcStats()`.
+
+**Probar la campaña:** en Play (partida de prueba), sala con Prueba pendiente y `gm.S.galleryLevel = trialGallery - 1`,
+alejar la canica del centro → brota el jefe "PRUEBA DE LA SALA"; rematarlo con `b.TakeDamage((float)(b.HPLeft*0.5+1), …)` en bucle.
+Piezas directas: `gm.CompleteTrial(stage)`; con `campaignPiecesRequired` piezas salta la victoria (3 s después).
+Infinito: botón del modal o `gm.EnterInfinite()`; luego `gm.DoPrestige()` rota sala y ofrece 3 mutadores sin carta segura.
+Añadir una sala de campaña: `BiomeDef` con `campaignStage` = índice de su pieza y `trialGallery`; ajusta `SIMTRIALS`.
 
 **Retocar balance:** `python Tools/balance_sim.py 20` → tabla de hitos (objetivos en `Docs/GDD.md §5`).
 Prueba real: piloto automático compra lo más barato; compara `Temp/hud_state.txt` con el simulador.
