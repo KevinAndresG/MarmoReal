@@ -12,7 +12,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 HOURS = float(sys.argv[1]) if len(sys.argv) > 1 else 10
 
 CFG = dict(
-    baseHP=22, hpGrowth=1.8, baseReward=4, rewardGrowth=1.5, statueBonus=1.5,
+    baseHP=22, hpGrowth=float(__import__('os').environ.get('SIMHP',1.8)), baseReward=4, rewardGrowth=1.5, statueBonus=1.5,
     largeMult=2.6, largeShare=0.3, goldenChance=0.03, goldenHP=3, goldenReward=12,
     statBase=8, statStep=2, statMax=30,
     critMult=3, shockMult=6, resPerImpact=0.1,
@@ -38,6 +38,9 @@ CONS_RESET = int(__import__("os").environ.get("SIMCRESET", "1")); CONS_KEEP = fl
 # S8: Reliquia como hito (sin reinicio): cada SIMHITO Pulidos +1 Consagración (Esencia ×(1+SIMHBONUS·n)); 0 = off
 HITO = int(__import__("os").environ.get("SIMHITO", "0"))
 if HITO: CONS_BONUS = float(__import__("os").environ.get("SIMHBONUS", "0.5"))
+# S9: jugador de una Consagración antigua (S5): SIMLEGACY = Pulido en que perdió Árbol y Esencia (base del ×coste);
+# SIMREFUND = Pulido en que carga la compensación (Esencia = total ganado − bolsa − invertido en el Árbol). 0 = off
+LEGACY = int(__import__("os").environ.get("SIMLEGACY", "0")); REFUND = int(__import__("os").environ.get("SIMREFUND", "0"))
 SCALE_K = float(__import__("os").environ.get("SIMK", CFG["costScaleK"]))
 CFG["costScaleOn"] = SCALE_K > 0
 SCOPE = __import__("os").environ.get("SIMSCOPE", "all")
@@ -122,7 +125,7 @@ ALTAR = {
     "rayo_cd":    (7, 1.9, 6, "lin", 1, -0.07, ["cadena"]),
     "favor":      (2, 1.9, 5, "lin", 1, -0.1, []),
     "inspiracion":(3, 1.8, 6, "lin", 1, 0.25, ["favor"]),
-    "ira":        (4, 1.6, 200, "exp", 1, 1.25, []),
+    "ira":        (4, float(__import__("os").environ.get("SIMIRA",1.6)), 200, "exp", 1, 1.25, []),
     "eternidad":  (20, 2.2, 8, "lin", 1, -0.05, []),
 }
 # Poderes: id: (recarga s, potencia ×daño de impacto, fracción de bloques activos alcanzados)
@@ -328,7 +331,13 @@ class Sim:
         if MUT["on"] and s.prest > 0 and s.g - s.g0 >= MUT["goal"]: gn += max(1, math.floor(gn * MUT["bonus"]))
         s.log.append(f"  >> PULIDO #{s.prest+1} a {s.t/60:6.1f} min | galería {s.g+1} | +{gn} esencia")
         s.lives.append((s.prest, None if s.done_t is None else (s.done_t - s.life_t0) / 60, (s.t - s.life_t0) / 60))
-        s.ess += gn; s.prest += 1
+        s.ess += gn; s.prest += 1; s.life_ess = getattr(s, "life_ess", 0) + gn
+        if LEGACY and s.prest == LEGACY:
+            s.ess = 0; s.tr = {k: 0 for k in TREE}; s.cons_at = s.prest
+            s.log.append(f"  >> CONSAGRACIÓN ANTIGUA (Árbol y Esencia a 0) en el Pulido {s.prest}")
+        if REFUND and s.prest == REFUND:
+            back = s.life_ess - s.ess - sum(sum(cost(TREE[k], l) for l in range(s.tr[k])) for k in TREE)
+            s.ess += back; s.log.append(f"  >> COMPENSACIÓN +{back:.0f} Esencia en el Pulido {s.prest}")
         if CONS and s.prest - getattr(s, "cons_at", 0) >= CONS:
             s.cons = getattr(s, "cons", 0) + 1; s.cons_at = s.prest
             s.ess = 0; s.tr = {k: (max(1, int(v * CONS_KEEP)) if v else 0) for k, v in s.tr.items()}

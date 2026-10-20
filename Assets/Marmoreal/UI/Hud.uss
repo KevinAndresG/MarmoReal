@@ -323,3 +323,4 @@
 /* Cinemática de victoria: solo queda el rótulo */
 .layer.cine > * { visibility: hidden; }
 .layer.cine > .banner { visibility: visible; }
+.relic-btn { font-size: 12px; min-height: 24px; margin-top: 4px; padding: 2px 8px; }

@@ -169,6 +169,7 @@ namespace Marmoreal
             else StartCoroutine(BlinkPress());
 
             if (gm.PendingOffline.dust > 0) ShowOffline(gm.PendingOffline.dust, gm.PendingOffline.secs);
+            else if (!string.IsNullOrEmpty(gm.PendingNotice)) { OpenModal("COMPENSACIÓN ÚNICA", gm.PendingNotice, "ENTENDIDO", null, false); gm.PendingNotice = null; }
             RefreshShopNow();
         }
 
@@ -908,9 +909,10 @@ namespace Marmoreal
         {
             var gm = GameManager.I;
             OpenModal("MIENTRAS NO ESTABAS",
-                $"Tus {gm.AcolyteCount} acólitos siguieron tallando durante {Num.Time(secs)}.\n\n+{Num.F(dustEarned)} POLVO DE MÁRMOL",
+                $"Tus {gm.AcolyteCount} acólitos siguieron tallando durante {Num.Time(secs)}.\n\n+{Num.F(dustEarned)} POLVO DE MÁRMOL" + (string.IsNullOrEmpty(gm.PendingNotice) ? "" : "\n\n" + gm.PendingNotice),
                 "RECOGER", null, false);
             gm.PendingOffline = (0, 0);
+            gm.PendingNotice = null;
         }
 
         void OpenModal(string t, string body, string ok, System.Action action, bool cancel = true, bool clickOnly = false)

@@ -207,7 +207,7 @@ namespace Marmoreal
         [Header("Monolitos")]
         public double monolithBaseHP = 22;
         [Tooltip("La vida crece más rápido que la recompensa: eso crea el 'muro suave' que invita a Pulir")]
-        public double hpGrowthPerGallery = 1.8;
+        public double hpGrowthPerGallery = 1.72;
         [Tooltip("Polvo que suelta un bloque pequeño en la galería I (sin estatua)")]
         public double blockBaseReward = 4;
         public double rewardGrowthPerGallery = 1.5;

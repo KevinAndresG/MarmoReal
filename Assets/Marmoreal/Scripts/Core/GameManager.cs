@@ -74,6 +74,8 @@ namespace Marmoreal
         public double DustPerSecond { get; private set; }
         /// <summary>Ganancia offline pendiente de mostrar (la HUD la consume).</summary>
         public (double dust, double secs) PendingOffline { get; set; }
+        /// <summary>Aviso de una migración al cargar (la HUD lo muestra en un modal).</summary>
+        public string PendingNotice { get; set; }
 
         public event Action StatsChanged;
         public event Action<int> GalleryUp;
@@ -482,7 +484,7 @@ namespace Marmoreal
             Save();
             AudioFX.I?.Play(Sfx.Prestige);
             Prestiged?.Invoke();
-            Toast?.Invoke($"Canica pulida · +{Num.F(gain)} Esencia" + (newRelic != null ? " · ¡Reliquia nueva!" : ""), ToastKind.Prestige);
+            Toast?.Invoke($"Canica pulida · +{Num.F(gain)} Esencia" + (newRelic != null ? " · ¡Punto de Reliquia!" : ""), ToastKind.Prestige);
         }
 
         // =================== Consagrar y Reliquias (S5) ===================
@@ -500,12 +502,32 @@ namespace Marmoreal
         {
             S.consecrations++;
             S.relicPrestige = S.prestigeCount;
-            var locked = config.relics.FindAll(r => !S.relics.Contains(r.id));
-            if (locked.Count == 0) { AddIcor(config.trialIcor, "reliquia repetida"); return "(todas conseguidas: +Ícor)"; }
-            var r = locked[UnityEngine.Random.Range(0, locked.Count)];
-            S.relics.Add(r.id);
-            if (S.relicsEquipped.Count < RelicSlots) S.relicsEquipped.Add(r.id);
-            return r.displayName;
+            if (S.relics.Count + S.relicTokens >= config.relics.Count) { AddIcor(config.trialIcor, "reliquia repetida"); return "(todas conseguidas: +Ícor)"; }
+            S.relicTokens++;
+            return "1 Punto de Reliquia: elige cuál desbloquear";
+        }
+
+        /// <summary>Gasta 1 Punto de Reliquia en desbloquear la reliquia (S9: se elige a mano).</summary>
+        public bool UnlockRelic(string id)
+        {
+            if (S.relicTokens <= 0 || S.relics.Contains(id) || config.relics.Find(r => r.id == id) == null) return false;
+            S.relicTokens--;
+            S.relics.Add(id);
+            if (S.relicsEquipped.Count < RelicSlots) S.relicsEquipped.Add(id);
+            RecalcStats();
+            Save();
+            return true;
+        }
+
+        /// <summary>Devuelve la reliquia: recuperas el Punto para gastarlo en otra (gratis; el respec es libre).</summary>
+        public bool RefundRelic(string id)
+        {
+            if (!S.relics.Remove(id)) return false;
+            S.relicsEquipped.Remove(id);
+            S.relicTokens++;
+            RecalcStats();
+            Save();
+            return true;
         }
 
         public void ToggleRelic(string id)
@@ -870,6 +892,25 @@ namespace Marmoreal
             S ??= new GameState();
             if (S.version < 2) { S.legacyStage = S.prestigeCount; S.version = 2; } // conserva las salas ya visitadas
             if (S.relicPrestige < S.prestigesAtConsecrate) S.relicPrestige = S.prestigesAtConsecrate; // S8: hitos desde la última Consagración
+            MigrateConsecrateRefund();
+        }
+
+        /// <summary>S9, una sola vez: la Consagración antigua (S5-S7) borraba Esencia y Árbol. Devuelve como Esencia lo ganado y perdido
+        /// (ganado en total − Esencia actual − coste de los niveles del Árbol que aún tienes). Corrección de un fallo de diseño ya retirado.</summary>
+        void MigrateConsecrateRefund()
+        {
+            if (S.consecrateRefundDone) return;
+            S.consecrateRefundDone = true;
+            if (S.prestigesAtConsecrate <= 0) return; // nunca consagró con la lógica antigua
+            double spent = 0;
+            foreach (var d in config.upgrades)
+                if (d.currency == Currency.Essence)
+                    for (int l = 0; l < S.Level(d.id); l++) spent += d.Cost(l);
+            double lost = Math.Floor(S.lifetimeEssence - S.essence - spent);
+            if (lost < 1) return;
+            S.essence += lost;
+            PendingNotice = $"La Consagración antigua borraba tu Esencia y tu Árbol del Escultor (un fallo de diseño ya retirado). " +
+                $"Te devolvemos +{Num.F(lost)} Esencia para que reconstruyas el Árbol. No se repetirá.";
         }
 
         public void ResetSave()

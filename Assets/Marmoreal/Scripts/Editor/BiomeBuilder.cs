@@ -49,29 +49,29 @@ namespace Marmoreal.EditorTools
 
             // ---------- Cantera Volcánica ----------
             var lavaCol = new Color(1f, 0.32f, 0.06f);
-            var vChunks = Tint(baseChunks, "Volcanica", m => m.SetColor("_BaseColor", new Color(0.34f, 0.27f, 0.25f)));
+            var vChunks = Tint(baseChunks, "Volcanica", m => m.SetColor("_BaseColor", new Color(0.8f, 0.7f, 0.66f)));
             var vShards = TintShards(baseShards, "Volcanica", new Color(1f, 0.45f, 0.12f));
             var vSwaps = new Dictionary<string, Material>
             {
                 ["M_Floor"] = Copy("M_Floor", "Volcanica", m =>
                 {
-                    m.SetColor("_BaseColor", new Color(0.24f, 0.2f, 0.19f));
+                    m.SetColor("_BaseColor", new Color(0.88f, 0.7f, 0.62f));
                     if (neroTex) m.SetTexture("_EmissiveColorMap", neroTex); // vetas del Nero = juntas de lava
                     Emit(m, lavaCol, 10f);
                 }),
-                ["M_OuterGround"] = Copy("M_OuterGround", "Volcanica", m => m.SetColor("_BaseColor", new Color(0.12f, 0.09f, 0.08f))),
-                ["M_Column"] = Copy("M_Column", "Volcanica", m => m.SetColor("_BaseColor", new Color(0.22f, 0.19f, 0.18f))),
+                ["M_OuterGround"] = Copy("M_OuterGround", "Volcanica", m => m.SetColor("_BaseColor", new Color(0.45f, 0.33f, 0.3f))),
+                ["M_Column"] = Copy("M_Column", "Volcanica", m => m.SetColor("_BaseColor", new Color(0.72f, 0.56f, 0.5f))),
                 ["M_Gold"] = Copy("M_Gold", "Volcanica", m => m.SetColor("_BaseColor", new Color(0.85f, 0.32f, 0.12f))),
                 ["M_BrassInlay"] = MarmorealBuilder.Emissive("Biomes/M_Lava", new Color(1f, 0.4f, 0.1f), lavaCol, 12f, 0.3f),
             };
-            var vVP = Profile("VP_Volcanica", new Color(0.05f, 0.02f, 0.02f), new Color(0.55f, 0.18f, 0.08f), new Color(0.12f, 0.04f, 0.02f),
-                new Color(1f, 0.82f, 0.72f), new Color(0.6f, 0.3f, 0.2f));
+            var vVP = Profile("VP_Volcanica", new Color(0.101f, 0.071f, 0.104f), new Color(0.836f, 0.426f, 0.281f), new Color(0.136f, 0.071f, 0.052f),
+                new Color(1f, 0.978f, 0.966f), new Color(0.84f, 0.72f, 0.68f));
             var volcanica = Def("Biome_Volcanica", d =>
             {
                 d.id = "volcanica"; d.displayName = "Cantera Volcánica"; d.campaignStage = 1;
                 d.tagline = "+25 % bloques volcánicos · el suelo arde: ¡no te quedes quieta!";
                 d.chunkMaterials = vChunks; d.shardMaterials = vShards; d.swaps = Swaps(vSwaps);
-                d.sunColor = new Color(1f, 0.62f, 0.45f); d.sunIntensity = 1800f; d.volumeProfile = vVP;
+                d.sunColor = new Color(1f, 0.867f, 0.807f); d.sunIntensity = 2600f; d.volumeProfile = vVP;
                 d.rule = BiomeRule.LavaFloor; d.ruleA = 2.5f; d.ruleB = 1.6f; d.volatileBonus = 0.25f;
             });
 
@@ -79,7 +79,7 @@ namespace Marmoreal.EditorTools
             var iceCol = new Color(0.35f, 0.7f, 1f);
             var cChunks = Tint(baseChunks, "Cristal", m =>
             {
-                m.SetColor("_BaseColor", new Color(0.55f, 0.75f, 1f));
+                m.SetColor("_BaseColor", new Color(0.85f, 0.93f, 1f));
                 m.SetFloat("_SmoothnessRemapMax", 1f);
                 m.SetFloat("_CoatMask", 1f);
                 var t = m.GetTexture("_BaseColorMap");
@@ -89,11 +89,11 @@ namespace Marmoreal.EditorTools
             var cShards = TintShards(baseShards, "Cristal", new Color(0.45f, 0.85f, 1f));
             var cSwaps = new Dictionary<string, Material>
             {
-                ["M_Floor"] = Copy("M_Floor", "Cristal", m => { m.SetColor("_BaseColor", new Color(0.6f, 0.72f, 0.9f)); m.SetFloat("_CoatMask", 1f); }),
-                ["M_OuterGround"] = Copy("M_OuterGround", "Cristal", m => m.SetColor("_BaseColor", new Color(0.3f, 0.36f, 0.5f))),
+                ["M_Floor"] = Copy("M_Floor", "Cristal", m => { m.SetColor("_BaseColor", new Color(0.82f, 0.9f, 1f)); m.SetFloat("_CoatMask", 1f); }),
+                ["M_OuterGround"] = Copy("M_OuterGround", "Cristal", m => m.SetColor("_BaseColor", new Color(0.55f, 0.62f, 0.75f))),
                 ["M_Column"] = Copy("M_Column", "Cristal", m =>
                 {
-                    m.SetColor("_BaseColor", new Color(0.5f, 0.68f, 1f));
+                    m.SetColor("_BaseColor", new Color(0.75f, 0.85f, 1f));
                     var t = m.GetTexture("_BaseColorMap");
                     if (t) m.SetTexture("_EmissiveColorMap", t);
                     Emit(m, iceCol, 6.5f);
@@ -101,14 +101,14 @@ namespace Marmoreal.EditorTools
                 ["M_Gold"] = Copy("M_Gold", "Cristal", m => m.SetColor("_BaseColor", new Color(0.8f, 0.9f, 1f))),
                 ["M_BrassInlay"] = MarmorealBuilder.Emissive("Biomes/M_CrystalGlow", new Color(0.6f, 0.9f, 1f), iceCol, 12f, 0.95f),
             };
-            var cVP = Profile("VP_Cristal", new Color(0.02f, 0.04f, 0.1f), new Color(0.2f, 0.4f, 0.65f), new Color(0.03f, 0.05f, 0.1f),
-                new Color(0.8f, 0.92f, 1f), new Color(0.35f, 0.55f, 0.85f));
+            var cVP = Profile("VP_Cristal", new Color(0.051f, 0.08f, 0.167f), new Color(0.461f, 0.505f, 0.6f), new Color(0.078f, 0.082f, 0.115f),
+                new Color(0.976f, 0.99f, 1f), new Color(0.74f, 0.82f, 0.94f));
             var cristal = Def("Biome_Cristal", d =>
             {
                 d.id = "cristal"; d.displayName = "Gruta de Cristal"; d.campaignStage = 2;
                 d.tagline = "Los bloques reflejan rayos al golpearlos · los trozos son metralla gratis.";
                 d.chunkMaterials = cChunks; d.shardMaterials = cShards; d.swaps = Swaps(cSwaps);
-                d.sunColor = new Color(0.72f, 0.85f, 1f); d.sunIntensity = 2000f; d.volumeProfile = cVP;
+                d.sunColor = new Color(0.902f, 0.948f, 1f); d.sunIntensity = 2600f; d.volumeProfile = cVP;
                 d.rule = BiomeRule.CrystalReflect; d.ruleA = 0.35f; d.ruleB = 0.5f; d.ruleC = 0.4f;
             });
 
@@ -217,41 +217,41 @@ namespace Marmoreal.EditorTools
             };
             var hielo = Def("Biome_Hielo", d =>
             {
-                d.id = "hielo"; d.displayName = "Catedral de Hielo"; d.campaignStage = 3; d.trialGallery = 105;
+                d.id = "hielo"; d.displayName = "Catedral de Hielo"; d.campaignStage = 3; d.trialGallery = 115;
                 d.tagline = "Suelo de hielo: más velocidad, poco agarre · usa la inercia y la Embestida.";
                 d.chunkMaterials = hChunks; d.swaps = Swaps(hSwaps);
-                d.sunColor = new Color(0.82f, 0.9f, 1f); d.sunIntensity = 2400f;
-                d.volumeProfile = Profile("VP_Hielo", new Color(0.35f, 0.5f, 0.7f), new Color(0.75f, 0.85f, 0.95f), new Color(0.55f, 0.65f, 0.8f), new Color(0.9f, 0.96f, 1f), new Color(0.85f, 0.92f, 1f));
+                d.sunColor = new Color(0.937f, 0.965f, 1f); d.sunIntensity = 2600f;
+                d.volumeProfile = Profile("VP_Hielo", new Color(0.059f, 0.081f, 0.129f), new Color(0.544f, 0.494f, 0.466f), new Color(0.087f, 0.082f, 0.086f), new Color(0.988f, 0.995f, 1f), new Color(0.94f, 0.968f, 1f));
                 d.rule = BiomeRule.IceFloor; d.ruleA = 0.55f; d.ruleB = 1.3f; d.ruleC = 0.01f;
             });
 
             // ---------- 5. Forja de Hierro: metal (más HP, polvo ×3) e imanes ----------
             var ember = new Color(1f, 0.5f, 0.15f);
-            var fChunks = Tint(baseChunks, "Hierro", m => { m.SetColor("_BaseColor", new Color(0.45f, 0.46f, 0.5f)); m.SetFloat("_Metallic", 0.9f); m.SetFloat("_SmoothnessRemapMax", 0.75f); });
+            var fChunks = Tint(baseChunks, "Hierro", m => { m.SetColor("_BaseColor", new Color(0.8f, 0.82f, 0.86f)); m.SetFloat("_Metallic", 0.9f); m.SetFloat("_SmoothnessRemapMax", 0.75f); });
             var magnetMat = MarmorealBuilder.Emissive("Biomes/M_Iman", new Color(0.3f, 0.3f, 0.33f), ember, 11f, 0.7f);
             var fSwaps = new Dictionary<string, Material>
             {
-                ["M_Floor"] = Copy("M_Floor", "Hierro", m => { m.SetColor("_BaseColor", new Color(0.32f, 0.31f, 0.32f)); m.SetFloat("_Metallic", 0.6f); }),
-                ["M_OuterGround"] = Copy("M_OuterGround", "Hierro", m => m.SetColor("_BaseColor", new Color(0.16f, 0.15f, 0.15f))),
-                ["M_Column"] = Copy("M_Column", "Hierro", m => { m.SetColor("_BaseColor", new Color(0.38f, 0.38f, 0.4f)); m.SetFloat("_Metallic", 0.85f); }),
+                ["M_Floor"] = Copy("M_Floor", "Hierro", m => { m.SetColor("_BaseColor", new Color(0.74f, 0.74f, 0.78f)); m.SetFloat("_Metallic", 0.3f); }),
+                ["M_OuterGround"] = Copy("M_OuterGround", "Hierro", m => m.SetColor("_BaseColor", new Color(0.45f, 0.44f, 0.46f))),
+                ["M_Column"] = Copy("M_Column", "Hierro", m => { m.SetColor("_BaseColor", new Color(0.7f, 0.7f, 0.74f)); m.SetFloat("_Metallic", 0.85f); }),
                 ["M_Gold"] = Copy("M_Gold", "Hierro", m => m.SetColor("_BaseColor", new Color(0.95f, 0.5f, 0.2f))),
                 ["M_BrassInlay"] = MarmorealBuilder.Emissive("Biomes/M_Ascua", new Color(1f, 0.55f, 0.2f), ember, 10f, 0.4f),
             };
             var forja = Def("Biome_Forja", d =>
             {
-                d.id = "forja"; d.displayName = "Forja de Hierro"; d.campaignStage = 4; d.trialGallery = 112;
+                d.id = "forja"; d.displayName = "Forja de Hierro"; d.campaignStage = 4; d.trialGallery = 135;
                 d.tagline = "Bloques de metal: ×2 de vida, ×3 de polvo · los imanes del suelo atraen tu canica.";
                 d.chunkMaterials = fChunks; d.shardMaterials = volcanica ? volcanica.shardMaterials : null; d.swaps = Swaps(fSwaps);
                 d.hpMult = 2f; d.dustMult = 3f;
-                d.sunColor = new Color(1f, 0.75f, 0.55f); d.sunIntensity = 1900f;
-                d.volumeProfile = Profile("VP_Forja", new Color(0.08f, 0.06f, 0.06f), new Color(0.45f, 0.25f, 0.12f), new Color(0.1f, 0.06f, 0.04f), new Color(1f, 0.88f, 0.78f), new Color(0.5f, 0.35f, 0.25f));
+                d.sunColor = new Color(1f, 0.912f, 0.843f); d.sunIntensity = 2600f;
+                d.volumeProfile = Profile("VP_Forja", new Color(0.078f, 0.078f, 0.111f), new Color(0.7f, 0.464f, 0.305f), new Color(0.111f, 0.078f, 0.061f), new Color(1f, 0.986f, 0.974f), new Color(0.8f, 0.74f, 0.7f));
                 d.rule = BiomeRule.IronForge;
             });
 
             // ---------- 6. Jardín de Rosa: los bloques crecen si no los rompes ----------
             var petal = new Color(1f, 0.45f, 0.7f);
             var leaf = new Color(0.3f, 0.75f, 0.35f);
-            var jChunks = Tint(baseChunks, "Rosa", m => m.SetColor("_BaseColor", new Color(1f, 0.72f, 0.8f)));
+            var jChunks = Tint(baseChunks, "Rosa", m => m.SetColor("_BaseColor", new Color(1f, 0.9f, 0.93f)));
             var leafMat = Copy("M_Column", "Hoja", m => m.SetColor("_BaseColor", leaf));
             var jSwaps = new Dictionary<string, Material>
             {
@@ -263,34 +263,34 @@ namespace Marmoreal.EditorTools
             };
             var jardin = Def("Biome_Jardin", d =>
             {
-                d.id = "jardin"; d.displayName = "Jardín de Rosa"; d.campaignStage = 5; d.trialGallery = 118;
+                d.id = "jardin"; d.displayName = "Jardín de Rosa"; d.campaignStage = 5; d.trialGallery = 155;
                 d.tagline = "Los bloques crecen si no los rompes: más vida, pero también más polvo.";
                 d.chunkMaterials = jChunks; d.swaps = Swaps(jSwaps);
-                d.sunColor = new Color(1f, 0.88f, 0.85f); d.sunIntensity = 2600f;
-                d.volumeProfile = Profile("VP_Jardin", new Color(0.4f, 0.55f, 0.85f), new Color(1f, 0.75f, 0.8f), new Color(0.6f, 0.75f, 0.5f), new Color(1f, 0.95f, 0.96f), new Color(1f, 0.85f, 0.9f));
+                d.sunColor = new Color(1f, 0.958f, 0.948f); d.sunIntensity = 2600f;
+                d.volumeProfile = Profile("VP_Jardin", new Color(0.06f, 0.081f, 0.134f), new Color(0.621f, 0.474f, 0.433f), new Color(0.087f, 0.084f, 0.065f), new Color(1f, 0.994f, 0.995f), new Color(1f, 0.94f, 0.96f));
                 d.rule = BiomeRule.GardenGrowth; d.ruleA = 8f; d.ruleB = 1.35f; d.ruleC = 4f;
             });
 
             // ---------- 7. Panteón Dorado: todo oro, bloques gigantes, El Coloso de Mármol ----------
             var goldC = new Color(1f, 0.78f, 0.35f);
-            var pChunks = Tint(baseChunks, "Oro", m => { m.SetColor("_BaseColor", goldC); m.SetFloat("_Metallic", 0.9f); m.SetFloat("_SmoothnessRemapMax", 0.85f); });
+            var pChunks = Tint(baseChunks, "Oro", m => { m.SetColor("_BaseColor", new Color(1f, 0.86f, 0.55f)); m.SetFloat("_Metallic", 0.9f); m.SetFloat("_SmoothnessRemapMax", 0.85f); });
             var pShards = new Material[baseShards.Length];
             for (int i = 0; i < pShards.Length; i++) pShards[i] = baseShards[baseShards.Length - 1]; // polvo dorado
             var pSwaps = new Dictionary<string, Material>
             {
-                ["M_Floor"] = Copy("M_Floor", "Oro", m => { m.SetColor("_BaseColor", new Color(0.12f, 0.1f, 0.09f)); m.SetFloat("_SmoothnessRemapMax", 0.95f); }),
-                ["M_OuterGround"] = Copy("M_OuterGround", "Oro", m => m.SetColor("_BaseColor", new Color(0.08f, 0.07f, 0.06f))),
+                ["M_Floor"] = Copy("M_Floor", "Oro", m => { m.SetColor("_BaseColor", new Color(1f, 0.88f, 0.62f)); m.SetFloat("_SmoothnessRemapMax", 0.95f); }),
+                ["M_OuterGround"] = Copy("M_OuterGround", "Oro", m => m.SetColor("_BaseColor", new Color(0.6f, 0.5f, 0.35f))),
                 ["M_Column"] = Copy("M_Column", "Oro", m => { m.SetColor("_BaseColor", goldC); m.SetFloat("_Metallic", 0.9f); }),
                 ["M_Gold"] = Copy("M_Gold", "Oro", m => m.SetColor("_BaseColor", new Color(1f, 0.85f, 0.45f))),
                 ["M_BrassInlay"] = MarmorealBuilder.Emissive("Biomes/M_OroVivo", goldC, goldC, 10f, 0.9f),
             };
             var panteon = Def("Biome_Panteon", d =>
             {
-                d.id = "panteon"; d.displayName = "Panteón Dorado"; d.campaignStage = 6; d.trialGallery = 124;
+                d.id = "panteon"; d.displayName = "Panteón Dorado"; d.campaignStage = 6; d.trialGallery = 175;
                 d.tagline = "La sala final: todo es oro, los bloques son gigantes y te espera El Coloso de Mármol.";
                 d.chunkMaterials = pChunks; d.shardMaterials = pShards; d.swaps = Swaps(pSwaps);
-                d.sunColor = new Color(1f, 0.85f, 0.6f); d.sunIntensity = 2200f;
-                d.volumeProfile = Profile("VP_Panteon", new Color(0.04f, 0.03f, 0.02f), new Color(0.5f, 0.38f, 0.15f), new Color(0.06f, 0.05f, 0.03f), new Color(1f, 0.92f, 0.78f), new Color(0.6f, 0.5f, 0.3f));
+                d.sunColor = new Color(1f, 0.948f, 0.86f); d.sunIntensity = 2600f;
+                d.volumeProfile = Profile("VP_Panteon", new Color(0.079f, 0.078f, 0.1f), new Color(0.632f, 0.485f, 0.296f), new Color(0.099f, 0.081f, 0.061f), new Color(1f, 0.99f, 0.974f), new Color(0.84f, 0.8f, 0.72f));
                 d.rule = BiomeRule.GoldenPantheon; d.ruleA = 0.25f; d.ruleB = 1.5f;
             });
 
@@ -460,7 +460,7 @@ namespace Marmoreal.EditorTools
             if (!AssetDatabase.CopyAsset("Assets/Marmoreal/Config/VP_Santuario.asset", path)) return null;
             p = AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
             if (p.TryGet<GradientSky>(out var sky)) { sky.top.Override(top); sky.middle.Override(mid); sky.bottom.Override(bottom); }
-            if (p.TryGet<Fog>(out var fog)) { fog.albedo.Override(fogAlbedo); fog.meanFreePath.Override(110f); }
+            if (p.TryGet<Fog>(out var fog)) { fog.albedo.Override(fogAlbedo); fog.meanFreePath.Override(150f); }
             if (p.TryGet<ColorAdjustments>(out var ca)) ca.colorFilter.Override(filter);
             foreach (var c in p.components) EditorUtility.SetDirty(c);
             EditorUtility.SetDirty(p);

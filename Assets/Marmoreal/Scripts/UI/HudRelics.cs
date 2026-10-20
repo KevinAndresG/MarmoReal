@@ -3,7 +3,7 @@ using UnityEngine.UIElements;
 
 namespace Marmoreal
 {
-    /// <summary>HUD de Reliquias (S5): equipar, ranuras y Fragmentos de Eternidad (las Reliquias llegan con el Pulido, S8). Layout en Hud.uxml (reliquias).</summary>
+    /// <summary>HUD de Reliquias (S5): equipar, ranuras y Fragmentos de Eternidad (S9: cada hito de Pulido da 1 Punto de Reliquia que gastas a mano; devolver una reliquia recupera el punto). Layout en Hud.uxml (reliquias).</summary>
     public partial class Hud
     {
         VisualElement reliquiasOverlay;
@@ -44,12 +44,12 @@ namespace Marmoreal
             if (!gm || reliquiasList == null) return;
             var S = gm.S;
             var cfg = gm.config;
-            reliquiasInfo.text = $"Ranuras {S.relicsEquipped.Count}/{gm.RelicSlots}  ·  Consagraciones {S.consecrations}  ·  Fragmentos {Num.F(S.eternity)}  ·  Reliquia nueva en {gm.PrestigesToRelic} Pulido(s)";
+            reliquiasInfo.text = $"Ranuras {S.relicsEquipped.Count}/{gm.RelicSlots}  ·  Consagraciones {S.consecrations}  ·  Fragmentos {Num.F(S.eternity)}  ·  PUNTOS DE RELIQUIA: {S.relicTokens}  ·  siguiente en {gm.PrestigesToRelic} Pulido(s)";
             int cost = gm.NextSlotCost;
             slotBtn.text = cost < 0 ? "RANURAS AL MÁXIMO" : $"RANURA EXTRA  ({cost} Fragmentos)";
             slotBtn.SetEnabled(cost >= 0 && S.eternity >= cost);
 
-            string sig = string.Join(",", S.relics) + "|" + string.Join(",", S.relicsEquipped) + "|" + gm.RelicSlots;
+            string sig = S.relicTokens + "#" + string.Join(",", S.relics) + "|" + string.Join(",", S.relicsEquipped) + "|" + gm.RelicSlots;
             if (sig == builtRelics) return;
             builtRelics = sig;
             reliquiasList.Clear();
@@ -65,17 +65,27 @@ namespace Marmoreal
                 var text = new VisualElement();
                 text.AddToClassList("logro-text");
                 text.Add(Lbl("logro-name", r.displayName));
-                text.Add(Lbl("logro-desc", have ? r.description : "Se consigue al Consagrar"));
+                text.Add(Lbl("logro-desc", r.description));
                 row.Add(text);
                 var right = new VisualElement();
                 right.AddToClassList("logro-right");
-                right.Add(Lbl("logro-progress", !have ? "BLOQUEADA" : eq ? "EQUIPADA" : "EQUIPAR"));
-                row.Add(right);
+                string id = r.id;
                 if (have)
                 {
-                    string id = r.id;
-                    row.RegisterCallback<ClickEvent>(_ => { gm.ToggleRelic(id); AudioFX.I?.Play(Sfx.Buy, 0.4f); builtRelics = null; });
+                    right.Add(Lbl("logro-progress", eq ? "EQUIPADA" : "EQUIPAR"));
+                    var back = new Button(() => { gm.RefundRelic(id); AudioFX.I?.Play(Sfx.Buy, 0.4f); builtRelics = null; }) { text = "DEVOLVER (+1 punto)" };
+                    back.AddToClassList("btn"); back.AddToClassList("relic-btn");
+                    right.Add(back);
+                    row.RegisterCallback<ClickEvent>(e => { if (e.target is Button) return; gm.ToggleRelic(id); AudioFX.I?.Play(Sfx.Buy, 0.4f); builtRelics = null; });
                 }
+                else
+                {
+                    var unlock = new Button(() => { if (gm.UnlockRelic(id)) AudioFX.I?.Play(Sfx.Buy, 0.5f); builtRelics = null; }) { text = "DESBLOQUEAR (1 punto)" };
+                    unlock.AddToClassList("btn"); unlock.AddToClassList("relic-btn"); unlock.AddToClassList("buy");
+                    unlock.SetEnabled(S.relicTokens > 0);
+                    right.Add(unlock);
+                }
+                row.Add(right);
                 reliquiasList.Add(row);
             }
         }

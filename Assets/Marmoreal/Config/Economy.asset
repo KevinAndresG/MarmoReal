@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Economy
   m_EditorClassIdentifier: Assembly-CSharp::Marmoreal.EconomyConfig
   monolithBaseHP: 22
-  hpGrowthPerGallery: 1.8
+  hpGrowthPerGallery: 1.72
   blockBaseReward: 4
   rewardGrowthPerGallery: 1.5
   statueBonus: 1.5
@@ -207,6 +207,7 @@ MonoBehaviour:
   rankGalleries: 00000000960000002c010000f4010000
   consecrateMinPrestiges: 5
   consecrateEssenceBonus: 0.25
+  consecrateResetsCostGrowth: 1
   relicPowerBonus: 0.1
   relicSlotsBase: 2
   relicSlotCosts: 2800000078000000

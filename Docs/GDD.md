@@ -458,3 +458,21 @@ Ver `CLAUDE.md` y el skill `.claude/skills/marmoreal-dev`.
 - Tercer árbol / reliquias equipables (slots que modifican los poderes: Supernova en racimo, Vórtice móvil…).
 - Más estatuas (manos, caballos, rostros) y bloques con forma (columnas, arcos).
 - Música adaptativa por galería.
+
+### S9 — Rebalanceo, compensación y Reliquias a elegir
+**Diagnóstico (partida real, 7 h, 16 Pulidos):** la Consagración antigua (S5/S7) puso la Esencia y el Árbol a 0 (Árbol invertido 462 de 4391 Esencia ganadas
+en total; Altar 77 niveles, 323 Ícor sin gastar porque *Ira* es exponencial). Con Brillo×Obra ×9,8 y Fama ×1,6 el factor de coste del Taller es ×1477;
+el HP de un bloque pequeño en la Galería LII es 2,3·10¹⁴ (×1,8/galería) frente a un daño de impacto ~3·10² por nivel de Taller: muro. Para la XC (90) hacían falta ×13 más de poder.
+
+| Valor | Antes | Después |
+|---|---|---|
+| `hpGrowthPerGallery` (Economy.asset) | 1,8 | **1,72** (HP en LII −48 %, en XC −85 %) |
+| Pruebas Hielo / Forja / Jardín / Panteón (`BiomeDef.trialGallery`) | 105 / 112 / 118 / 124 | **115 / 135 / 155 / 175** (Carrara 45, Volcánica 65, Cristal 90 sin cambio) |
+| Reliquias | 1 al azar cada 5 Pulidos | **1 Punto de Reliquia** cada 5 Pulidos; se gasta a mano (1 punto = 1 reliquia) |
+| Respec de reliquias | — | **DEVOLVER** gratis (+1 punto) y re-equipar; equipar/quitar ya era libre |
+| Compensación | — | Única: Esencia = ganada − actual − invertida en el Árbol (`consecrateRefundDone`): **+3718** en la partida real |
+
+Simulador (`SIMHP`, `SIMTRIALS`, `SIMLEGACY=<pulido>`, `SIMREFUND=<pulido>`; jugador óptimo, el real va ~2× más lento): sala por sala
+1,8/1,5/1,8/2,3/1,1/4,2/0,7 h (antes, 13,4 h totales) → con 1,72 y Pruebas 45/65/90/115/135/160/185: 1,0/0,8/1,7/0,4/1,3/3,3/7,6 h
+(≈ 16 h); con 1,75: 1,3/0,9/2,4/1,5/2,3/5,0/1,7 h. Se eligió 1,72 + Pruebas 45…175 (≈ 1-2,5 h por sala para un jugador real).
+Jugador de Consagración antigua (SIMLEGACY=6): sin compensación Prueba 7 a 17,0 h; con compensación (SIMREFUND=7) 16,4 h y Prueba 5 −2,4 h.

@@ -82,6 +82,8 @@ namespace Marmoreal
         public int consecrations;
         public int prestigesAtConsecrate;             // prestigeCount en la última Consagración antigua (reiniciaba el Árbol); base del ×coste del Taller
         public int relicPrestige;                     // S8: prestigeCount del último hito de Reliquia
+        public int relicTokens;                       // S9: Puntos de Reliquia sin gastar (cada hito da 1; cada reliquia cuesta 1)
+        public bool consecrateRefundDone;             // S9: compensación única por el Árbol perdido en la Consagración antigua
         public List<string> relics = new List<string>();
         public List<string> relicsEquipped = new List<string>();
         public int relicSlotsBought;

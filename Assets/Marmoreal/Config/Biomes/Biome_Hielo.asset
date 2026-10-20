@@ -19,7 +19,7 @@ MonoBehaviour:
   campaignStage: 3
   hpMult: 1
   dustMult: 1
-  trialGallery: 105
+  trialGallery: 115
   chunkMaterials:
   - {fileID: 2100000, guid: 6b5d7a78dbdc0994586c937290cd635f, type: 2}
   - {fileID: 2100000, guid: e663ad7e84f88db47945d00eaf71cdfc, type: 2}
