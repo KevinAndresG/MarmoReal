@@ -62,6 +62,24 @@ MonoBehaviour:
   volatileBlastMult: 12
   volatileBlastRadius: 7
   allyResonancePerHit: 0.03
+  weakPointMult: 4
+  weakPointRadius: 1.25
+  weakPointResonance: 0.25
+  masteryEvery: 10
+  masteryMult: 1.5
+  masteryIds:
+  - masa
+  - cincel
+  - resonancia
+  - fervor
+  encargoEvery: 30
+  encargoMinStatues: 3
+  encargoDustSeconds: 20
+  inspirationDamage: 0.2
+  inspirationDust: 0.15
+  inspirationMaxStacks: 4
+  inspirationDuration: 75
+  inspirationDecay: 20
   workshopCostScale: 0
   workshopCostK: 1.8
   workshopCostPerPrestige: 1.6
@@ -205,11 +223,12 @@ MonoBehaviour:
   - Leyenda
   - Deidad
   rankGalleries: 00000000960000002c010000f4010000
-  consecrateMinPrestiges: 5
+  consecrateMinPrestiges: 3
+  relicPerTrial: 1
   consecrateEssenceBonus: 0.25
   consecrateResetsCostGrowth: 1
   relicPowerBonus: 0.1
-  relicSlotsBase: 2
+  relicSlotsBase: 3
   relicSlotCosts: 2800000078000000
   eternityPerGallery: 1
   eternityPerBoss: 5
@@ -256,6 +275,22 @@ MonoBehaviour:
     glyph: "\u231B"
     power: 
     description: "Cada poder lanzado acorta un 15 % la recarga de los dem\xE1s."
+  - id: cincel_fidias
+    displayName: Cincel de Fidias
+    glyph: "\u25C8"
+    power: 
+    description: Acertar una grieta te devuelve una carga de Embestida y carga el
+      doble de Resonancia.
+  - id: lira_caliope
+    displayName: "Lira de Cal\xEDope"
+    glyph: "\u266A"
+    power: 
+    description: Cada Encargo cumplido acorta un 30 % la recarga de todos los poderes.
+  - id: llama_votiva
+    displayName: Llama Votiva
+    glyph: "\u270A"
+    power: 
+    description: "La Inspiraci\xF3n no se apaga mientras tu combo sea de 10 o m\xE1s."
   bossMods:
   - id: blindado
     displayName: Blindado
@@ -1358,167 +1393,6 @@ MonoBehaviour:
     requires:
     - midas
     branch: 0
-  - id: pw_supernova
-    displayName: "P\xF3lvora Divina"
-    description: "Da\xF1o de la Supernova [1]. Empieza flojo: s\xFAbelo en cada vida."
-    glyph: "\u2739"
-    currency: 0
-    baseCost: 400
-    costGrowth: 2.2
-    maxLevel: 20
-    mode: 1
-    effectBase: 0.25
-    effectPerLevel: 1.1
-    effectFormat: "\xD7{0} da\xF1o"
-    unlockGallery: 0
-    scaleCost: 1
-    maxLevelPerPrestige: 0
-    maxLevelLimit: 0
-    unlockStat: 
-    unlockThreshold: 0
-    unlockHint: 
-    treePos: {x: 0, y: 0}
-    requires:
-    - supernova
-    branch: 0
-  - id: pw_ingravidez
-    displayName: Gravedad Rota
-    description: "Da\xF1o del impacto de la Ingravidez [2]."
-    glyph: "\u21E1"
-    currency: 0
-    baseCost: 900
-    costGrowth: 2.2
-    maxLevel: 20
-    mode: 1
-    effectBase: 0.25
-    effectPerLevel: 1.1
-    effectFormat: "\xD7{0} da\xF1o"
-    unlockGallery: 0
-    scaleCost: 1
-    maxLevelPerPrestige: 0
-    maxLevelLimit: 0
-    unlockStat: 
-    unlockThreshold: 0
-    unlockHint: 
-    treePos: {x: 0, y: 0}
-    requires:
-    - ingravidez
-    branch: 0
-  - id: pw_meteoros
-    displayName: "N\xFAcleo \xCDgneo"
-    description: "Da\xF1o de cada meteorito [3]."
-    glyph: "\u2604"
-    currency: 0
-    baseCost: 900
-    costGrowth: 2.2
-    maxLevel: 20
-    mode: 1
-    effectBase: 0.25
-    effectPerLevel: 1.1
-    effectFormat: "\xD7{0} da\xF1o"
-    unlockGallery: 0
-    scaleCost: 1
-    maxLevelPerPrestige: 0
-    maxLevelLimit: 0
-    unlockStat: 
-    unlockThreshold: 0
-    unlockHint: 
-    treePos: {x: 0, y: 0}
-    requires:
-    - meteoros
-    branch: 0
-  - id: pw_coloso
-    displayName: Gigantismo
-    description: "Duraci\xF3n del Coloso [4]."
-    glyph: "\u2B24"
-    currency: 0
-    baseCost: 2500
-    costGrowth: 2.1
-    maxLevel: 15
-    mode: 0
-    effectBase: 4
-    effectPerLevel: 0.6
-    effectFormat: '{0} s'
-    unlockGallery: 0
-    scaleCost: 1
-    maxLevelPerPrestige: 0
-    maxLevelLimit: 0
-    unlockStat: 
-    unlockThreshold: 0
-    unlockHint: 
-    treePos: {x: 0, y: 0}
-    requires:
-    - coloso
-    branch: 0
-  - id: pw_vortice
-    displayName: Singularidad
-    description: "Da\xF1o del V\xF3rtice [5]."
-    glyph: "\u25CE"
-    currency: 0
-    baseCost: 4000
-    costGrowth: 2.2
-    maxLevel: 20
-    mode: 1
-    effectBase: 0.25
-    effectPerLevel: 1.1
-    effectFormat: "\xD7{0} da\xF1o"
-    unlockGallery: 0
-    scaleCost: 1
-    maxLevelPerPrestige: 0
-    maxLevelLimit: 0
-    unlockStat: 
-    unlockThreshold: 0
-    unlockHint: 
-    treePos: {x: 0, y: 0}
-    requires:
-    - vortice
-    branch: 0
-  - id: pw_midas
-    displayName: Alquimia
-    description: Bloques que dora el Toque de Midas [6].
-    glyph: "\u265B"
-    currency: 0
-    baseCost: 20000
-    costGrowth: 8
-    maxLevel: 4
-    mode: 0
-    effectBase: 1
-    effectPerLevel: 1
-    effectFormat: '{0} bloques'
-    unlockGallery: 0
-    scaleCost: 1
-    maxLevelPerPrestige: 0
-    maxLevelLimit: 0
-    unlockStat: 
-    unlockThreshold: 0
-    unlockHint: 
-    treePos: {x: 0, y: 0}
-    requires:
-    - midas
-    branch: 0
-  - id: pw_rayo
-    displayName: Ira de Zeus
-    description: "Da\xF1o de cada rayo de la Cadena de Rayos [7]."
-    glyph: "\u21AF"
-    currency: 0
-    baseCost: 6000
-    costGrowth: 2.2
-    maxLevel: 20
-    mode: 1
-    effectBase: 0.25
-    effectPerLevel: 1.1
-    effectFormat: "\xD7{0} da\xF1o"
-    unlockGallery: 0
-    scaleCost: 1
-    maxLevelPerPrestige: 0
-    maxLevelLimit: 0
-    unlockStat: 
-    unlockThreshold: 0
-    unlockHint: 
-    treePos: {x: 0, y: 0}
-    requires:
-    - rayo
-    branch: 0
   - id: ingravidez_cd
     displayName: Levedad
     description: Recarga de la Ingravidez.
@@ -1702,6 +1576,100 @@ MonoBehaviour:
     treePos: {x: 3, y: 2.5}
     requires:
     - cadena
+    branch: 2
+  - id: fervor
+    displayName: Fervor Divino
+    description: "Da\xF1o de TODOS tus poderes en esta vida. Maestr\xEDa \xD71,5
+      cada 10 niveles."
+    glyph: "\u03DF"
+    currency: 0
+    baseCost: 300
+    costGrowth: 1.85
+    maxLevel: 999
+    mode: 1
+    effectBase: 0.35
+    effectPerLevel: 1.12
+    effectFormat: "\xD7{0} poderes"
+    unlockGallery: 0
+    scaleCost: 1
+    maxLevelPerPrestige: 0
+    maxLevelLimit: 0
+    unlockStat: 
+    unlockThreshold: 0
+    unlockHint: 
+    treePos: {x: 0, y: 0}
+    requires: []
+    branch: 0
+  - id: ojo_cantero
+    displayName: Ojo del Cantero
+    description: "Las GRIETAS (punto brillante de cada bloque) multiplican m\xE1s
+      tu golpe."
+    glyph: "\u25C8"
+    currency: 1
+    baseCost: 4
+    costGrowth: 2.2
+    maxLevel: 5
+    mode: 0
+    effectBase: 0
+    effectPerLevel: 2
+    effectFormat: "+\xD7{0} grieta"
+    unlockGallery: 0
+    scaleCost: 0
+    maxLevelPerPrestige: 0
+    maxLevelLimit: 0
+    unlockStat: 
+    unlockThreshold: 0
+    unlockHint: 
+    treePos: {x: -3.25, y: 2.3}
+    requires:
+    - ojo
+    branch: 1
+  - id: fractura
+    displayName: Fractura
+    description: "MEC\xC1NICA: acertar una grieta libera una onda que da\xF1a los
+      bloques cercanos. Cada nivel: m\xE1s da\xF1o."
+    glyph: "\u2735"
+    currency: 1
+    baseCost: 10
+    costGrowth: 2.5
+    maxLevel: 4
+    mode: 0
+    effectBase: 0
+    effectPerLevel: 4
+    effectFormat: "\xD7{0} da\xF1o"
+    unlockGallery: 0
+    scaleCost: 0
+    maxLevelPerPrestige: 0
+    maxLevelLimit: 0
+    unlockStat: 
+    unlockThreshold: 0
+    unlockHint: 
+    treePos: {x: -3.25, y: 3.5}
+    requires:
+    - ojo_cantero
+    branch: 1
+  - id: obstinacion
+    displayName: "Obstinaci\xF3n"
+    description: "M\xE1s cargas de INSPIRACI\xD3N (Encargos cumplidos) y duran m\xE1s."
+    glyph: "\u270A"
+    currency: 1
+    baseCost: 4
+    costGrowth: 2.3
+    maxLevel: 3
+    mode: 0
+    effectBase: 0
+    effectPerLevel: 1
+    effectFormat: +{0} cargas
+    unlockGallery: 0
+    scaleCost: 0
+    maxLevelPerPrestige: 0
+    maxLevelLimit: 0
+    unlockStat: 
+    unlockThreshold: 0
+    unlockHint: 
+    treePos: {x: 3.25, y: 2.3}
+    requires:
+    - coro
     branch: 2
   mutators:
   - id: sereno
@@ -1906,6 +1874,32 @@ MonoBehaviour:
     window: 0
     rewardIcor: 0
     rewardEssencePct: 0.15
+  encargos:
+  - id: grietas
+    description: Golpea {0} GRIETAS brillantes
+    kind: 0
+    target: 3
+    time: 30
+  - id: embestidas
+    description: Acierta {0} Embestidas [Shift] en bloques
+    kind: 1
+    target: 5
+    time: 25
+  - id: picado
+    description: "{0} Golpes en Picado sobre bloques [Espacio \xD72]"
+    kind: 2
+    target: 2
+    time: 30
+  - id: combo
+    description: Encadena un combo de {0}
+    kind: 3
+    target: 15
+    time: 25
+  - id: estatuas
+    description: Libera {0} estatuas
+    kind: 4
+    target: 3
+    time: 40
   powers:
   - id: supernova
     displayName: Supernova
@@ -2207,3 +2201,27 @@ MonoBehaviour:
     stat: consecrations
     threshold: 5
     rewardIcor: 10
+  - id: grieta1
+    displayName: Ojo Certero
+    description: Acierta 25 grietas.
+    stat: weak
+    threshold: 25
+    rewardIcor: 1
+  - id: grieta2
+    displayName: Cantero Mayor
+    description: Acierta 500 grietas.
+    stat: weak
+    threshold: 500
+    rewardIcor: 4
+  - id: encargo1
+    displayName: Aprendiz Diligente
+    description: Cumple 10 Encargos.
+    stat: encargos
+    threshold: 10
+    rewardIcor: 2
+  - id: encargo2
+    displayName: Maestro de Obras
+    description: Cumple 100 Encargos.
+    stat: encargos
+    threshold: 100
+    rewardIcor: 5

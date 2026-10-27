@@ -133,6 +133,7 @@
 .floater.wave { font-size: 22px; color: var(--res); }
 .floater.statue { font-size: 19px; color: var(--gold); letter-spacing: 2px; }
 .floater.golden { font-size: 25px; color: #FFE58A; }
+.floater.weak { font-size: 34px; color: #8FE8FF; letter-spacing: 3px; -unity-font-style: bold; }
 
 /* ---------------- Overlays ---------------- */
 .overlay {

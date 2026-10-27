@@ -90,6 +90,10 @@ namespace Marmoreal
         public double eternity;
         public double lifetimeEternity;
 
+        // Grietas y Encargos (S11)
+        public int weakHitsTotal;
+        public int encargosDone;
+
         // Ajustes
         public int quality = -1;
         public bool muted;

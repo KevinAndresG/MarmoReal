@@ -103,9 +103,8 @@ Replica la cifra en `Tools/balance_sim.py` (`DUST`).
 `GameManager.I.Has("id")` donde aplique. Replica en `TREE` del simulador.
 
 **Añadir nodo del Altar / poder:** `UpgradeDef` con `currency = Icor` (mismo esquema que el árbol). Un poder nuevo =
-nodo de nivel 1 con el mismo id + `PowerDef` en `powers` + un `case` en `PowerSystem.Cast` + su mejora de Taller
-`pw_<id>` (Dust, `requires = {id}`; se lee con `GameManager.PowerUpgrade(id, fallback)` / `PowerDamage(id, potencia)`). Replica en `ALTAR`/`POWERS`
-del simulador. Añádelo también a `FillDefaults()` para que `EnsureDefaults()` lo migre a partidas/asset antiguos.
+nodo de nivel 1 con el mismo id + `PowerDef` en `powers` + un `case` en `PowerSystem.Cast`. Su daño usa `PowerDamage(id, potencia)`
+(impacto × Fervor Divino del Taller × Ira). S11: ya no hay mejoras `pw_*` por poder. Replica en `ALTAR`/`POWERS` del simulador. Añádelo también a `FillDefaults()` para que `EnsureDefaults()` lo migre a partidas/asset antiguos.
 
 **Progresión por Pulido:** coste del Taller = `CostOf` (`GameManager.WorkshopCostFactor`, params `workshopCost*` en
 `EconomyConfig`); topes = `GameManager.MaxLevelOf(d)` (`maxLevelPerPrestige`/`maxLevelLimit`); hitos de ayudantes =
@@ -161,6 +160,11 @@ casi blanco en `Biome_*`. Si una sala se ve oscura, mira primero el `_BaseColor`
 oscuros eran la causa principal). Comparar: forzar `gm.S.biomeId`, `pm.Respawn()`, `rig.yaw=0; rig.pitch=28; rig.distance=22` y capturar.
 
 **S10 (UI/fluidez):** `workshopCostScale = 0` en `Economy.asset` (el Taller ya no se encarece al Pulir); `IsUnlocked` ya no oculta
-mejoras del Taller por galería/hito; números arábigos (`Num.Roman` devuelve `n.ToString()`). Mejoras `pw_*` se muestran en el
-ALTAR [G] (`Hud.IsPowerUpgrade`/`InTree`/`TreePos`), no en el Taller. `GameManager.MutatorBlocks(d)` oculta lo anulado por el mutador.
+mejoras del Taller por galería/hito; números arábigos (`Num.Roman` devuelve `n.ToString()`). S11: las `pw_*` se quitaron (Fervor Divino las sustituye). `GameManager.MutatorBlocks(d)` oculta lo anulado por el mutador.
 Menú de pausa (Esc / `menu-btn`, `Time.timeScale = 0`), Taller plegable (B / `shop-toggle`), objetivo en `objective` (`Hud.ObjectiveText`).
+
+**S11 (jugabilidad activa):** Grietas (`Monolith.PickWeakPoint`/`HitsWeakPoint`, `weakPoint*`), Encargos (`EconomyConfig.encargos` + `EncargoKind`,
+`LifeDirector.UpdateEncargo`; contadores en memoria `gm.weakHits/dashHits/slamHits`), Inspiración (`gm.AddInspiration`, entra en `RecalcStats`),
+Maestría (`gm.MasteryAt` dentro de `Value`; `masteryIds`), Fervor Divino (`fervor`). Reliquia: primera en el 1.er Pulido, luego cada 3, +1 por Prueba.
+Probar en Play: `LifeDirector` sale en `hud_state` (`enc=`, `insp=`, `weak=`). El piloto apunta a la grieta y persigue Musas (a veces se queda
+pegado a una Musa elevada: fallo del piloto, no del juego). `gm.ResetSave()` en Play deja la HUD sin arrancar el piloto: evitarlo en pruebas.

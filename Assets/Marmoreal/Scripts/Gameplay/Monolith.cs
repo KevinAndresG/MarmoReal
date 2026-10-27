@@ -38,6 +38,9 @@ namespace Marmoreal
         [Tooltip("Brillo de las grietas del Coloso en las fases II y III")]
         public Color phaseGlow2 = new Color(1f, 0.45f, 0.1f), phaseGlow3 = new Color(1f, 0.08f, 0.04f);
         public float phaseGlowIntensity = 20f;
+        [Tooltip("Grieta (punto débil): color y brillo (nits) del trozo marcado; late para llamar la atención")]
+        public Color weakGlowColor = new Color(0.45f, 0.9f, 1f);
+        public float weakGlowIntensity = 180f;
         /// <summary>Mármol volcánico: al romperse del todo estalla y daña a los bloques vecinos.</summary>
         public bool Volatile { get; private set; }
         public double HP { get; private set; }
@@ -73,6 +76,9 @@ namespace Marmoreal
         Vector2Int[] cell;
         float[] targetY, fallVel;
         bool anyFalling;
+        [System.NonSerialized] int weakIdx = -1;
+        [System.NonSerialized] MaterialPropertyBlock weakMpb;
+        Color baseGlow = Color.black; // brillo de fase del Coloso (las grietas lo restauran al moverse)
         static readonly int EmissiveColorId = Shader.PropertyToID("_EmissiveColor");
 
         void Awake()
@@ -147,6 +153,9 @@ namespace Marmoreal
             block.localScale = Vector3.one;
             block.localRotation = Quaternion.identity;
             if (statueAnchor) statueAnchor.localRotation = Quaternion.identity;
+            weakIdx = -1;
+            SetChunkGlow(Color.black);
+            PickWeakPoint();
             UpdateCollider();
             col.enabled = true;
             gameObject.SetActive(true);
@@ -165,9 +174,70 @@ namespace Marmoreal
 
         void SetChunkGlow(Color c)
         {
+            baseGlow = c;
             var b = new MaterialPropertyBlock();
             if (c != Color.black) b.SetColor(EmissiveColorId, c);
-            foreach (var r in chunks) r.SetPropertyBlock(c == Color.black ? null : b);
+            for (int i = 0; i < chunks.Length; i++) if (i != weakIdx) chunks[i].SetPropertyBlock(c == Color.black ? null : b);
+        }
+
+        // ================================================================= Grietas (S11)
+
+        /// <summary>Marca como grieta un trozo exterior y bajo (alcanzable rodando). Lo devuelve a su brillo normal al moverla.</summary>
+        void PickWeakPoint()
+        {
+            if (weakIdx >= 0 && weakIdx < chunks.Length)
+            {
+                var b = new MaterialPropertyBlock();
+                if (baseGlow != Color.black) b.SetColor(EmissiveColorId, baseGlow);
+                chunks[weakIdx].SetPropertyBlock(baseGlow == Color.black ? null : b);
+            }
+            weakIdx = -1;
+            if (alive.Count == 0 || homePos == null) return;
+            float minY = float.MaxValue, cx = 0, cz = 0;
+            foreach (int i in alive) { minY = Mathf.Min(minY, targetY[i]); cx += homePos[i].x; cz += homePos[i].z; }
+            cx /= alive.Count; cz /= alive.Count;
+            // puntuación = lo exterior que está − lo alto que queda; se elige al azar entre los mejores
+            int best = -1; float bestScore = float.MinValue;
+            foreach (int i in alive)
+            {
+                float s = new Vector2(homePos[i].x - cx, homePos[i].z - cz).magnitude - 0.6f * (targetY[i] - minY) + Random.value * 0.9f;
+                if (s > bestScore) { bestScore = s; best = i; }
+            }
+            weakIdx = best;
+        }
+
+        public bool TryWeakPos(out Vector3 p)
+        {
+            bool ok = weakIdx >= 0 && weakIdx < chunks.Length && chunks[weakIdx].gameObject.activeSelf;
+            p = ok ? chunks[weakIdx].transform.position : Vector3.zero;
+            return ok;
+        }
+
+        /// <summary>¿El contacto de la canica cae sobre la grieta?</summary>
+        public bool HitsWeakPoint(Vector3 point)
+        {
+            if (weakIdx < 0 || weakIdx >= chunks.Length || !chunks[weakIdx].gameObject.activeSelf) return false;
+            float r = GameManager.I ? GameManager.I.config.weakPointRadius : 1.25f;
+            return (chunks[weakIdx].transform.position - point).sqrMagnitude < r * r;
+        }
+
+        /// <summary>Grieta acertada (tras aplicar el daño): estallido de luz y polvo, y la grieta salta a otro trozo.</summary>
+        public void OnWeakHit(Vector3 point)
+        {
+            Vector3 p = weakIdx >= 0 && weakIdx < chunks.Length ? chunks[weakIdx].transform.position : point;
+            PowerSystem.I?.FlashAt(p, weakGlowColor, 0.35f);
+            ShardSystem.I?.SpawnSparkle(p, 18, owner ? owner.ShardIndexFor(tierIndex, true) : 0, 6f);
+            AudioFX.I?.Play(Sfx.Golden, 0.55f, Random.Range(1.5f, 1.7f));
+            if (CurrentState == State.Active && weakIdx >= 0 && chunks[weakIdx].gameObject.activeSelf) PickWeakPoint();
+        }
+
+        void UpdateWeakGlow()
+        {
+            if (weakIdx < 0 || weakIdx >= chunks.Length) return;
+            weakMpb ??= new MaterialPropertyBlock(); // se pierde en recargas de dominio
+            float pulse = 0.55f + 0.45f * Mathf.Sin(Time.time * 7f);
+            weakMpb.SetColor(EmissiveColorId, weakGlowColor * (weakGlowIntensity * pulse) + baseGlow);
+            chunks[weakIdx].SetPropertyBlock(weakMpb);
         }
 
         void BossPhaseCheck(Vector3 point)
@@ -228,6 +298,7 @@ namespace Marmoreal
                     }
                     else block.localScale = Vector3.one;
                     if (anyFalling) SimulateFalling(dt);
+                    UpdateWeakGlow();
                     break;
                 }
                 case State.Levitating:
@@ -302,6 +373,7 @@ namespace Marmoreal
             ShardSystem.I?.SpawnDust(p, rewardPerChunk, Golden ? 4 : 2, owner ? owner.ShardIndexFor(tierIndex, Golden) : 0, 4f);
             chunks[idx].gameObject.SetActive(false);
             DropAbove(idx);
+            if (idx == weakIdx) PickWeakPoint(); // la grieta cayó con el trozo: se abre otra
         }
 
         /// <summary>Todo lo que estaba encima del trozo roto (misma columna) baja un nivel.</summary>

@@ -44,7 +44,7 @@ namespace Marmoreal
             if (!gm || reliquiasList == null) return;
             var S = gm.S;
             var cfg = gm.config;
-            reliquiasInfo.text = $"Ranuras {S.relicsEquipped.Count}/{gm.RelicSlots}  ·  Consagraciones {S.consecrations}  ·  Fragmentos {Num.F(S.eternity)}  ·  PUNTOS DE RELIQUIA: {S.relicTokens}  ·  siguiente en {gm.PrestigesToRelic} Pulido(s)";
+            reliquiasInfo.text = $"Ranuras {S.relicsEquipped.Count}/{gm.RelicSlots}  ·  Consagraciones {S.consecrations}  ·  Fragmentos {Num.F(S.eternity)}  ·  PUNTOS DE RELIQUIA: {S.relicTokens}  ·  siguiente en {gm.PrestigesToRelic} Pulido(s) o al superar una Prueba";
             int cost = gm.NextSlotCost;
             slotBtn.text = cost < 0 ? "RANURAS AL MÁXIMO" : $"RANURA EXTRA  ({cost} Fragmentos)";
             slotBtn.SetEnabled(cost >= 0 && S.eternity >= cost);

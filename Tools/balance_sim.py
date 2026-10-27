@@ -12,7 +12,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 HOURS = float(sys.argv[1]) if len(sys.argv) > 1 else 10
 
 CFG = dict(
-    baseHP=22, hpGrowth=float(__import__('os').environ.get('SIMHP',1.8)), baseReward=4, rewardGrowth=1.5, statueBonus=1.5,
+    baseHP=22, hpGrowth=float(__import__('os').environ.get('SIMHP',1.72)), baseReward=4, rewardGrowth=1.5, statueBonus=1.5,
     largeMult=2.6, largeShare=0.3, goldenChance=0.03, goldenHP=3, goldenReward=12,
     statBase=8, statStep=2, statMax=30,
     critMult=3, shockMult=6, resPerImpact=0.1,
@@ -36,12 +36,12 @@ CONS = int(__import__("os").environ.get("SIMCONS", "0")); CONS_BONUS = 0.5
 # Consagrar conserva SIMKEEP (fracción) de los niveles del Árbol
 CONS_RESET = int(__import__("os").environ.get("SIMCRESET", "1")); CONS_KEEP = float(__import__("os").environ.get("SIMKEEP", "0.5"))
 # S8: Reliquia como hito (sin reinicio): cada SIMHITO Pulidos +1 Consagración (Esencia ×(1+SIMHBONUS·n)); 0 = off
-HITO = int(__import__("os").environ.get("SIMHITO", "0"))
-if HITO: CONS_BONUS = float(__import__("os").environ.get("SIMHBONUS", "0.5"))
+HITO = int(__import__("os").environ.get("SIMHITO", "3"))   # S11: hito cada 3 Pulidos, el primero en el 1.º
+if HITO: CONS_BONUS = float(__import__("os").environ.get("SIMHBONUS", "0.25"))
 # S9: jugador de una Consagración antigua (S5): SIMLEGACY = Pulido en que perdió Árbol y Esencia (base del ×coste);
 # SIMREFUND = Pulido en que carga la compensación (Esencia = total ganado − bolsa − invertido en el Árbol). 0 = off
 LEGACY = int(__import__("os").environ.get("SIMLEGACY", "0")); REFUND = int(__import__("os").environ.get("SIMREFUND", "0"))
-SCALE_K = float(__import__("os").environ.get("SIMK", CFG["costScaleK"]))
+SCALE_K = float(__import__("os").environ.get("SIMK", 0))   # S10: Economy.asset workshopCostScale = 0
 CFG["costScaleOn"] = SCALE_K > 0
 SCOPE = __import__("os").environ.get("SIMSCOPE", "all")
 
@@ -59,15 +59,14 @@ DUST = {
     "cargas":     (600, 6, 3, "lin", 1, 1, 2),          # cargas de Embestida
     "gemelas":    (2500, 3.2, 8, "lin", 0, 1, 4),       # Discípulas (canicas aliadas)
     "vinculo":    (4000, 1.85, 500, "lin", 0.3, 0.05, 4),  # % de tu daño que copian (requiere gemelas) · viva
-    # Mejoras de poderes: solo aparecen con el poder desbloqueado en el Altar (se pierden al pulir)
-    "pw_supernova":  (400, 2.2, 20, "exp", 0.25, 1.1, 0),
-    "pw_ingravidez": (900, 2.2, 20, "exp", 0.25, 1.1, 0),
-    "pw_meteoros":   (900, 2.2, 20, "exp", 0.25, 1.1, 0),
-    "pw_coloso":     (2500, 2.1, 15, "lin", 4, 0.6, 0),
-    "pw_vortice":    (4000, 2.2, 20, "exp", 0.25, 1.1, 0),
-    "pw_midas":      (20000, 8, 4, "lin", 1, 1, 0),
-    "pw_rayo":       (6000, 2.2, 20, "exp", 0.25, 1.1, 0),
+    # S11: una sola mejora de poderes (antes 7 pw_*); aparece con el primer poder del Altar
+    "fervor":     (300, 1.85, 999, "exp", 0.35, 1.12, 0),
 }
+# S11 Maestría: ×MASTERY[1] cada MASTERY[0] niveles (EconomyConfig.masteryEvery/masteryMult/masteryIds)
+MASTERY = (10, float(__import__("os").environ.get("SIMMM", "1.5")), set(__import__("os").environ.get("SIMMIDS", "masa,cincel,resonancia,fervor").split(",")))
+# S11 Grietas e Inspiración: SIMWEAK = fracción de golpes de la canica que aciertan la grieta (×4 + Ojo del Cantero);
+# SIMINSP = cargas medias de Inspiración (cada una daño +20 %, polvo +15 %)
+WEAK_SHARE = float(__import__("os").environ.get("SIMWEAK", "0.2")); INSP = float(__import__("os").environ.get("SIMINSP", "1.2"))
 # Topes que suben con cada Pulido: id: (niveles extra por pulido, tope absoluto). UpgradeDef.maxLevelPerPrestige / maxLevelLimit
 CAPS = {
     "inercia": (1, 60), "iman": (1, 60), "fortuna": (1, 30), "cantera": (1, 30),
@@ -95,6 +94,9 @@ TREE = {
     "eco":      (10, 2.5, 4, "lin", 1, 1, ["paciencia"]),
     "perpetua": (14, 2.5, 4, "lin", 0.75, 0.25, ["eco"]),
     "obra":     (30, 3.0, 50, "exp", 1, 2, ["metralla", "memoria", "eco"]),
+    "ojo_cantero": (4, 2.2, 5, "lin", 0, 2, ["ojo"]),
+    "fractura": (10, 2.5, 4, "lin", 0, 4, ["ojo_cantero"]),
+    "obstinacion": (4, 2.3, 3, "lin", 0, 1, ["coro"]),
 }
 
 # ---------- ALTAR DE LOS DIOSES (Ícor, permanente) ----------
@@ -170,7 +172,7 @@ class Sim:
         s.g0 = 0; s.run_vol = 0.0; s.done_t = None; s.lives = []   # (pulido, min hasta Taller completo, min de la vida)
 
     def V(s, k):
-        if k in DUST: return val(DUST[k], s.lv[k])
+        if k in DUST: return val(DUST[k], s.lv[k]) * (MASTERY[1] ** (s.lv[k] // MASTERY[0]) if k in MASTERY[2] else 1)
         if k in ALTAR: return val(ALTAR[k], s.al[k])
         return val(TREE[k], s.tr[k])
 
@@ -189,7 +191,7 @@ class Sim:
     def dust_open(s, k):
         d = DUST[k]
         if s.g < d[6] and s.prest == 0: return False
-        if k.startswith("pw_") and not s.al[k[3:]]: return False
+        if k == "fervor" and not any(s.al[p] for p in POWERS): return False
         if k == "vinculo" and not s.lv["gemelas"]: return False
         if k in MILESTONE:
             st, th = MILESTONE[k]
@@ -200,12 +202,12 @@ class Sim:
         return s.g - s.g0 if st == "run_galleries" else s.run_vol
 
     def workshop_done(s):
-        return all(s.lv[k] >= s.dmax(k) for k in DUST if DUST[k][2] < 500 and (not k.startswith("pw_") or s.al[k[3:]]))
+        return all(s.lv[k] >= s.dmax(k) for k in DUST if DUST[k][2] < 500 and (k != "fervor"))
 
     def power_kills(s, hp):
         """Bloques/s extra por los poderes (daño = impacto × potencia × Ira) y multiplicador de polvo medio."""
         G = s.V("brillo") * s.V("obra")
-        dmg = s.V("masa") * s.V("fuerza") * G * s.V("ira")
+        dmg = s.V("masa") * s.V("fuerza") * G * s.V("ira") * (1 + 0.2 * INSP)
         active = 5 + s.lv["cantera"]
         cdm = max(0.3, s.V("eternidad"))
         kills = 0.0; dust_mult = 1.0; casts = 0.0
@@ -219,11 +221,11 @@ class Sim:
             elif k == "vortice": pot_k, fr = pot * s.V("horizonte"), min(1, frac * s.V("horizonte") ** 0.5)
             elif k == "rayo": pot_k, fr = pot, min(1, frac * (3 + s.V("cadena")) / 3)
             else: pot_k, fr = 0, 0
-            if k in ("supernova", "ingravidez", "meteoros", "vortice", "rayo"): pot_k *= s.V("pw_" + k)
+            if k in ("supernova", "ingravidez", "meteoros", "vortice", "rayo"): pot_k *= s.V("fervor")
             if pot_k: kills += active * fr * min(1, pot_k * dmg / hp) / c
             if k == "supernova": dust_mult += (max(2, s.V("codicia")) - 1) * 6 / c
-            if k == "coloso": dust_mult += (s.V("pw_coloso") + s.V("titan")) / c          # ×3 daño ≈ +100 % de ritmo mientras dura
-            if k == "midas": dust_mult += (s.V("pw_midas") + s.V("reymidas")) * 12 * s.V("veta") / c / max(0.05, s.cur_kills)
+            if k == "coloso": dust_mult += (10 + s.V("titan")) / c          # ×3 daño ≈ +100 % de ritmo mientras dura
+            if k == "midas": dust_mult += (2 + s.V("reymidas")) * 12 * s.V("veta") / c / max(0.05, s.cur_kills)
         return kills, dust_mult, casts
 
     def musa_mult(s):
@@ -261,7 +263,7 @@ class Sim:
 
     def dps(s):
         G = s.V("brillo") * s.V("obra")
-        dmg = s.V("masa") * s.V("fuerza") * G
+        dmg = s.V("masa") * s.V("fuerza") * G * (1 + 0.2 * INSP)
         cc = min(1, s.V("fortuna")); cm = CFG["critMult"] + s.V("ojo")
         critF = 1 + cc * (cm - 1)
         speedF = min(1.3, (s.V("inercia") / 11) ** 2 * 0.85)  # (v/vref)^2 medio
@@ -271,13 +273,14 @@ class Sim:
         player = dmg * hps * speedF * combo * critF
         if s.tr["sismo"]: player *= 1 + 0.25 * s.V("sismo") / 3
         if s.tr["metralla"]: player *= 1 + 0.35 * s.V("metralla") / 0.4
+        player *= 1 + WEAK_SHARE * (4 + s.V("ojo_cantero") - 1 + 0.5 * s.V("fractura"))
         shock = dmg * CFG["shockMult"] * s.V("resonancia") * 2 * hps * CFG["resPerImpact"] * combo
         if s.tr["eco"]:
             n = int(s.V("eco")); shock *= 1 + sum(max(0.25, 0.6 - 0.1 * k) for k in range(1, n + 1)) * 1.3
         if s.tr["perpetua"]: shock *= 1.15 * s.V("perpetua")
         # Discípulas: embisten ~0,35 veces/s con tu daño × Vínculo (sin combo)
         allies = s.V("gemelas") * dmg * s.V("vinculo") * 0.35 * speedF * critF
-        aco = (s.V("acolitos") + s.V("eterno")) * s.V("cincel") * s.V("coro") * G / CFG["acolyteInterval"] * (1 + cc * 0.5 * (cm - 1))
+        aco = (s.V("acolitos") + s.V("eterno")) * s.V("cincel") * s.V("coro") * G * (1 + 0.2 * INSP) / CFG["acolyteInterval"] * (1 + cc * 0.5 * (cm - 1))
         return player + shock + aco + allies
 
     def block_hp(s):
@@ -293,7 +296,7 @@ class Sim:
         statue = 1 + c["statueBonus"] * s.V("veta")
         goldF = 1 + gold * (c["goldenReward"] * s.V("veta") - 1)
         md = MUT["dust"] if MUT["on"] and s.prest > 0 else 1
-        return base * statue * goldF * md   # polvo por BLOQUE completo
+        return base * statue * goldF * md * (1 + 0.15 * INSP)   # polvo por BLOQUE completo
 
     def needed(s):
         return min(CFG["statMax"], CFG["statBase"] + CFG["statStep"] * s.g)
@@ -342,7 +345,7 @@ class Sim:
             s.cons = getattr(s, "cons", 0) + 1; s.cons_at = s.prest
             s.ess = 0; s.tr = {k: (max(1, int(v * CONS_KEEP)) if v else 0) for k, v in s.tr.items()}
             s.log.append(f"  >> CONSAGRACIÓN #{s.cons} (Esencia a 0, Árbol ×{CONS_KEEP})")
-        if HITO and s.prest % HITO == 0:
+        if HITO and (s.prest == 1 or (s.prest - 1) % HITO == 0):
             s.cons = getattr(s, "cons", 0) + 1
             s.log.append(f"  >> RELIQUIA (hito {s.cons})")
         s.st["prestige"] = s.prest

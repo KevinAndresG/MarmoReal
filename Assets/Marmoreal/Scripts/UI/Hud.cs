@@ -387,10 +387,10 @@ namespace Marmoreal
             rows.Clear();
             foreach (var d in GameManager.I.config.upgrades)
             {
-                if (d.currency != Currency.Dust || IsPowerUpgrade(d)) continue; // las mejoras de poderes viven en el ALTAR [G]
+                if (d.currency != Currency.Dust) continue;
                 var row = new Row { def = d, el = new Button() };
                 row.el.AddToClassList("shop-row");
-                if (d.requires != null && d.requires.Length > 0 && GameManager.I.config.GetPower(d.requires[0]) != null) row.el.AddToClassList("power-up"); // mejora de un poder del Altar
+                if (d.id == "fervor") row.el.AddToClassList("power-up"); // daño de los poderes del Altar
                 row.el.Add(Lbl("glyph", d.glyph));
                 var text = new VisualElement(); text.AddToClassList("shop-text");
                 text.Add(Lbl("shop-name", d.displayName));
@@ -447,10 +447,13 @@ namespace Marmoreal
                 int lvl = gm.Level(d.id);
                 bool maxed = gm.IsMaxed(d);
                 int cap = gm.MaxLevelOf(d);
-                r.lvl.text = cap < 999 ? $"Nv {lvl}/{cap}" : $"Nv {lvl}";
+                int toM = gm.ToNextMastery(d);
+                r.lvl.text = toM > 0 ? $"Nv {lvl} · ★{toM}" : cap < 999 ? $"Nv {lvl}/{cap}" : $"Nv {lvl}";
                 r.cost.text = maxed ? "MÁX" : Num.F(gm.CostOf(d));
                 r.key.text = vis <= 9 ? $"[^{vis}]" : "";
-                r.effect.text = maxed ? FormatEffect(d, lvl) : FormatEffect(d, lvl) + "  →  " + FormatEffect(d, lvl + 1);
+                string now = FormatEffect(d, lvl, gm.MasteryAt(d, lvl));
+                r.effect.text = maxed ? now : now + "  →  " + FormatEffect(d, lvl + 1, gm.MasteryAt(d, lvl + 1))
+                    + (toM == 1 ? $"  ★ MAESTRÍA ×{gm.config.masteryMult:0.#}" : "");
                 r.el.EnableInClassList("affordable", gm.CanAfford(d));
                 r.el.EnableInClassList("maxed", maxed);
             }
@@ -459,10 +462,10 @@ namespace Marmoreal
 
         static readonly HashSet<string> PercentIds = new HashSet<string> { "fortuna", "paciencia", "fiebre", "rebote", "vinculo" };
 
-        public static string FormatEffect(UpgradeDef d, int level)
+        public static string FormatEffect(UpgradeDef d, int level, float mult = 1f)
         {
             if (d.maxLevel == 1 && d.currency != Currency.Dust) return level > 0 ? "Desbloqueado" : "Bloqueado";
-            float v = d.Value(level);
+            float v = d.Value(level) * mult;
             string s = PercentIds.Contains(d.id) ? Num.Pct(v)
                      : v >= 1000 ? Num.F(v)
                      : Mathf.Abs(v - Mathf.Round(v)) < 0.01f ? Mathf.Round(v).ToString("0")
@@ -506,7 +509,6 @@ namespace Marmoreal
                 if (!InTree(d)) continue;
                 var b = new Button();
                 b.AddToClassList("node");
-                if (IsPowerUpgrade(d)) b.AddToClassList("pw");
                 if (d.maxLevel == 1 && d.currency != Currency.Dust) b.AddToClassList("mechanic");
                 if (d.branch == 3) b.AddToClassList("capstone");
                 var g = Lbl("node-glyph", d.glyph);
@@ -527,7 +529,7 @@ namespace Marmoreal
             if (float.IsNaN(w) || w <= 0) w = 1200; if (float.IsNaN(h) || h <= 0) h = 600;
             float sx = Mathf.Min(180f, w / 7f);
             float sy = (h - 120f) / 4.4f;
-            var tp = TreePos(d);
+            var tp = d.treePos;
             return new Vector2(w * 0.5f + tp.x * sx, 50f + tp.y * sy);
         }
 
@@ -636,7 +638,7 @@ namespace Marmoreal
                 PlayerMarble.I?.ApplyLook();
                 if (gm.config.GetPower(d.id) != null)
                 {
-                    ShowToast($"PODER desbloqueado: {d.displayName} — pulsa [{PowerKey(d.id)}] y mejóralo aquí mismo con polvo", ToastKind.Divine);
+                    ShowToast($"PODER desbloqueado: {d.displayName} — pulsa [{PowerKey(d.id)}]; su daño sube con FERVOR DIVINO en el Taller", ToastKind.Divine);
                     Banner($"{d.glyph}  {d.displayName.ToUpperInvariant()}");
                 }
                 else if (d.maxLevel == 1) ShowToast($"Mecánica desbloqueada: {d.displayName}", ToastKind.Prestige);
@@ -680,15 +682,7 @@ namespace Marmoreal
 
         public void ToggleTree() => ToggleTree(Currency.Essence);
 
-        // Mejora de Taller de un poder (pw_*): se compra con polvo pero se muestra en el ALTAR, junto a su poder.
-        bool IsPowerUpgrade(UpgradeDef d) => d.currency == Currency.Dust && d.requires != null && d.requires.Length > 0 && GameManager.I.config.GetPower(d.requires[0]) != null;
-        bool InTree(UpgradeDef d) => d.currency == treeCurrency || (treeCurrency == Currency.Icor && IsPowerUpgrade(d));
-        Vector2 TreePos(UpgradeDef d)
-        {
-            if (!IsPowerUpgrade(d)) return d.treePos;
-            var p = GameManager.I.config.Get(d.requires[0]);
-            return p != null ? p.treePos + new Vector2(0.42f, 0.62f) : d.treePos;
-        }
+        bool InTree(UpgradeDef d) => d.currency == treeCurrency;
 
         void ToggleShop()
         {
@@ -813,6 +807,7 @@ namespace Marmoreal
             if (gm.OverflowTimeLeft > 0) t += (t.Length > 0 ? "     " : "") + $"ONDA INFINITA [F]  {gm.OverflowTimeLeft:0}s";
             if (AllySquad.I && AllySquad.I.LegionTimeLeft > 0) t += (t.Length > 0 ? "     " : "") + $"LEGIÓN  {AllySquad.I.LegionTimeLeft:0}s";
             if (gm.colossusMult > 1f) t += (t.Length > 0 ? "     " : "") + $"COLOSO ×{gm.colossusMult:0} daño";
+            if (gm.InspirationStacks > 0) t += (t.Length > 0 ? "     " : "") + $"INSPIRACIÓN {gm.InspirationStacks}/{gm.MaxInspiration} · daño ×{gm.InspirationDamageMult:0.##}  {gm.InspirationTimeLeft:0}s";
             var ld = LifeDirector.I;
             if (ld && ld.ActiveEvent != null) t += (t.Length > 0 ? "     " : "") + $"{ld.ActiveEvent.displayName.ToUpperInvariant()}  {ld.EventTimeLeft:0}s";
             var boss = MonolithSpawner.I ? MonolithSpawner.I.Boss : null;
@@ -960,7 +955,7 @@ namespace Marmoreal
                 $"Ícor por pulir: +{Num.F(gm.config.icorPrestigeBase + System.Math.Floor(gm.PrestigeGain / gm.config.icorPrestigeDivisor))}\n" +
                 $"Ganarás  +{Num.F(gm.PrestigeGain)} ESENCIA   (una galería más: +{Num.F(gm.PrestigeGainNext)})\n" +
                 sala.TrimStart('\n') +
-                (gm.PrestigesToRelic <= 1 ? "\n\n★ Este Pulido trae una RELIQUIA nueva" : $"\n\nReliquia nueva a los {gm.PrestigesToRelic} Pulidos") +
+                (gm.PrestigesToRelic <= 1 ? "\n\n★ Este Pulido trae una RELIQUIA nueva" : $"\n\nReliquia nueva a los {gm.PrestigesToRelic} Pulidos o al superar una Prueba") +
                 (gm.MutatorStatus().Length > 0 ? $"\n\nMutador: {gm.MutatorStatus()}" + (gm.MutatorBonus(gm.PrestigeGain) > 0 ? $"  (+{Num.F(gm.MutatorBonus(gm.PrestigeGain))} Esencia)" : "") : ""),
                 "PULIR", () => { holdToasts = true; gm.DoPrestige(); holdToasts = false; });
             if (modalAlt != null) modalAlt.style.display = choose ? DisplayStyle.Flex : DisplayStyle.None;
@@ -1188,6 +1183,9 @@ namespace Marmoreal
             Vector3 v = new Vector3(Random.Range(-1f, 1f), 2.5f, Random.Range(-1f, 1f));
             Spawn(pos, text, cls, crit ? 1.1f : 0.8f, v);
         }
+
+        /// <summary>Rótulo "¡GRIETA!" sobre el punto acertado.</summary>
+        public void WeakHitText(Vector3 pos) => Spawn(pos + Vector3.up * 0.6f, "¡GRIETA!", "weak", 0.9f, new Vector3(0, 3.2f, 0));
 
         void BuildFloaters()
         {

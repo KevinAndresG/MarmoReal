@@ -136,7 +136,7 @@ namespace Marmoreal
                 case "coloso": if (colossusRunning) return false; StartCoroutine(Colossus(d)); return true;
                 case "vortice": StartCoroutine(Vortex(d)); return true;
                 case "midas":
-                    if (!Midas(Mathf.RoundToInt(GM.PowerUpgrade(d.id, d.count) + GM.Value("reymidas")))) return false;
+                    if (!Midas(Mathf.RoundToInt(d.count + GM.Value("reymidas")))) return false;
                     if (GM.RelicOn("midas_avaro")) GM.StartFrenzy(2f, 10f); // Reliquia
                     return true;
                 case "rayo":
@@ -150,6 +150,13 @@ namespace Marmoreal
         {
             EnsureArrays();
             for (int i = 0; i < cooldownLeft.Length; i++) cooldownLeft[i] = 0f;
+        }
+
+        /// <summary>Multiplica la recarga restante de todos los poderes (Lira de Calíope).</summary>
+        public void ShortenCooldowns(float k)
+        {
+            EnsureArrays();
+            for (int i = 0; i < cooldownLeft.Length; i++) cooldownLeft[i] *= k;
         }
 
         public void FreeMeteorShower(int count)
@@ -346,7 +353,7 @@ namespace Marmoreal
             var rb = player.GetComponent<Rigidbody>();
             if (basePlayerRadius < 0) { basePlayerRadius = pm.radius; basePlayerMass = rb.mass; }
             float target = Mathf.Max(1.2f, d.radius);
-            float dur = GM.PowerUpgrade(d.id, d.duration) + GM.Value("titan");
+            float dur = d.duration + GM.Value("titan");
             GM.colossusMult = Mathf.Max(1f, d.potency);
             AudioFX.I?.Play(Sfx.Boom, 0.7f, 0.5f);
             for (float t = 0; t < 0.4f; t += Time.deltaTime) { SetSize(pm, rb, Mathf.Lerp(1f, target, t / 0.4f)); yield return null; }

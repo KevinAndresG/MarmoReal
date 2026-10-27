@@ -307,7 +307,7 @@ namespace Marmoreal
             var sp = MonolithSpawner.I;
             var m = sp ? sp.Nearest(transform.position, 200f) : null;
             if (!m) { autoDir = (-transform.position).normalized; autoDir.y = 0; return; }
-            Vector3 to = m.ClosestPoint(transform.position) - transform.position; to.y = 0;
+            Vector3 to = (m.TryWeakPos(out var wp) ? wp : m.ClosestPoint(transform.position)) - transform.position; to.y = 0;
             float d = to.magnitude;
             // Toma carrerilla: si está muy cerca y lento, se aleja un poco para volver a embestir
             Vector3 hv = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
@@ -408,13 +408,26 @@ namespace Marmoreal
 
             float dmg = gm.ImpactDamageFor(approach, Dashing, out bool crit);
             if (dmg <= 0) return;
+            bool weak = m.HitsWeakPoint(cp.point);
+            if (weak) { dmg *= gm.WeakPointMult; crit = true; }
             m.TakeDamage(dmg, cp.point, HitSource.Player, crit);
             gm.RegisterImpact(dmg);
+            if (Dashing) gm.dashHits++;
+            if (Slamming) gm.slamHits++;
 
             float k = Mathf.Clamp01(approach / Mathf.Max(1f, gm.MaxSpeed));
             AudioFX.I?.Play(Sfx.Impact, 0.35f + 0.65f * k, Random.Range(0.9f, 1.1f) * (crit ? 0.85f : 1f));
-            cameraRig?.Shake(0.08f + 0.25f * k + (crit ? 0.15f : 0f));
-            Hud.I?.HitStop(crit ? 0.05f : 0.02f * k);
+            cameraRig?.Shake(0.08f + 0.25f * k + (crit ? 0.15f : 0f) + (weak ? 0.25f : 0f));
+            Hud.I?.HitStop(weak ? 0.08f : crit ? 0.05f : 0.02f * k);
+            if (weak)
+            {
+                gm.RegisterWeakHit();
+                m.OnWeakHit(cp.point);
+                cameraRig?.Kick(6f);
+                Hud.I?.WeakHitText(cp.point);
+                if (gm.Has("fractura")) Shockwave.I?.Mini(cp.point, gm.ImpactDamage * gm.Value("fractura"), 4.5f);
+                if (gm.RelicOn("cincel_fidias")) dashCharges = Mathf.Min(gm.DashCharges, dashCharges + 1);
+            }
 
             if (gm.Has("rebote"))
             {

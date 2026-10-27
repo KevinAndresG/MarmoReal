@@ -136,6 +136,11 @@ namespace Marmoreal
             furyTimer -= dt;
             overflowTimer -= dt;
             if (overflowTimer > 0) Resonance = 1f;
+            if (inspStacks > 0 && !(Combo >= 10 && RelicOn("llama_votiva")))
+            {
+                inspTimer -= dt;
+                if (inspTimer <= 0) { inspStacks--; inspTimer = config.inspirationDecay; RecalcStats(); }
+            }
 
             achievementTimer -= dt;
             if (achievementTimer <= 0) { achievementTimer = 1f; CheckAchievements(); CheckHitos(); CheckColors(); UpdateRecords(); }
@@ -155,8 +160,15 @@ namespace Marmoreal
         public float Value(string id)
         {
             var d = config.Get(id);
-            return d == null ? 0f : d.Value(S.Level(id));
+            return d == null ? 0f : d.Value(S.Level(id)) * MasteryAt(d, S.Level(id));
         }
+
+        // =================== Maestría (S11): ×masteryMult cada masteryEvery niveles de las mejoras sin tope ===================
+
+        public bool HasMastery(UpgradeDef d) => d != null && d.currency == Currency.Dust && config.masteryEvery > 0 && Array.IndexOf(config.masteryIds, d.id) >= 0;
+        public float MasteryAt(UpgradeDef d, int level) => HasMastery(d) ? Mathf.Pow(config.masteryMult, level / config.masteryEvery) : 1f;
+        /// <summary>Niveles que faltan para la siguiente Maestría (0 si la mejora no tiene).</summary>
+        public int ToNextMastery(UpgradeDef d) => HasMastery(d) ? config.masteryEvery - S.Level(d.id) % config.masteryEvery : 0;
 
         /// <summary>Tope actual: el base + lo que suma cada Pulido (hasta maxLevelLimit).</summary>
         public int MaxLevelOf(UpgradeDef d) => MaxLevelAt(d, S.prestigeCount);
@@ -195,6 +207,7 @@ namespace Marmoreal
         public bool IsUnlocked(UpgradeDef d)
         {
             // ponytail: el Taller ya no se esconde por galería/hito; siempre visible (petición de diseño S10)
+            if (d.id == "fervor") return config.powers.Exists(p => Has(p.id)); // con cualquier poder del Altar
             if (d.requires == null) return true;
             foreach (var r in d.requires) if (S.Level(r) <= 0) return false;
             return true;
@@ -211,7 +224,7 @@ namespace Marmoreal
             if (mu.acolyteMult <= 0f && d.id == "acolitos") return true;
             if (mu.allyMult <= 0f && d.id == "gemelas") return true;
             if (string.IsNullOrEmpty(mu.disabledPower)) return false;
-            return d.id == mu.disabledPower || d.id == "pw_" + mu.disabledPower;
+            return d.id == mu.disabledPower;
         }
 
         public bool TryBuy(UpgradeDef d)
@@ -224,6 +237,11 @@ namespace Marmoreal
             S.SetLevel(d.id, S.Level(d.id) + 1);
             RecalcStats();
             AudioFX.I?.Play(Sfx.Buy);
+            if (HasMastery(d) && S.Level(d.id) % config.masteryEvery == 0)
+            {
+                AudioFX.I?.Play(Sfx.GalleryUp, 0.7f, 1.35f);
+                Hud.I?.Banner($"MAESTRÍA · {d.displayName.ToUpperInvariant()} ×{config.masteryMult:0.#}");
+            }
             return true;
         }
 
@@ -262,6 +280,9 @@ namespace Marmoreal
                 PowerCooldownMult *= mu.powerCooldownMult;
                 if (mu.alwaysCrit) CritChance = 1f;
             }
+            ImpactDamage *= InspirationDamageMult;
+            AcolyteDamage *= InspirationDamageMult;
+            DustMult *= 1f + config.inspirationDust * InspirationStacks;
             StatsChanged?.Invoke();
         }
 
@@ -459,7 +480,7 @@ namespace Marmoreal
             S.lifetimeEssence += gain;
             S.prestigeCount++;
             if (S.infinite) S.infiniteLives++;
-            string newRelic = S.prestigeCount - S.relicPrestige >= Math.Max(1, config.consecrateMinPrestiges) ? GrantRelic() : null;
+            string newRelic = PrestigesToRelic <= 0 ? GrantRelic() : null;
             var biome = BiomeManager.I ? BiomeManager.I.NextFor(S.prestigeCount) : null;
             if (biome) S.biomeId = biome.id;
             AddIcor(config.icorPrestigeBase + Math.Floor(gain / config.icorPrestigeDivisor), "pulido");
@@ -495,8 +516,8 @@ namespace Marmoreal
         // =================== Consagrar y Reliquias (S5) ===================
 
         public int PrestigesSinceConsecrate => S.prestigeCount - S.prestigesAtConsecrate;
-        /// <summary>Pulidos que faltan para el siguiente hito de Reliquia.</summary>
-        public int PrestigesToRelic => Math.Max(0, config.consecrateMinPrestiges - (S.prestigeCount - S.relicPrestige));
+        /// <summary>Pulidos que faltan para el siguiente hito de Reliquia (S11: el primero llega con el primer Pulido).</summary>
+        public int PrestigesToRelic => Math.Max(0, (S.consecrations == 0 ? 1 : Math.Max(1, config.consecrateMinPrestiges)) - (S.prestigeCount - S.relicPrestige));
         public int RelicSlots => config.relicSlotsBase + S.relicSlotsBought;
         public int NextSlotCost => S.relicSlotsBought < config.relicSlotCosts.Length ? config.relicSlotCosts[S.relicSlotsBought] : -1;
         public bool RelicOn(string id) => S.relicsEquipped.Contains(id);
@@ -507,6 +528,11 @@ namespace Marmoreal
         {
             S.consecrations++;
             S.relicPrestige = S.prestigeCount;
+            return GrantRelicToken();
+        }
+
+        string GrantRelicToken()
+        {
             if (S.relics.Count + S.relicTokens >= config.relics.Count) { AddIcor(config.trialIcor, "reliquia repetida"); return "(todas conseguidas: +Ícor)"; }
             S.relicTokens++;
             return "1 Punto de Reliquia: elige cuál desbloquear";
@@ -669,6 +695,7 @@ namespace Marmoreal
             var piece = stage < config.campaign.Count ? config.campaign[stage] : null;
             AddIcor(config.trialIcor, "Prueba");
             Toast?.Invoke($"PIEZA DEL MONUMENTO: {piece?.displayName?.ToUpperInvariant()}  ({S.pieces.Count}/{PiecesNeeded})", ToastKind.Divine);
+            if (config.relicPerTrial) Toast?.Invoke($"¡Punto de Reliquia por la Prueba! {GrantRelicToken()} — RELIQUIAS [R]", ToastKind.Prestige);
             var next = BiomeManager.I ? BiomeManager.I.ByStage(stage + 1) : null;
             if (next) Toast?.Invoke($"Nueva sala desbloqueada: {next.displayName}. Llévala al Pulir", ToastKind.Prestige);
             CheckColors();
@@ -782,15 +809,8 @@ namespace Marmoreal
 
         // =================== Poderes / Ícor / buffs ===================
 
-        /// <summary>Daño de un poder: daño de impacto actual × potencia × mejora del Taller (pw_id) × Ira Divina.</summary>
-        public float PowerDamage(string id, float potency) => ImpactDamage * potency * PowerUpgrade(id, 1f) * PowerMult;
-
-        /// <summary>Valor de la mejora de Taller del poder (id "pw_" + poder). Se pierde al Pulir, como todo el Taller.</summary>
-        public float PowerUpgrade(string powerId, float fallback)
-        {
-            var d = config.Get("pw_" + powerId);
-            return d == null ? fallback : d.Value(S.Level(d.id));
-        }
+        /// <summary>Daño de un poder: daño de impacto actual × potencia × Fervor Divino (Taller) × Ira Divina (Altar).</summary>
+        public float PowerDamage(string id, float potency) => ImpactDamage * potency * (config.Get("fervor") != null ? Value("fervor") : 1f) * PowerMult;
 
         public void AddIcor(double n, string reason)
         {
@@ -810,6 +830,49 @@ namespace Marmoreal
         }
 
         public void StartFury(float seconds) => furyTimer = Mathf.Max(furyTimer, seconds);
+
+        // =================== Inspiración, Encargos y Grietas (S11) ===================
+
+        [NonSerialized] int inspStacks;
+        [NonSerialized] float inspTimer;
+        /// <summary>Contadores de la partida para los Encargos (LifeDirector los sondea; no se guardan).</summary>
+        [NonSerialized] public int weakHits, dashHits, slamHits;
+        public int InspirationStacks => inspStacks;
+        public float InspirationTimeLeft => inspStacks > 0 ? Mathf.Max(0, inspTimer) : 0f;
+        public float InspirationDamageMult => 1f + config.inspirationDamage * inspStacks;
+        public int MaxInspiration => config.inspirationMaxStacks + Mathf.RoundToInt(Value("obstinacion"));
+
+        public void AddInspiration()
+        {
+            inspStacks = Mathf.Min(MaxInspiration, inspStacks + 1);
+            inspTimer = config.inspirationDuration * (1f + 0.15f * Level("obstinacion"));
+            RecalcStats();
+        }
+
+        /// <summary>Encargo cumplido: +1 Inspiración y polvo (segundos de tu ritmo actual, mínimo 3 bloques).</summary>
+        public void CompleteEncargo(EncargoDef e)
+        {
+            AddInspiration();
+            double dust = Math.Max(DustPerSecond * config.encargoDustSeconds, BlockReward(false, false) * 3);
+            AddDust(dust);
+            S.encargosDone++;
+            if (RelicOn("lira_caliope")) PowerSystem.I?.ShortenCooldowns(0.7f);
+            AudioFX.I?.Play(Sfx.GalleryUp, 0.8f, 1.15f);
+            Hud.I?.Banner($"¡ENCARGO! INSPIRACIÓN ×{InspirationDamageMult:0.##}");
+            Toast?.Invoke($"Encargo cumplido: +{Num.F(dust)} polvo · daño ×{InspirationDamageMult:0.##} mientras dure la Inspiración", ToastKind.Gold);
+        }
+
+        /// <summary>Daño ×esto al acertar la grieta de un bloque (base + Ojo del Cantero).</summary>
+        public float WeakPointMult => config.weakPointMult + Value("ojo_cantero");
+
+        public void RegisterWeakHit()
+        {
+            weakHits++;
+            S.weakHitsTotal++;
+            AddResonance(config.weakPointResonance * (RelicOn("cincel_fidias") ? 2f : 1f));
+            Combo += 2; // la grieta cuenta como 3 golpes para el combo
+            ComboTimer = config.comboWindow;
+        }
         public void StartOverflow(float seconds) { overflowTimer = Mathf.Max(overflowTimer, seconds); Resonance = 1f; }
         public void FillResonance() => Resonance = 1f;
 
@@ -849,6 +912,8 @@ namespace Marmoreal
                 case "pieces": return S.pieces.Count;
                 case "campaign": return S.campaignWon ? 1 : 0;
                 case "consecrations": return S.consecrations;
+                case "weak": return S.weakHitsTotal;
+                case "encargos": return S.encargosDone;
                 default: return 0;
             }
         }

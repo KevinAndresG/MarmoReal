@@ -476,3 +476,28 @@ Simulador (`SIMHP`, `SIMTRIALS`, `SIMLEGACY=<pulido>`, `SIMREFUND=<pulido>`; jug
 1,8/1,5/1,8/2,3/1,1/4,2/0,7 h (antes, 13,4 h totales) → con 1,72 y Pruebas 45/65/90/115/135/160/185: 1,0/0,8/1,7/0,4/1,3/3,3/7,6 h
 (≈ 16 h); con 1,75: 1,3/0,9/2,4/1,5/2,3/5,0/1,7 h. Se eligió 1,72 + Pruebas 45…175 (≈ 1-2,5 h por sala para un jugador real).
 Jugador de Consagración antigua (SIMLEGACY=6): sin compensación Prueba 7 a 17,0 h; con compensación (SIMREFUND=7) 16,4 h y Prueba 5 −2,4 h.
+
+### S11 — Jugabilidad activa: Grietas, Encargos, Inspiración, Maestría y poderes unificados
+**Diagnóstico:** (1) Reliquia cada 5 Pulidos = una cada 3-8 h. (2) El daño crece ×1,3 por nivel de Masa a coste ×1,5 mientras el HP crece ×1,72
+por galería: tras el Taller "finito" solo quedan mejoras exponenciales que no se notan y al atascarse no hay nada que hacer. (3) Las 7 mejoras
+`pw_*` (Polvo) salían en el Altar junto a nodos de Ícor que hacían lo mismo (Caída + Gravedad Rota, Titán + Gigantismo, Rey Midas + Alquimia).
+
+| Sistema | Qué hace | Dónde |
+|---|---|---|
+| **Grietas** | Cada bloque tiene un trozo exterior y bajo que late en cian. Golpearlo: daño ×4 (+Ojo del Cantero), crítico, "¡GRIETA!", hit-stop, +25 % Resonancia, +2 combo; la grieta salta a otro trozo | `Monolith.PickWeakPoint/HitsWeakPoint/OnWeakHit`, `PlayerMarble.OnCollisionEnter`, `weakPoint*` |
+| **Encargos** | Cada ~30 s un micro-reto de 25-40 s (grietas, Embestidas, Golpe en Picado, combo, estatuas). Fallar no castiga (el siguiente llega antes) | `EconomyConfig.encargos`, `LifeDirector.UpdateEncargo`, panel de contratos |
+| **Inspiración** | Encargo cumplido: +1 carga (daño +20 %, polvo +15 % cada una, máx. 4) + polvo = 20 s de tu ritmo. Al agotarse pierde 1 carga cada 20 s. Es la salida activa de los atascos | `GameManager.AddInspiration/CompleteEncargo`, `inspiration*` |
+| **Maestría** | Masa, Cincel, Resonancia y Fervor: ×1,5 cada 10 niveles (Pureza no: se retroalimenta). Taller: "Nv 7 · ★3" y banner MAESTRÍA | `GameManager.MasteryAt/Value`, `mastery*` |
+| **Fervor Divino** | Sustituye a las 7 `pw_*`: una mejora del Taller para el daño de TODOS los poderes. El Altar queda solo con nodos de Ícor (sin duplicados). Coloso dura `duration` + Titán; Midas dora `count` + Rey Midas | `PowerDamage`, `IsUnlocked("fervor")` |
+| **Árbol** | +3 nodos: Ojo del Cantero (grieta +×2/nivel), Fractura (grieta suelta onda), Obstinación (+1 carga de Inspiración y +15 % duración/nivel) | `FillDefaults`, ramas exteriores x ±3,25 |
+| **Reliquias** | Hito cada **3** Pulidos con el **primero en el 1.er Pulido**, +1 Punto por cada **Prueba** superada; 3 ranuras base; 3 reliquias nuevas: Cincel de Fidias, Lira de Calíope, Llama Votiva | `PrestigesToRelic`, `GrantRelicToken`, `relicPerTrial` |
+| **Mecenazgos** | Ojo Certero (25 grietas), Cantero Mayor (500), Aprendiz Diligente (10 Encargos), Maestro de Obras (100) | stats `weak`, `encargos` |
+
+Ritmo de Reliquias (simulador): antes la 1.ª a los ~3,4 h (Pulido 5); ahora en el 1.er Pulido y luego cada Pulido 4, 7, 10… más 7 por Pruebas
+→ las 11 reliquias se reparten por toda la campaña.
+
+**Simulador (S11):** ahora por defecto refleja el asset real (`SIMHP=1.72`, `SIMK=0` porque `workshopCostScale = 0` desde S10, `SIMHITO=3`).
+Nuevos: `SIMWEAK` (fracción de golpes en grieta, 0,2), `SIMINSP` (cargas medias, 1,2), `SIMMM`/`SIMMIDS` (Maestría). Ojo: su jugador ideal
+ya completaba la campaña en ~3,6 h **antes** de S11 (`SIMWEAK=0 SIMINSP=0 SIMMM=1`), muy lejos de la experiencia real (atasco a los ~10 min),
+así que el ritmo global hay que calibrarlo jugando. Prueba real con el piloto (que apunta a la grieta, ~80 % de aciertos): Galería 25 a los 6 min.
+Si resulta demasiado fácil, las palancas son `inspirationDamage`, `weakPointMult`, `masteryMult` y `BiomeDef.trialGallery`.

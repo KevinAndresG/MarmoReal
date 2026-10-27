@@ -80,6 +80,20 @@ namespace Marmoreal
 
     public enum ContractKind { VolatileChain, Combo, PowerBurst, Golden, Boss, Statues }
 
+    public enum EncargoKind { WeakHits, DashHits, SlamHits, Combo, Statues }
+
+    /// <summary>Encargo: micro-reto de ~30 s que aparece solo durante la partida. Cumplido = +1 Inspiración y polvo.
+    /// description admite {0} = objetivo. Lo gestiona LifeDirector.</summary>
+    [Serializable]
+    public class EncargoDef
+    {
+        public string id;
+        public string description;
+        public EncargoKind kind;
+        public int target = 3;
+        public float time = 30f;
+    }
+
     /// <summary>Contrato: objetivo opcional de la vida actual. description admite {0} = objetivo.</summary>
     [Serializable]
     public class ContractDef
@@ -286,6 +300,31 @@ namespace Marmoreal
         [Header("Discípulas (canicas aliadas)")]
         public float allyResonancePerHit = 0.03f;
 
+        [Header("Grietas: punto débil brillante de cada bloque (S11)")]
+        [Tooltip("Daño de la canica al golpear la grieta (×); el nodo Ojo del Cantero suma")]
+        public float weakPointMult = 4f;
+        [Tooltip("Distancia (m) del punto de contacto al centro del trozo marcado para contar como grieta")]
+        public float weakPointRadius = 1.25f;
+        public float weakPointResonance = 0.25f;
+
+        [Header("Maestría del Taller (S11): cada N niveles el efecto se multiplica")]
+        public int masteryEvery = 10;
+        public float masteryMult = 1.5f;
+        public string[] masteryIds = { "masa", "cincel", "resonancia", "fervor" };
+
+        [Header("Encargos e Inspiración (S11)")]
+        [Tooltip("Segundos entre un Encargo y el siguiente")]
+        public float encargoEvery = 30f;
+        [Tooltip("Estatuas liberadas en total antes del primer Encargo (no estorbar el tutorial)")]
+        public int encargoMinStatues = 3;
+        [Tooltip("Polvo al cumplirlo = segundos de tu polvo/s (mínimo 3 bloques)")]
+        public float encargoDustSeconds = 20f;
+        [Tooltip("Cada carga de Inspiración: daño +X y polvo +Y (aditivo por carga)")]
+        public float inspirationDamage = 0.2f, inspirationDust = 0.15f;
+        public int inspirationMaxStacks = 4;
+        [Tooltip("Duración tras ganar una carga; al agotarse se pierde 1 carga y las demás duran inspirationDecay s más")]
+        public float inspirationDuration = 75f, inspirationDecay = 20f;
+
         [Header("Coste del Taller escalado por poder permanente")]
         public bool workshopCostScale = true;
         [Tooltip("k: coste × (Brillo×Obra×Fama)^k. 0 = sin escalado")]
@@ -333,7 +372,9 @@ namespace Marmoreal
 
         [Header("Hito de Reliquia (antes Consagrar) y Reliquias")]
         [Tooltip("S8: cada N Pulidos el Pulido entrega 1 Reliquia y cuenta 1 Consagración (no reinicia nada)")]
-        public int consecrateMinPrestiges = 5;
+        public int consecrateMinPrestiges = 3;
+        [Tooltip("S11: cada Prueba superada (pieza del Monumento) da además 1 Punto de Reliquia")]
+        public bool relicPerTrial = true;
         [Tooltip("Esencia al Pulir ×(1 + esto × Consagraciones/hitos de Reliquia)")]
         public float consecrateEssenceBonus = 0.25f;
         [Tooltip("Partidas con Consagraciones antiguas (S5-S7, reiniciaban el Árbol): el ×coste del Taller por Pulido cuenta solo los Pulidos desde la última de ellas")]
@@ -353,6 +394,7 @@ namespace Marmoreal
         public List<MutatorDef> mutators = new List<MutatorDef>();
         public List<LifeEventDef> lifeEvents = new List<LifeEventDef>();
         public List<ContractDef> contracts = new List<ContractDef>();
+        public List<EncargoDef> encargos = new List<EncargoDef>();
         public List<PowerDef> powers = new List<PowerDef>();
         public List<AchievementDef> achievements = new List<AchievementDef>();
 
@@ -414,6 +456,8 @@ namespace Marmoreal
                 if (lifeEvents.Find(x => x.id == e.id) == null) { lifeEvents.Add(e); changed = true; }
             foreach (var c in fresh.contracts)
                 if (GetContract(c.id) == null) { contracts.Add(c); changed = true; }
+            foreach (var e in fresh.encargos)
+                if (encargos.Find(x => x.id == e.id) == null) { encargos.Add(e); changed = true; }
             foreach (var c in fresh.campaign)
                 if (campaign.Find(x => x.id == c.id) == null) { campaign.Add(c); changed = true; }
             foreach (var c in fresh.marbleColors)
@@ -444,14 +488,9 @@ namespace Marmoreal
                 Hito(Cap(U("gemelas", "Discípulas", "Canicas de mármol que ruedan solas y embisten bloques con una parte de TU daño de impacto.", "◐", 2500, 3.2, 8, EffectMode.Linear, 0f, 1f, "{0} discípulas", 4), 1, 24), "runVolatile", 12, "romper 12 bloques volcánicos en esta vida"),
                 P(U("vinculo", "Vínculo", "Parte de tu daño de impacto que copian las Discípulas. Sin límite.", "∾", 4000, 1.85, 999, EffectMode.Linear, 0.3f, 0.05f, "{0} de tu daño", 4), "gemelas"),
 
-                // ---------- MEJORAS DE PODERES (Polvo; aparecen al desbloquear el poder en el Altar y se pierden al Pulir) ----------
-                P(U("pw_supernova", "Pólvora Divina", "Daño de la Supernova [1]. Empieza flojo: súbelo en cada vida.", "✹", 400, 2.2, 20, EffectMode.Exponential, 0.25f, 1.1f, "×{0} daño"), "supernova"),
-                P(U("pw_ingravidez", "Gravedad Rota", "Daño del impacto de la Ingravidez [2].", "⇡", 900, 2.2, 20, EffectMode.Exponential, 0.25f, 1.1f, "×{0} daño"), "ingravidez"),
-                P(U("pw_meteoros", "Núcleo Ígneo", "Daño de cada meteorito [3].", "☄", 900, 2.2, 20, EffectMode.Exponential, 0.25f, 1.1f, "×{0} daño"), "meteoros"),
-                P(U("pw_coloso", "Gigantismo", "Duración del Coloso [4].", "⬤", 2500, 2.1, 15, EffectMode.Linear, 4f, 0.6f, "{0} s"), "coloso"),
-                P(U("pw_vortice", "Singularidad", "Daño del Vórtice [5].", "◎", 4000, 2.2, 20, EffectMode.Exponential, 0.25f, 1.1f, "×{0} daño"), "vortice"),
-                P(U("pw_midas", "Alquimia", "Bloques que dora el Toque de Midas [6].", "♛", 20000, 8f, 4, EffectMode.Linear, 1f, 1f, "{0} bloques"), "midas"),
-                P(U("pw_rayo", "Ira de Zeus", "Daño de cada rayo de la Cadena de Rayos [7].", "↯", 6000, 2.2, 20, EffectMode.Exponential, 0.25f, 1.1f, "×{0} daño"), "rayo"),
+                // ---------- PODERES (Polvo): S11 una sola mejora para todos (antes 7 "pw_*" que duplicaban nodos del Altar) ----------
+                // Aparece al desbloquear el primer poder (GameManager.IsUnlocked); se pierde al Pulir como todo el Taller.
+                U("fervor", "Fervor Divino", "Daño de TODOS tus poderes en esta vida. Maestría ×1,5 cada 10 niveles.", "ϟ", 300, 1.85, 999, EffectMode.Exponential, 0.35f, 1.12f, "×{0} poderes"),
 
                 // ---------- ÁRBOL DE HABILIDADES (Esencia) ----------
                 // Raíz
@@ -473,6 +512,10 @@ namespace Marmoreal
                 E("impulso", "Impulso", "Recarga de la Embestida más rápida.", "»", 3, 2.0, 5, EffectMode.Linear, 2.4f, -0.3f, "{0}s", 2.5f, 2.6f, 2, "paciencia"),
                 E("eco", "Eco Resonante", "MECÁNICA: la onda [F] se repite en ecos cada vez más amplios. Nivel 1: 2 ecos · nivel 4: 5 ecos.", "≋", 10, 2.5, 4, EffectMode.Linear, 1f, 1f, "{0} ecos", 1.3f, 3, 2, "paciencia"),
                 E("perpetua", "Resonancia Perpetua", "MECÁNICA: la onda se libera sola al llenarse. Cada nivel: la Resonancia se carga más rápido.", "∞", 14, 2.5, 4, EffectMode.Linear, 0.75f, 0.25f, "×{0} carga", 2.5f, 3.6f, 2, "eco"),
+                // S11: ramas exteriores para las mecánicas nuevas (Grietas e Inspiración)
+                E("ojo_cantero", "Ojo del Cantero", "Las GRIETAS (punto brillante de cada bloque) multiplican más tu golpe.", "◈", 4, 2.2, 5, EffectMode.Linear, 0f, 2f, "+×{0} grieta", -3.25f, 2.3f, 1, "ojo"),
+                E("fractura", "Fractura", "MECÁNICA: acertar una grieta libera una onda que daña los bloques cercanos. Cada nivel: más daño.", "✵", 10, 2.5, 4, EffectMode.Linear, 0f, 4f, "×{0} daño", -3.25f, 3.5f, 1, "ojo_cantero"),
+                E("obstinacion", "Obstinación", "Más cargas de INSPIRACIÓN (Encargos cumplidos) y duran más.", "✊", 4, 2.3, 3, EffectMode.Linear, 0f, 1f, "+{0} cargas", 3.25f, 2.3f, 2, "coro"),
                 // Cumbre
                 E("obra", "Obra Maestra", "La cumbre del escultor: duplica TODO por nivel.", "♜", 30, 3.0, 50, EffectMode.Exponential, 1f, 2f, "×{0}", 0, 4.3f, 3, "metralla", "memoria", "eco"),
 
@@ -567,6 +610,10 @@ namespace Marmoreal
                 A("victoria", "Obra Maestra", "Completa la campaña del Gran Monumento.", "campaign", 1, 10),
                 A("consagra1", "Consagrado", "Consagra la canica por primera vez.", "consecrations", 1, 5),
                 A("consagra5", "Relicario", "Consagra la canica 5 veces.", "consecrations", 5, 10),
+                A("grieta1", "Ojo Certero", "Acierta 25 grietas.", "weak", 25, 1),
+                A("grieta2", "Cantero Mayor", "Acierta 500 grietas.", "weak", 500, 4),
+                A("encargo1", "Aprendiz Diligente", "Cumple 10 Encargos.", "encargos", 10, 2),
+                A("encargo2", "Maestro de Obras", "Cumple 100 Encargos.", "encargos", 100, 5),
             };
 
             mutators = new List<MutatorDef>
@@ -596,6 +643,15 @@ namespace Marmoreal
                 new ContractDef { id = "dorados", description = "Libera {0} estatuas doradas", kind = ContractKind.Golden, target = 3, rewardEssencePct = 0.1f },
                 new ContractDef { id = "coloso", description = "Derrota a un Coloso", kind = ContractKind.Boss, target = 1, rewardIcor = 4 },
                 new ContractDef { id = "estatuas", description = "Libera {0} estatuas en esta vida", kind = ContractKind.Statues, target = 80, rewardEssencePct = 0.15f },
+            };
+
+            encargos = new List<EncargoDef>
+            {
+                new EncargoDef { id = "grietas", description = "Golpea {0} GRIETAS brillantes", kind = EncargoKind.WeakHits, target = 3, time = 30 },
+                new EncargoDef { id = "embestidas", description = "Acierta {0} Embestidas [Shift] en bloques", kind = EncargoKind.DashHits, target = 5, time = 25 },
+                new EncargoDef { id = "picado", description = "{0} Golpes en Picado sobre bloques [Espacio ×2]", kind = EncargoKind.SlamHits, target = 2, time = 30 },
+                new EncargoDef { id = "combo", description = "Encadena un combo de {0}", kind = EncargoKind.Combo, target = 15, time = 25 },
+                new EncargoDef { id = "estatuas", description = "Libera {0} estatuas", kind = EncargoKind.Statues, target = 3, time = 40 },
             };
 
             campaign = new List<CampaignPieceDef>
@@ -636,6 +692,9 @@ namespace Marmoreal
                 new RelicDef { id = "ingravidez_iman", displayName = "Ingravidez Imantada", glyph = "⇡", power = "ingravidez", description = "La Ingravidez atrae todo el polvo del santuario y golpea ×1,5." },
                 new RelicDef { id = "midas_avaro", displayName = "Corona Avara", glyph = "♛", power = "midas", description = "Midas desata además un Frenesí de polvo ×2 durante 10 s." },
                 new RelicDef { id = "reloj_arena", displayName = "Reloj de Arena", glyph = "⌛", power = "", description = "Cada poder lanzado acorta un 15 % la recarga de los demás." },
+                new RelicDef { id = "cincel_fidias", displayName = "Cincel de Fidias", glyph = "◈", power = "", description = "Acertar una grieta te devuelve una carga de Embestida y carga el doble de Resonancia." },
+                new RelicDef { id = "lira_caliope", displayName = "Lira de Calíope", glyph = "♪", power = "", description = "Cada Encargo cumplido acorta un 30 % la recarga de todos los poderes." },
+                new RelicDef { id = "llama_votiva", displayName = "Llama Votiva", glyph = "✊", power = "", description = "La Inspiración no se apaga mientras tu combo sea de 10 o más." },
             };
 
             bossMods = new List<BossModDef>

@@ -24,7 +24,7 @@ namespace Marmoreal
         float chainTimer;
         readonly Queue<float> powerTimes = new Queue<float>();
 
-        public string DebugState => $"ev={(ActiveEvent != null ? ActiveEvent.id : "-")} evT={EventTimeLeft:0} next={nextEvent:0} chain={chain} combo={bestCombo} ctr={string.Join(",", GameManager.I ? GameManager.I.S.contractsDone : new List<string>())}";
+        public string DebugState => $"ev={(ActiveEvent != null ? ActiveEvent.id : "-")} evT={EventTimeLeft:0} next={nextEvent:0} chain={chain} combo={bestCombo} ctr={string.Join(",", GameManager.I ? GameManager.I.S.contractsDone : new List<string>())} enc={(Encargo != null ? $"{Encargo.id} {EncargoProgress}/{Encargo.target} {EncargoTimeLeft:0}s" : $"- next {nextEncargo:0}")} insp={(GameManager.I ? GameManager.I.InspirationStacks : 0)} weak={(GameManager.I ? GameManager.I.weakHits : 0)} encDone={(GameManager.I ? GameManager.I.S.encargosDone : 0)}";
 
         void Awake() { I = this; }
 
@@ -35,6 +35,70 @@ namespace Marmoreal
             if (Hud.I && Hud.I.BlocksGameplay) return;
             UpdateEvents(gm);
             UpdateContracts(gm);
+            UpdateEncargo(gm);
+        }
+
+        // ================================================================= Encargos (S11)
+        public EncargoDef Encargo { get; private set; }
+        public float EncargoTimeLeft => Encargo != null ? Mathf.Max(0, encargoTimer) : 0f;
+        float encargoTimer, nextEncargo = 12f;
+        int encargoBase, encargoCombo;
+        string lastEncargo;
+
+        int EncargoCounter(GameManager gm, EncargoKind k) => k switch
+        {
+            EncargoKind.WeakHits => gm.weakHits,
+            EncargoKind.DashHits => gm.dashHits,
+            EncargoKind.SlamHits => gm.slamHits,
+            EncargoKind.Statues => gm.S.lifeStatues,
+            _ => 0,
+        };
+
+        public int EncargoProgress
+        {
+            get
+            {
+                var gm = GameManager.I;
+                if (Encargo == null || !gm) return 0;
+                return Encargo.kind == EncargoKind.Combo ? encargoCombo : Mathf.Max(0, EncargoCounter(gm, Encargo.kind) - encargoBase);
+            }
+        }
+
+        void UpdateEncargo(GameManager gm)
+        {
+            var list = gm.config.encargos;
+            if (list == null || list.Count == 0 || gm.S.totalStatues < gm.config.encargoMinStatues) return;
+            if (Encargo == null)
+            {
+                nextEncargo -= Time.deltaTime;
+                if (nextEncargo > 0) return;
+                var pool = list.FindAll(e => e.id != lastEncargo && !(e.kind == EncargoKind.DashHits && gm.Mutator != null && gm.Mutator.noDash));
+                if (pool.Count == 0) pool = list;
+                Encargo = pool[Random.Range(0, pool.Count)];
+                lastEncargo = Encargo.id;
+                encargoTimer = Encargo.time;
+                encargoBase = EncargoCounter(gm, Encargo.kind);
+                encargoCombo = 0;
+                AudioFX.I?.Play(Sfx.Tink, 0.5f, 1.3f);
+                Hud.I?.ShowToast($"ENCARGO: {string.Format(Encargo.description, Encargo.target)} ({Encargo.time:0} s)", ToastKind.Info);
+                return;
+            }
+            if (Encargo.kind == EncargoKind.Combo) encargoCombo = Mathf.Max(encargoCombo, gm.Combo);
+            if (EncargoCounter(gm, Encargo.kind) < encargoBase) encargoBase = EncargoCounter(gm, Encargo.kind); // Pulido: contador de la vida a 0
+            encargoTimer -= Time.deltaTime;
+            if (EncargoProgress >= Encargo.target)
+            {
+                var done = Encargo;
+                Encargo = null;
+                nextEncargo = gm.config.encargoEvery;
+                gm.CompleteEncargo(done);
+            }
+            else if (encargoTimer <= 0)
+            {
+                Encargo = null;
+                nextEncargo = gm.config.encargoEvery * 0.5f; // fallar no castiga: el siguiente llega antes
+                AudioFX.I?.Play(Sfx.Deny, 0.35f, 0.9f);
+            }
         }
 
         // ================================================================= Eventos
@@ -142,6 +206,9 @@ namespace Marmoreal
             var gm = GameManager.I;
             if (!gm) return "";
             var sb = new System.Text.StringBuilder();
+            if (Encargo != null)
+                sb.Append("ENCARGO  ").Append(string.Format(Encargo.description, Encargo.target))
+                  .AppendLine($"  ({Mathf.Min(EncargoProgress, Encargo.target)}/{Encargo.target}) · {Mathf.CeilToInt(EncargoTimeLeft)} s");
             string mu = gm.MutatorStatus();
             if (mu.Length > 0) sb.Append("MUTADOR  ").AppendLine(mu);
             if (gm.ContractsOpen)
