@@ -324,3 +324,13 @@
 .layer.cine > * { visibility: hidden; }
 .layer.cine > .banner { visibility: visible; }
 .relic-btn { font-size: 12px; min-height: 24px; margin-top: 4px; padding: 2px 8px; }
+
+/* S10: Taller plegable, objetivo y botones bloqueados */
+.shop.collapsed { bottom: auto; }
+.shop.collapsed .shop-list { display: none; }
+.shop-toggle { background-color: rgba(0,0,0,0); border-width: 0; padding: 2px; }
+.objective { font-size: 12px; color: #F3E3B5; white-space: normal; background-color: rgba(232, 199, 122, 0.12); border-left-width: 3px; border-left-color: var(--gold); padding: 6px 8px; margin-bottom: 8px; border-radius: 4px; }
+.btn.locked { opacity: 0.4; border-color: rgba(255,255,255,0.15); color: var(--ink-dim); }
+.node.sealed { opacity: 0.25; }
+.node.pw { width: 52px; height: 52px; margin-left: -26px; margin-top: -26px; border-radius: 26px; }
+.node.pw .node-glyph { font-size: 18px; }

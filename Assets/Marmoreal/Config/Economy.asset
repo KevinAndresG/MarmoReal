@@ -62,7 +62,7 @@ MonoBehaviour:
   volatileBlastMult: 12
   volatileBlastRadius: 7
   allyResonancePerHit: 0.03
-  workshopCostScale: 1
+  workshopCostScale: 0
   workshopCostK: 1.8
   workshopCostPerPrestige: 1.6
   famePerAchievement: 0.02

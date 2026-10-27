@@ -159,3 +159,8 @@ script llama `HDMaterial.ValidateMaterial`). Iluminación: objetos de `--- ILUMI
 Salas: sus `VP_*` deben igualar a `VP_Santuario` en niebla (150 m), luminancia del cielo y `colorFilter` (casi blanco); Sol 2600 lux
 casi blanco en `Biome_*`. Si una sala se ve oscura, mira primero el `_BaseColor` de `M_Floor_*`/`M_Column_*`/`M_OuterGround_*` (S8: los
 oscuros eran la causa principal). Comparar: forzar `gm.S.biomeId`, `pm.Respawn()`, `rig.yaw=0; rig.pitch=28; rig.distance=22` y capturar.
+
+**S10 (UI/fluidez):** `workshopCostScale = 0` en `Economy.asset` (el Taller ya no se encarece al Pulir); `IsUnlocked` ya no oculta
+mejoras del Taller por galería/hito; números arábigos (`Num.Roman` devuelve `n.ToString()`). Mejoras `pw_*` se muestran en el
+ALTAR [G] (`Hud.IsPowerUpgrade`/`InTree`/`TreePos`), no en el Taller. `GameManager.MutatorBlocks(d)` oculta lo anulado por el mutador.
+Menú de pausa (Esc / `menu-btn`, `Time.timeScale = 0`), Taller plegable (B / `shop-toggle`), objetivo en `objective` (`Hud.ObjectiveText`).

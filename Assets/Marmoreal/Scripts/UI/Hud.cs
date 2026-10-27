@@ -69,6 +69,9 @@ namespace Marmoreal
         double lastDust = -1, lastEss = -1, lastRate = -1, lastIcor = -1;
         int lastCombo = -1;
         int tutorialStep;
+        bool paused;
+        Button shopToggle, menuBtn;
+        Label objectiveLbl;
 
         public bool BlocksGameplay => titleShown || cinematic || modalOpen || treeOpen || logrosOpen || coleccionOpen || reliquiasOpen;
         public bool PointerOverUI { get; private set; }
@@ -123,6 +126,7 @@ namespace Marmoreal
             Q(out altarBtn, "altar-btn"); Q(out logrosBtn, "logros-btn"); Q(out logrosClose, "logros-close");
             Q(out treeBtn, "tree-btn"); Q(out prestigeBtn, "prestige-btn"); Q(out qualityBtn, "quality-btn"); Q(out muteBtn, "mute-btn");
             Q(out resetBtn, "reset-btn"); Q(out tiBuy, "ti-buy"); Q(out modalOk, "modal-ok"); Q(out modalCancel, "modal-cancel"); Q(out modalAlt, "modal-alt"); Q(out treeClose, "tree-close");
+            shopToggle = root.Q<Button>("shop-toggle"); objectiveLbl = root.Q<Label>("objective"); menuBtn = root.Q<Button>("menu-btn");
             Q(out contractsLbl, "contracts"); Q(out modalCards, "modal-cards"); modalBox = root.Q(className: "modal-box");
             BindCampaign();
             BindRelics();
@@ -136,6 +140,8 @@ namespace Marmoreal
             qualityBtn.clicked += CycleQuality;
             muteBtn.clicked += ToggleMute;
             resetBtn.clicked += AskReset;
+            if (shopToggle != null) shopToggle.clicked += ToggleShop;
+            if (menuBtn != null) menuBtn.clicked += OpenMenu;
             tiBuy.clicked += BuySelectedNode;
             modalOk.clicked += () => { var a = modalAction; CloseModal(); a?.Invoke(); };
             modalCancel.clicked += CloseModal;
@@ -288,14 +294,14 @@ namespace Marmoreal
 
             shopTimer -= Time.unscaledDeltaTime;
             pulseCooldown -= Time.unscaledDeltaTime;
-            if (shopTimer <= 0) { shopTimer = 0.15f; RefreshContracts(); RefreshShop(); if (treeOpen) RefreshTree(); if (logrosOpen) RefreshLogros(); RefreshMonument(); if (coleccionOpen) RefreshColeccion(); if (reliquiasOpen) RefreshRelics(); }
+            if (shopTimer <= 0) { shopTimer = 0.15f; if (objectiveLbl != null) objectiveLbl.text = ObjectiveText(gm); RefreshContracts(); RefreshShop(); if (treeOpen) RefreshTree(); if (logrosOpen) RefreshLogros(); RefreshMonument(); if (coleccionOpen) RefreshColeccion(); if (reliquiasOpen) RefreshRelics(); }
         }
 
         void HandleKeys(GameManager gm)
         {
             var k = Keyboard.current;
             if (k == null) return;
-            if (k.escapeKey.wasPressedThisFrame) { if (modalOpen) CloseModal(); else if (treeOpen) CloseTree(); else if (logrosOpen) ToggleLogros(); else if (coleccionOpen) ToggleColeccion(); else if (reliquiasOpen) ToggleRelics(); }
+            if (k.escapeKey.wasPressedThisFrame) { if (modalOpen) CloseModal(); else if (treeOpen) CloseTree(); else if (logrosOpen) ToggleLogros(); else if (coleccionOpen) ToggleColeccion(); else if (reliquiasOpen) ToggleRelics(); else if (!titleShown) OpenMenu(); return; }
             if (modalOpen) { if (k.enterKey.wasPressedThisFrame && !modalClickOnly) { var a = modalAction; CloseModal(); a?.Invoke(); } return; }
             if (k.cKey.wasPressedThisFrame) ToggleColeccion();
             if (k.rKey.wasPressedThisFrame && !coleccionOpen) ToggleRelics();
@@ -307,6 +313,7 @@ namespace Marmoreal
             if (treeOpen || logrosOpen) return;
             if (k.pKey.wasPressedThisFrame) AskPrestige();
             if (k.mKey.wasPressedThisFrame) ToggleMute();
+            if (k.bKey.wasPressedThisFrame) ToggleShop();
             // Compra rápida del Taller: Ctrl + 1-9 (los números solos lanzan poderes)
             if (!(k.leftCtrlKey.isPressed || k.rightCtrlKey.isPressed)) return;
             var digits = new[] { k.digit1Key, k.digit2Key, k.digit3Key, k.digit4Key, k.digit5Key, k.digit6Key, k.digit7Key, k.digit8Key, k.digit9Key };
@@ -380,7 +387,7 @@ namespace Marmoreal
             rows.Clear();
             foreach (var d in GameManager.I.config.upgrades)
             {
-                if (d.currency != Currency.Dust) continue;
+                if (d.currency != Currency.Dust || IsPowerUpgrade(d)) continue; // las mejoras de poderes viven en el ALTAR [G]
                 var row = new Row { def = d, el = new Button() };
                 row.el.AddToClassList("shop-row");
                 if (d.requires != null && d.requires.Length > 0 && GameManager.I.config.GetPower(d.requires[0]) != null) row.el.AddToClassList("power-up"); // mejora de un poder del Altar
@@ -433,7 +440,7 @@ namespace Marmoreal
             foreach (var r in rows)
             {
                 var d = r.def;
-                bool unlocked = gm.IsUnlocked(d);
+                bool unlocked = gm.IsUnlocked(d) && !gm.MutatorBlocks(d);
                 r.el.EnableInClassList("hidden", !unlocked);
                 if (!unlocked) continue;
                 vis++;
@@ -472,8 +479,8 @@ namespace Marmoreal
             prestigeBtn.text = can
                 ? $"PULIR LA CANICA  +{Num.F(gm.PrestigeGain)} ESENCIA  [P]"
                 : $"PULIR — requiere Galería {Num.Roman(gm.config.prestigeMinGallery + 1)}";
-            treeBtn.text = gm.S.lifetimeEssence > 0 ? "ÁRBOL DEL ESCULTOR  [T]" : "ÁRBOL DEL ESCULTOR (bloqueado)  [T]";
-            if (altarBtn != null) altarBtn.text = gm.S.lifetimeIcor > 0 ? "ALTAR  [G]" : "ALTAR (bloqueado)  [G]";
+            treeBtn.EnableInClassList("locked", gm.S.lifetimeEssence <= 0); // bloqueado = atenuado; al pulsarlo sale el aviso
+            if (altarBtn != null) altarBtn.EnableInClassList("locked", gm.S.lifetimeIcor <= 0);
             if (logrosBtn != null) logrosBtn.text = $"MECENAZGOS {gm.S.achievements.Count}/{gm.config.achievements.Count}  [L]";
         }
 
@@ -496,10 +503,11 @@ namespace Marmoreal
                 : "Elige un nodo. La Esencia se gana al Pulir la canica.";
             foreach (var d in GameManager.I.config.upgrades)
             {
-                if (d.currency != treeCurrency) continue;
+                if (!InTree(d)) continue;
                 var b = new Button();
                 b.AddToClassList("node");
-                if (d.maxLevel == 1) b.AddToClassList("mechanic");
+                if (IsPowerUpgrade(d)) b.AddToClassList("pw");
+                if (d.maxLevel == 1 && d.currency != Currency.Dust) b.AddToClassList("mechanic");
                 if (d.branch == 3) b.AddToClassList("capstone");
                 var g = Lbl("node-glyph", d.glyph);
                 var lv = Lbl("node-level", "");
@@ -519,7 +527,8 @@ namespace Marmoreal
             if (float.IsNaN(w) || w <= 0) w = 1200; if (float.IsNaN(h) || h <= 0) h = 600;
             float sx = Mathf.Min(180f, w / 7f);
             float sy = (h - 120f) / 4.4f;
-            return new Vector2(w * 0.5f + d.treePos.x * sx, 50f + d.treePos.y * sy);
+            var tp = TreePos(d);
+            return new Vector2(w * 0.5f + tp.x * sx, 50f + tp.y * sy);
         }
 
         void LayoutTree()
@@ -544,7 +553,7 @@ namespace Marmoreal
             p.lineCap = LineCap.Round;
             foreach (var d in gm.config.upgrades)
             {
-                if (d.currency != treeCurrency || d.requires == null) continue;
+                if (!InTree(d) || d.requires == null) continue;
                 foreach (var r in d.requires)
                 {
                     var rd = gm.config.Get(r);
@@ -574,7 +583,8 @@ namespace Marmoreal
                 b.EnableInClassList("owned", lvl > 0);
                 b.EnableInClassList("maxed", gm.IsMaxed(d));
                 b.EnableInClassList("selected", d.id == selectedNode);
-                b.Q<Label>("lv").text = !unlocked ? "" : d.maxLevel == 1 ? (lvl > 0 ? "✓" : Num.F(gm.CostOf(d)) + " " + CurGlyph(d.currency)) : $"{lvl}/{d.maxLevel}";
+                b.EnableInClassList("sealed", gm.MutatorBlocks(d));
+                b.Q<Label>("lv").text = !unlocked ? "" : d.maxLevel == 1 ? (lvl > 0 ? "✓" : Num.F(gm.CostOf(d)) + " " + CurGlyph(d.currency)) : $"{lvl}/{gm.MaxLevelOf(d)}";
             }
             if (treeEssence != null) treeEssence.text = Num.F(gm.Balance(treeCurrency)) + " " + (treeCurrency == Currency.Icor ? "Ícor" : "Esencia");
             UpdateNodeInfo();
@@ -592,7 +602,7 @@ namespace Marmoreal
         {
             var gm = GameManager.I;
             var d = selectedNode != null ? gm.config.Get(selectedNode) : null;
-            if (d == null || d.currency != treeCurrency) { tiName.text = ""; tiEffect.text = ""; tiBuy.style.display = DisplayStyle.None; return; }
+            if (d == null || !InTree(d)) { tiName.text = ""; tiEffect.text = ""; tiBuy.style.display = DisplayStyle.None; return; }
             int lvl = gm.Level(d.id);
             tiName.text = $"{d.glyph}  {d.displayName}";
             tiDesc.text = d.description;
@@ -601,7 +611,8 @@ namespace Marmoreal
             tiEffect.text = d.maxLevel == 1 ? (power ? (lvl > 0 ? $"Poder desbloqueado · tecla [{PowerKey(d.id)}]" : $"Poder nuevo · tecla [{PowerKey(d.id)}]") : lvl > 0 ? "Mecánica desbloqueada" : "Mecánica nueva")
                 : maxed ? "Actual: " + FormatEffect(d, lvl) + " (máx.)" : $"Actual: {FormatEffect(d, lvl)}   →   {FormatEffect(d, lvl + 1)}";
             tiBuy.style.display = DisplayStyle.Flex;
-            if (!gm.IsUnlocked(d))
+            if (gm.MutatorBlocks(d)) { tiBuy.text = "SELLADO POR EL MUTADOR"; tiBuy.EnableInClassList("disabled", true); }
+            else if (!gm.IsUnlocked(d))
             {
                 tiBuy.text = "REQUIERE: " + string.Join(", ", System.Array.ConvertAll(d.requires, r => gm.config.Get(r)?.displayName ?? r));
                 tiBuy.EnableInClassList("disabled", true);
@@ -625,7 +636,7 @@ namespace Marmoreal
                 PlayerMarble.I?.ApplyLook();
                 if (gm.config.GetPower(d.id) != null)
                 {
-                    ShowToast($"PODER desbloqueado: {d.displayName} — pulsa [{PowerKey(d.id)}] y mejóralo en el TALLER con polvo", ToastKind.Divine);
+                    ShowToast($"PODER desbloqueado: {d.displayName} — pulsa [{PowerKey(d.id)}] y mejóralo aquí mismo con polvo", ToastKind.Divine);
                     Banner($"{d.glyph}  {d.displayName.ToUpperInvariant()}");
                 }
                 else if (d.maxLevel == 1) ShowToast($"Mecánica desbloqueada: {d.displayName}", ToastKind.Prestige);
@@ -668,6 +679,65 @@ namespace Marmoreal
         }
 
         public void ToggleTree() => ToggleTree(Currency.Essence);
+
+        // Mejora de Taller de un poder (pw_*): se compra con polvo pero se muestra en el ALTAR, junto a su poder.
+        bool IsPowerUpgrade(UpgradeDef d) => d.currency == Currency.Dust && d.requires != null && d.requires.Length > 0 && GameManager.I.config.GetPower(d.requires[0]) != null;
+        bool InTree(UpgradeDef d) => d.currency == treeCurrency || (treeCurrency == Currency.Icor && IsPowerUpgrade(d));
+        Vector2 TreePos(UpgradeDef d)
+        {
+            if (!IsPowerUpgrade(d)) return d.treePos;
+            var p = GameManager.I.config.Get(d.requires[0]);
+            return p != null ? p.treePos + new Vector2(0.42f, 0.62f) : d.treePos;
+        }
+
+        void ToggleShop()
+        {
+            if (shop == null) return;
+            shop.ToggleInClassList("collapsed");
+            bool c = shop.ClassListContains("collapsed");
+            if (shopToggle != null) shopToggle.text = c ? "TALLER  [B]  ▸" : "TALLER  [B]  ▾";
+            AudioFX.I?.Play(Sfx.Tink, 0.25f, c ? 0.9f : 1.2f);
+        }
+
+        void OpenMenu()
+        {
+            if (modalOpen || titleShown) return;
+            var gm = GameManager.I;
+            OpenModal("PAUSA",
+                "OBJETIVO AHORA\n" + ObjectiveText(gm) + "\n\n" +
+                "CÓMO SE JUEGA\n" +
+                "· Rueda (WASD) y choca con los bloques: la velocidad es daño. Cada bloque roto da POLVO.\n" +
+                "· El polvo compra mejoras del TALLER [B]. Cada estatua liberada llena la barra de la Galería.\n" +
+                $"· Desde la Galería {gm.config.prestigeMinGallery + 1} puedes PULIR [P]: reinicias Polvo, Taller y Galerías y ganas ESENCIA para el ÁRBOL [T], que es permanente.\n" +
+                "· Cada sala tiene una PRUEBA: en su galería aparece un jefe. Derrótalo para ganar una pieza del MONUMENTO y abrir la sala siguiente (viajas a ella al Pulir).\n" +
+                $"· Completa las {gm.PiecesNeeded} piezas del Monumento para ganar. El ÍCOR compra poderes y sus mejoras en el ALTAR [G].",
+                "SALIR DEL JUEGO", () =>
+                {
+                    gm.Save();
+                    Application.Quit();
+#if UNITY_EDITOR
+                    UnityEditor.EditorApplication.isPlaying = false;
+#endif
+                }, true, true);
+            modalCancel.text = "VOLVER AL JUEGO";
+            paused = true;
+            Time.timeScale = 0f;
+        }
+
+        /// <summary>Qué toca hacer ahora (panel del Taller y menú de pausa).</summary>
+        string ObjectiveText(GameManager gm)
+        {
+            var S = gm.S;
+            var trial = gm.TrialBiome;
+            int minG = gm.config.prestigeMinGallery + 1;
+            if (gm.TrialDue) return "¡PRUEBA! Derriba al JEFE de la sala para ganar una pieza del Monumento.";
+            if (trial) return $"Sube hasta la Galería {trial.trialGallery}: allí aparece el jefe de {trial.displayName} (pieza {S.pieces.Count + 1}/{gm.PiecesNeeded} del Monumento). " +
+                (gm.CanPrestige ? "Si te atascas, PULE [P] y vuelve más fuerte." : $"Si te atascas, desde la Galería {minG} puedes PULIR para hacerte más fuerte.");
+            if (S.infinite) return $"Modo infinito: supera tu récord (Galería {S.infBestGallery}).";
+            if (S.campaignWon) return "¡Monumento completo! Abre COLECCIÓN [C] para entrar al Modo Infinito.";
+            return gm.CanPrestige ? "Sala superada: PULE la canica [P] para viajar a la sala siguiente."
+                : $"Sala superada: llega a la Galería {minG} y PULE [P] para viajar a la sala siguiente.";
+        }
 
         void CloseTree()
         {
@@ -716,6 +786,7 @@ namespace Marmoreal
             {
                 if (s.index >= ps.Count) continue;
                 bool unlocked = ps.Unlocked(s.index);
+                s.el.style.display = gm.MutatorBlocks(gm.config.Get(gm.config.powers[s.index].id)) ? DisplayStyle.None : DisplayStyle.Flex;
                 float left = unlocked ? ps.CooldownLeft(s.index) : 0f;
                 s.el.EnableInClassList("locked", !unlocked);
                 s.el.EnableInClassList("ready", unlocked && left <= 0f);
@@ -922,6 +993,7 @@ namespace Marmoreal
             modalBody.text = body;
             modalOk.text = ok;
             modalCancel.style.display = cancel ? DisplayStyle.Flex : DisplayStyle.None;
+            modalCancel.text = "CANCELAR";
             if (modalAlt != null) modalAlt.style.display = DisplayStyle.None;
             modalCards?.AddToClassList("hidden");
             modalBox?.RemoveFromClassList("wide");
@@ -934,6 +1006,7 @@ namespace Marmoreal
         {
             modalOpen = false;
             modalAction = null;
+            if (paused) { paused = false; Time.timeScale = 1f; }
             modal.AddToClassList("hidden");
             if (pendingToasts.Count > 0) root.schedule.Execute(FlushToasts).StartingIn(1600); // tras el rótulo de la sala
         }
@@ -1085,7 +1158,7 @@ namespace Marmoreal
 
         public void HitStop(float seconds)
         {
-            if (seconds <= 0.005f || hitStopping) return;
+            if (seconds <= 0.005f || hitStopping || paused) return;
             StartCoroutine(HitStopRoutine(seconds));
         }
 
@@ -1094,7 +1167,7 @@ namespace Marmoreal
             hitStopping = true;
             Time.timeScale = 0.08f;
             yield return new WaitForSecondsRealtime(seconds);
-            Time.timeScale = 1f;
+            Time.timeScale = paused ? 0f : 1f;
             hitStopping = false;
         }
 

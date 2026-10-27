@@ -48,7 +48,8 @@
             <ui:Label name="banner" class="banner" text="" picking-mode="Ignore" />
 
             <ui:VisualElement name="shop" class="panel shop">
-                <ui:Label class="panel-title" text="TALLER" />
+                <ui:Label name="objective" class="objective" text="" picking-mode="Ignore" />
+                <ui:Button name="shop-toggle" class="btn panel-title shop-toggle" text="TALLER  [B]  ▾" />
                 <ui:ScrollView name="shop-list" class="shop-list" />
                 <ui:VisualElement class="row">
                     <ui:Button name="tree-btn" class="btn tree-btn" text="ÁRBOL DEL ESCULTOR  [T]" style="flex-grow: 2; flex-basis: 0;" />
@@ -86,8 +87,9 @@
                     <ui:Button name="quality-btn" class="btn small-btn" text="Calidad" />
                     <ui:Button name="mute-btn" class="btn small-btn" text="Sonido" style="margin-left: 6px;" />
                     <ui:Button name="reset-btn" class="btn small-btn" text="Borrar partida" style="margin-left: 6px;" />
+                    <ui:Button name="menu-btn" class="btn small-btn" text="Menú  [Esc]" style="margin-left: 6px;" />
                 </ui:VisualElement>
-                <ui:Label class="hint" text="WASD rodar · Espacio saltar · Shift embestida · F onda · 1-6 poderes · Ctrl+1-9 comprar · T árbol · G altar · L mecenazgos · V cámara" picking-mode="Ignore" />
+                <ui:Label class="hint" text="WASD rodar · Espacio saltar · Shift embestida · F onda · 1-7 poderes · B taller · Ctrl+1-9 comprar · T árbol · G altar y poderes · L mecenazgos · V cámara · Esc menú" picking-mode="Ignore" />
             </ui:VisualElement>
         </ui:VisualElement>
 

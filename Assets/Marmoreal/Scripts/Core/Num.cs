@@ -25,16 +25,8 @@ namespace Marmoreal
 
         public static string Pct(float v) => (v * 100f).ToString("0") + "%";
 
-        public static string Roman(int n)
-        {
-            if (n <= 0) return "0";
-            if (n > 3999) return n.ToString();
-            string[] th = { "", "M", "MM", "MMM" };
-            string[] h = { "", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM" };
-            string[] t = { "", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC" };
-            string[] o = { "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX" };
-            return th[n / 1000] + h[n % 1000 / 100] + t[n % 100 / 10] + o[n % 10];
-        }
+        // ponytail: números normales en vez de romanos (más legibles); se conserva el nombre para no tocar llamadas
+        public static string Roman(int n) => n.ToString();
 
         public static string Time(double seconds)
         {

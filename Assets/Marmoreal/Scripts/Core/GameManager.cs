@@ -194,8 +194,7 @@ namespace Marmoreal
         public bool CanAfford(UpgradeDef d) => !IsMaxed(d) && IsUnlocked(d) && Balance(d.currency) >= CostOf(d);
         public bool IsUnlocked(UpgradeDef d)
         {
-            if (d.currency == Currency.Dust && S.galleryLevel < d.unlockGallery && S.prestigeCount == 0) return false;
-            if (d.currency == Currency.Dust && !MilestoneMet(d)) return false;
+            // ponytail: el Taller ya no se esconde por galería/hito; siempre visible (petición de diseño S10)
             if (d.requires == null) return true;
             foreach (var r in d.requires) if (S.Level(r) <= 0) return false;
             return true;
@@ -203,6 +202,17 @@ namespace Marmoreal
 
         /// <summary>¿Tiene desbloqueada la mecánica/nodo?</summary>
         public bool Has(string id) => S.Level(id) > 0;
+
+        /// <summary>¿El mutador de esta vida anula esta mejora? (sin Acólitos, poder sellado…). La HUD la oculta.</summary>
+        public bool MutatorBlocks(UpgradeDef d)
+        {
+            var mu = Mutator;
+            if (mu == null || d == null) return false;
+            if (mu.acolyteMult <= 0f && d.id == "acolitos") return true;
+            if (mu.allyMult <= 0f && d.id == "gemelas") return true;
+            if (string.IsNullOrEmpty(mu.disabledPower)) return false;
+            return d.id == mu.disabledPower || d.id == "pw_" + mu.disabledPower;
+        }
 
         public bool TryBuy(UpgradeDef d)
         {
@@ -423,13 +433,8 @@ namespace Marmoreal
                 int a = MaxLevelAt(d, oldP), b = MaxLevelAt(d, newP);
                 if (b > a) { sb.AppendLine($"· {d.displayName}: tope {a} → {b}"); any = true; }
             }
-            foreach (var d in config.upgrades)
-                if (d.currency == Currency.Dust && !string.IsNullOrEmpty(d.unlockStat))
-                { sb.AppendLine($"· {d.displayName}: aparece al {(string.IsNullOrEmpty(d.unlockHint) ? d.unlockStat : d.unlockHint)}"); any = true; }
             if (!any) sb.AppendLine("· (nada nuevo esta vez)");
-            sb.AppendLine();
-            sb.Append($"Coste del Taller: ×{Num.F(WorkshopCostFactor(config.Get("masa") ?? new UpgradeDef()))} sobre el precio base (por tu poder permanente).");
-            return sb.ToString();
+            return sb.ToString().TrimEnd();
         }
 
         /// <summary>Pulir: el único reinicio (Polvo, Taller, Galerías). Cada consecrateMinPrestiges Pulidos trae además una Reliquia.</summary>
@@ -917,6 +922,7 @@ namespace Marmoreal
         {
             PlayerPrefs.DeleteKey(SaveKey);
             S = new GameState();
+            PrestigeReport = ""; // sin informe: la HUD no abre el modal de "Canica pulida"
             RecalcStats();
             Prestiged?.Invoke();
         }
