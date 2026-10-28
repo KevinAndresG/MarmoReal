@@ -933,11 +933,11 @@ MonoBehaviour:
   phaseGlow2: {r: 1, g: 0.45, b: 0.1, a: 1}
   phaseGlow3: {r: 1, g: 0.08, b: 0.04, a: 1}
   phaseGlowIntensity: 20
-  weakGlowColor: {r: 0.55, g: 0.85, b: 1, a: 1}
+  weakGlowColor: {r: 0.55, g: 0.9, b: 1, a: 1}
   weakGlowIntensity: 180
   crackFx: {fileID: 7366989700657250515}
-  crackScale: 0.95
-  crackIntensity: 2
+  crackScale: 1
+  crackIntensity: 3.2
 --- !u!1 &4966597921732536607
 GameObject:
   m_ObjectHideFlags: 0

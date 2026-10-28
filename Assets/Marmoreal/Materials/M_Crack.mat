@@ -64,7 +64,7 @@ Material:
     m_Floats:
     - _AddPrecomputedVelocity: 0
     - _AlbedoAffectEmissive: 0
-    - _AlphaCutoff: 0.45
+    - _AlphaCutoff: 0.3
     - _AlphaCutoffEnable: 1
     - _AlphaDstBlend: 0
     - _AlphaRemapMax: 1

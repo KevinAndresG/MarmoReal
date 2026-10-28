@@ -181,6 +181,8 @@ namespace Marmoreal.EditorTools
         }
 
         /// <summary>Fisura irregular: tronco ramificado de líneas finas con núcleo claro, sobre transparente.</summary>
+        public static void RegenCrackTexture() => MakeCrackTexture(TexDir + "/T_Crack.png");
+
         static void MakeCrackTexture(string path)
         {
             const int N = 256;
@@ -214,8 +216,8 @@ namespace Marmoreal.EditorTools
                     if (p.x < 8 || p.y < 8 || p.x > N - 8 || p.y > N - 8) break;
                 }
             }
-            Walk(new Vector2(N * 0.5f, N * 0.5f), 0.5f, 9, 2.4f, 0);
-            Walk(new Vector2(N * 0.5f, N * 0.5f), 0.5f + Mathf.PI, 9, 2.4f, 0);
+            Walk(new Vector2(N * 0.5f, N * 0.5f), 0.5f, 9, 4.2f, 0);
+            Walk(new Vector2(N * 0.5f, N * 0.5f), 0.5f + Mathf.PI, 9, 4.2f, 0);
             var px = new Color[N * N];
             for (int i = 0; i < px.Length; i++) px[i] = new Color(1f, 1f, 1f, a[i]);
             var tex = new Texture2D(N, N, TextureFormat.RGBA32, false);

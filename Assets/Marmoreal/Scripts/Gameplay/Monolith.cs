@@ -195,7 +195,7 @@ namespace Marmoreal
                 chunks[weakIdx].SetPropertyBlock(baseGlow == Color.black ? null : b);
             }
             weakIdx = -1;
-            if (alive.Count == 0 || homePos == null) return;
+            if (alive.Count == 0 || homePos == null) { PlaceCrack(); return; }
             float minY = float.MaxValue, cx = 0, cz = 0;
             foreach (int i in alive) { minY = Mathf.Min(minY, targetY[i]); cx += homePos[i].x; cz += homePos[i].z; }
             cx /= alive.Count; cz /= alive.Count;
@@ -207,6 +207,7 @@ namespace Marmoreal
                 if (s > bestScore) { bestScore = s; best = i; }
             }
             weakIdx = best;
+            PlaceCrack();
         }
 
         public bool TryWeakPos(out Vector3 p)
@@ -234,27 +235,90 @@ namespace Marmoreal
             if (CurrentState == State.Active && weakIdx >= 0 && chunks[weakIdx].gameObject.activeSelf) PickWeakPoint();
         }
 
-        /// <summary>Grieta: una fisura luminosa fina (quad "Grieta" del prefab, material M_Crack) pegada a la cara exterior del trozo marcado. El trozo no brilla entero.</summary>
+        [System.NonSerialized] System.Collections.Generic.List<Renderer> cracks;
+        [System.NonSerialized] int crackUsed;
+
+        /// <summary>Fisuras = el quad "Grieta" del prefab + copias (una por cara expuesta). Se reconstruye tras recargas de dominio.</summary>
+        void EnsureCracks(int n)
+        {
+            if (cracks == null)
+            {
+                cracks = new System.Collections.Generic.List<Renderer>();
+                foreach (var r in GetComponentsInChildren<Renderer>(true)) if (r.name == "Grieta") cracks.Add(r);
+                if (cracks.Count > 0) crackFx = cracks[0];
+            }
+            if (cracks.Count == 0 && crackFx) cracks.Add(crackFx);
+            while (crackFx && cracks.Count < n)
+            {
+                var c = Instantiate(crackFx.gameObject, transform).GetComponent<Renderer>();
+                c.name = "Grieta";
+                cracks.Add(c);
+            }
+        }
+
+        /// <summary>
+        /// Pega fisuras como hijas del trozo marcado en TODAS sus caras expuestas (laterales sin vecino y la de arriba):
+        /// se mueven, caen y desaparecen con el trozo, así nunca quedan flotando.
+        /// </summary>
+        void PlaceCrack()
+        {
+            EnsureCracks(1);
+            if (crackFx == null) return;
+            crackUsed = 0;
+            foreach (var c in cracks) { c.transform.SetParent(transform, false); c.enabled = false; }
+            if (weakIdx < 0 || weakIdx >= chunks.Length) return;
+            var chunk = chunks[weakIdx];
+            var mf = chunk.GetComponent<MeshFilter>();
+            Bounds lb = mf ? mf.sharedMesh.bounds : new Bounds(Vector3.zero, Vector3.one);
+            Vector3 sc = chunk.transform.localScale, lossy = chunk.transform.lossyScale;
+            Vector3 home = homePos[weakIdx]; home.y = targetY[weakIdx];
+            Vector3 stepV = new Vector3(Mathf.Max(0.1f, lb.size.x * sc.x), Mathf.Max(0.1f, lb.size.y * sc.y), Mathf.Max(0.1f, lb.size.z * sc.z));
+            Vector3[] dirs = { Vector3.right, Vector3.left, Vector3.forward, Vector3.back, Vector3.up };
+            var faces = new System.Collections.Generic.List<Vector3>();
+            foreach (var d in dirs)
+            {
+                int ax = d.x != 0 ? 0 : d.y != 0 ? 1 : 2;
+                bool blocked = false;
+                foreach (int j in alive)
+                {
+                    if (j == weakIdx) continue;
+                    Vector3 q = homePos[j]; q.y = targetY[j];
+                    float tol = 0.45f * stepV[ax];
+                    if ((q - (home + Vector3.Scale(d, stepV))).sqrMagnitude < tol * tol) { blocked = true; break; }
+                }
+                if (!blocked) faces.Add(d);
+            }
+            if (faces.Count == 0) faces.Add(Vector3.right);
+            EnsureCracks(faces.Count);
+            for (int i = 0; i < faces.Count; i++)
+            {
+                Vector3 d = faces[i];
+                int ax = d.x != 0 ? 0 : d.y != 0 ? 1 : 2;
+                var ct = cracks[i].transform;
+                ct.SetParent(chunk.transform, false);
+                ct.localPosition = lb.center + d * (lb.extents[ax] + 0.012f / Mathf.Max(0.01f, lossy[ax]));
+                ct.localRotation = Quaternion.LookRotation(-d, ax == 1 ? Vector3.forward : Vector3.up) * Quaternion.Euler(0, 0, weakIdx * 37f + i * 53f);
+                float a1 = lb.size[(ax + 1) % 3] * sc[(ax + 1) % 3], a2 = lb.size[(ax + 2) % 3] * sc[(ax + 2) % 3];
+                ct.localScale = Vector3.one * (Mathf.Min(a1, a2) * crackScale);
+            }
+            crackUsed = faces.Count;
+        }
+
+        /// <summary>Solo pulsa el brillo de las fisuras (la posición la fija PlaceCrack al elegir el trozo).</summary>
         void UpdateWeakGlow()
         {
-            if (crackFx == null) crackFx = transform.Find("Grieta")?.GetComponent<Renderer>();
-            if (crackFx == null) return;
+            if (cracks == null) EnsureCracks(1);
+            if (cracks == null || cracks.Count == 0) return;
             bool on = weakIdx >= 0 && weakIdx < chunks.Length && chunks[weakIdx].gameObject.activeSelf;
-            if (crackFx.enabled != on) crackFx.enabled = on;
-            if (!on) return;
-            var ch = chunks[weakIdx];
-            Bounds b = ch.bounds;
-            Vector3 d = b.center - col.bounds.center; d.y = 0;
-            Vector3 n = Mathf.Abs(d.x) > Mathf.Abs(d.z) ? new Vector3(Mathf.Sign(d.x), 0, 0) : new Vector3(0, 0, Mathf.Sign(d.z == 0 ? 1 : d.z));
-            Vector3 ext = new Vector3(b.extents.x * Mathf.Abs(n.x), 0, b.extents.z * Mathf.Abs(n.z));
-            var t = crackFx.transform;
-            t.position = b.center + n * (ext.x + ext.z + 0.015f);
-            t.rotation = Quaternion.LookRotation(-n, Vector3.up) * Quaternion.Euler(0, 0, weakIdx * 37f);
-            t.localScale = Vector3.one * (Mathf.Min(b.size.x, b.size.z) * crackScale);
             weakMpb ??= new MaterialPropertyBlock(); // se pierde en recargas de dominio
-            float pulse = 0.75f + 0.25f * Mathf.Sin(Time.time * 3f);
+            float pulse = 0.8f + 0.2f * Mathf.Sin(Time.time * 3f);
             weakMpb.SetColor("_UnlitColor", weakGlowColor * (crackIntensity * pulse));
-            crackFx.SetPropertyBlock(weakMpb);
+            for (int i = 0; i < cracks.Count; i++)
+            {
+                bool e = on && i < crackUsed;
+                if (cracks[i].enabled != e) cracks[i].enabled = e;
+                if (e) cracks[i].SetPropertyBlock(weakMpb);
+            }
         }
 
         void BossPhaseCheck(Vector3 point)
@@ -293,7 +357,7 @@ namespace Marmoreal
                 pending = System.Math.Max(0, pending - heal);
             }
 
-            if (CurrentState != State.Active && crackFx && crackFx.enabled) crackFx.enabled = false;
+            if (CurrentState != State.Active && cracks != null) foreach (var c in cracks) if (c && c.enabled) c.enabled = false;
             switch (CurrentState)
             {
                 case State.Rising:
