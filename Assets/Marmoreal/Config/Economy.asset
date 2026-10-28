@@ -65,8 +65,8 @@ MonoBehaviour:
   weakPointMult: 4
   weakPointRadius: 1.25
   weakPointResonance: 0.25
-  masteryEvery: 10
-  masteryMult: 1.5
+  masteryEvery: 20
+  masteryMult: 1.75
   masteryIds:
   - masa
   - cincel

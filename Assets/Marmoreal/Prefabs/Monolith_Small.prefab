@@ -927,7 +927,7 @@ MonoBehaviour:
   large: 0
   riseTime: 0.8
   revealTime: 1.3
-  statueGlow: 2500
+  statueGlow: 250
   statueGlowColor: {r: 1, g: 0.82, b: 0.5, a: 1}
   chunkGravity: 28
   phaseGlow2: {r: 1, g: 0.45, b: 0.1, a: 1}

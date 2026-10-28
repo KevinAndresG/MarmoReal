@@ -63,7 +63,7 @@ DUST = {
     "fervor":     (300, 1.85, 999, "exp", 0.35, 1.12, 0),
 }
 # S11 Maestría: ×MASTERY[1] cada MASTERY[0] niveles (EconomyConfig.masteryEvery/masteryMult/masteryIds)
-MASTERY = (10, float(__import__("os").environ.get("SIMMM", "1.5")), set(__import__("os").environ.get("SIMMIDS", "masa,cincel,resonancia,fervor").split(",")))
+MASTERY = (int(__import__("os").environ.get("SIMME", "20")), float(__import__("os").environ.get("SIMMM", "1.75")), set(__import__("os").environ.get("SIMMIDS", "masa,cincel,resonancia,fervor").split(",")))
 # S11 Grietas e Inspiración: SIMWEAK = fracción de golpes de la canica que aciertan la grieta (×4 + Ojo del Cantero);
 # SIMINSP = cargas medias de Inspiración (cada una daño +20 %, polvo +15 %)
 WEAK_SHARE = float(__import__("os").environ.get("SIMWEAK", "0.2")); INSP = float(__import__("os").environ.get("SIMINSP", "1.2"))

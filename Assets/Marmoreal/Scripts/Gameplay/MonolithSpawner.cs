@@ -96,6 +96,16 @@ namespace Marmoreal
                 Vector3 bp = bossPoint ? bossPoint.position : transform.position;
                 Vector3 d = player ? player.position - bp : Vector3.one * 99f; d.y = 0;
                 if (bossDelay <= 0 && d.sqrMagnitude > bossClearRadius * bossClearRadius) SpawnBoss(trial);
+                else if (bossDelay <= 0 && player && player.TryGetComponent(out PlayerMarble pm))
+                {
+                    // La canica estorba: el suelo estalla y la lanza fuera del círculo (antes la galería quedaba atascada en 29/30)
+                    if (d.sqrMagnitude < 0.01f) d = Vector3.back;
+                    pm.Launch(d.normalized * 16f + Vector3.up * 7f);
+                    CameraRig.I?.Shake(0.5f);
+                    CameraRig.I?.Kick(8f);
+                    AudioFX.I?.Play(Sfx.Boom, 0.8f, 0.7f);
+                    bossDelay = 0.5f;
+                }
             }
             else bossDelay = 2f;
             int target = Mathf.Min(gm.MaxMonoliths, points.Count);

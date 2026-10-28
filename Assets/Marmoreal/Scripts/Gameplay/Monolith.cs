@@ -21,7 +21,7 @@ namespace Marmoreal
         public float riseTime = 0.8f;
         public float revealTime = 1.3f;
         [Tooltip("Intensidad emisiva del brillo de la estatua revelada (HDRP, unidades de luminancia)")]
-        public float statueGlow = 2500f;
+        public float statueGlow = 250f;
         public Color statueGlowColor = new Color(1f, 0.82f, 0.5f);
         [Tooltip("Gravedad de los trozos que se quedan sin apoyo al romper los de debajo")]
         public float chunkGravity = 28f;
@@ -553,6 +553,8 @@ namespace Marmoreal
                 ShardSystem.I?.SpawnDebris(c + Random.insideUnitSphere * 0.6f, Random.rotation, Vector3.one * Random.Range(0.25f, 0.5f),
                     Random.insideUnitSphere * 6f + Vector3.up * 6f, owner ? owner.DebrisIndexFor(0, true) : 0, GetInstanceID());
             AudioFX.I?.Play(Sfx.Shatter, 0.9f, Random.Range(0.9f, 1.1f));
+            // vapor/distorsión pequeño que crece con el tamaño del bloque
+            StatueBurst.I?.Play(c, 1.8f + 0.7f * tierIndex + (Golden ? 0.6f : 0f));
             Hud.I?.StatueFreed(c, statueReward, Golden);
             if (IsBoss) { GameManager.I?.OnBossDefeated(Trial, Mod); SetChunkGlow(Color.black); }
             GameManager.I?.OnStatueFreed(Golden, transmuted);

@@ -487,7 +487,7 @@ por galería: tras el Taller "finito" solo quedan mejoras exponenciales que no s
 | **Grietas** | Cada bloque tiene un trozo exterior y bajo que late en cian. Golpearlo: daño ×4 (+Ojo del Cantero), crítico, "¡GRIETA!", hit-stop, +25 % Resonancia, +2 combo; la grieta salta a otro trozo | `Monolith.PickWeakPoint/HitsWeakPoint/OnWeakHit`, `PlayerMarble.OnCollisionEnter`, `weakPoint*` |
 | **Encargos** | Cada ~30 s un micro-reto de 25-40 s (grietas, Embestidas, Golpe en Picado, combo, estatuas). Fallar no castiga (el siguiente llega antes) | `EconomyConfig.encargos`, `LifeDirector.UpdateEncargo`, panel de contratos |
 | **Inspiración** | Encargo cumplido: +1 carga (daño +20 %, polvo +15 % cada una, máx. 4) + polvo = 20 s de tu ritmo. Al agotarse pierde 1 carga cada 20 s. Es la salida activa de los atascos | `GameManager.AddInspiration/CompleteEncargo`, `inspiration*` |
-| **Maestría** | Masa, Cincel, Resonancia y Fervor: ×1,5 cada 10 niveles (Pureza no: se retroalimenta). Taller: "Nv 7 · ★3" y banner MAESTRÍA | `GameManager.MasteryAt/Value`, `mastery*` |
+| **Maestría** | Masa, Cincel, Resonancia y Fervor: ×1,75 cada 20 niveles (S12; antes ×1,5 cada 10) + estallido gratis al lograrla (Pureza no: se retroalimenta). Taller: "Nv 7 · ★3" y banner MAESTRÍA | `GameManager.MasteryAt/Value`, `mastery*` |
 | **Fervor Divino** | Sustituye a las 7 `pw_*`: una mejora del Taller para el daño de TODOS los poderes. El Altar queda solo con nodos de Ícor (sin duplicados). Coloso dura `duration` + Titán; Midas dora `count` + Rey Midas | `PowerDamage`, `IsUnlocked("fervor")` |
 | **Árbol** | +3 nodos: Ojo del Cantero (grieta +×2/nivel), Fractura (grieta suelta onda), Obstinación (+1 carga de Inspiración y +15 % duración/nivel) | `FillDefaults`, ramas exteriores x ±3,25 |
 | **Reliquias** | Hito cada **3** Pulidos con el **primero en el 1.er Pulido**, +1 Punto por cada **Prueba** superada; 3 ranuras base; 3 reliquias nuevas: Cincel de Fidias, Lira de Calíope, Llama Votiva | `PrestigesToRelic`, `GrantRelicToken`, `relicPerTrial` |
@@ -501,3 +501,11 @@ Nuevos: `SIMWEAK` (fracción de golpes en grieta, 0,2), `SIMINSP` (cargas medias
 ya completaba la campaña en ~3,6 h **antes** de S11 (`SIMWEAK=0 SIMINSP=0 SIMMM=1`), muy lejos de la experiencia real (atasco a los ~10 min),
 así que el ritmo global hay que calibrarlo jugando. Prueba real con el piloto (que apunta a la grieta, ~80 % de aciertos): Galería 25 a los 6 min.
 Si resulta demasiado fácil, las palancas son `inspirationDamage`, `weakPointMult`, `masteryMult` y `BiomeDef.trialGallery`.
+
+### S12 — Encargos visibles, Fragmentos en campaña, jefe sin atasco, Pulido guiado, Maestría cada 20
+- **Encargo** fijo bajo la barra de galería (`#encargo`, `LifeDirector.EncargoText`), se pone naranja con < 8 s. Contratos con ventana
+  (Cadena, Ráfaga) muestran `récord x/N · se reinicia en N s`.
+- **Fragmentos de Eternidad** también en campaña: +`eternityPerBoss` por Coloso (×2 en Pruebas); antes solo en Infinito y las ranuras eran inalcanzables.
+- **Coloso**: si la canica está dentro de `bossClearRadius`, el suelo la lanza fuera (`PlayerMarble.Launch`) y brota (antes la galería se quedaba en 29/30).
+- **Pulir en campaña** va siempre a la sala con la siguiente Prueba (`BiomeManager.PendingTrial`); elegir sala solo en Infinito o con todo superado. El modal marca "✔ YA SUPERADA".
+- **Maestría** ×1,75 cada 20 niveles. Simulador (`SIMME`/`SIMMM`): campaña 56 → 92 min, galería 200 de ~1,6 h a ~2,5 h, ritmo ~1 galería/min sin parones.

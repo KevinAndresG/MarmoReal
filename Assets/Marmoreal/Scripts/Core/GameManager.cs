@@ -143,7 +143,7 @@ namespace Marmoreal
             }
 
             achievementTimer -= dt;
-            if (achievementTimer <= 0) { achievementTimer = 1f; CheckAchievements(); CheckHitos(); CheckColors(); UpdateRecords(); }
+            if (achievementTimer <= 0) { achievementTimer = 1f; CheckAchievements(); CheckColors(); UpdateRecords(); }
             if (S.infinite) S.infSeconds += dt;
 
             saveTimer += dt;
@@ -240,7 +240,10 @@ namespace Marmoreal
             if (HasMastery(d) && S.Level(d.id) % config.masteryEvery == 0)
             {
                 AudioFX.I?.Play(Sfx.GalleryUp, 0.7f, 1.35f);
-                Hud.I?.Banner($"MAESTRÍA · {d.displayName.ToUpperInvariant()} ×{config.masteryMult:0.#}");
+                Hud.I?.Banner($"MAESTRÍA · {d.displayName.ToUpperInvariant()} ×{config.masteryMult:0.##}");
+                // Que se note: estallido gratis alrededor de la canica (cada `masteryEvery` niveles, poco frecuente)
+                if (PlayerMarble.I) Shockwave.I?.Blast(PlayerMarble.I.transform.position, 9f, ImpactDamage * 6f, HitSource.Power);
+                CameraRig.I?.Shake(0.45f);
             }
             return true;
         }
@@ -656,9 +659,9 @@ namespace Marmoreal
 
         public void OnBossDefeated(bool trial, BossModDef mod = null)
         {
-            if (S.infinite && !trial)
+            // Fragmentos de Eternidad por cada Coloso (también en campaña: si no, las ranuras de Reliquia eran inalcanzables). Prueba = ×2.
             {
-                double f = config.eternityPerBoss * (mod != null ? Math.Max(1, mod.fragmentMult) : 1);
+                double f = config.eternityPerBoss * (mod != null ? Math.Max(1, mod.fragmentMult) : 1) * (trial ? 2 : 1);
                 AddEternity(f);
                 Toast?.Invoke($"+{f} Fragmentos de Eternidad", ToastKind.Divine);
             }
@@ -858,8 +861,8 @@ namespace Marmoreal
             S.encargosDone++;
             if (RelicOn("lira_caliope")) PowerSystem.I?.ShortenCooldowns(0.7f);
             AudioFX.I?.Play(Sfx.GalleryUp, 0.8f, 1.15f);
-            Hud.I?.Banner($"¡ENCARGO! INSPIRACIÓN ×{InspirationDamageMult:0.##}");
-            Toast?.Invoke($"Encargo cumplido: +{Num.F(dust)} polvo · daño ×{InspirationDamageMult:0.##} mientras dure la Inspiración", ToastKind.Gold);
+            Hud.I?.Banner($"¡ENCARGO! INSPIRACIÓN {inspStacks}/{MaxInspiration}");
+            Toast?.Invoke($"Encargo cumplido: +{Num.F(dust)} polvo · Inspiración {inspStacks}/{MaxInspiration}: daño ×{InspirationDamageMult:0.##} por {InspirationTimeLeft:0} s (cada Encargo suma una carga)", ToastKind.Gold);
         }
 
         /// <summary>Daño ×esto al acertar la grieta de un bloque (base + Ojo del Cantero).</summary>
@@ -878,21 +881,6 @@ namespace Marmoreal
 
         public void RegisterPowerUse() => S.powersUsed++;
         public void RegisterMusa() { S.musasCaught++; }
-
-        // =================== Hitos de ayudantes ===================
-
-        void CheckHitos()
-        {
-            foreach (var d in config.upgrades)
-            {
-                if (d.currency != Currency.Dust || string.IsNullOrEmpty(d.unlockStat) || !MilestoneMet(d)) continue;
-                string key = S.prestigeCount + ":" + d.id;
-                if (S.hitosSeen.Contains(key)) continue;
-                S.hitosSeen.Add(key);
-                Toast?.Invoke($"Hito cumplido: ya puedes comprar {d.displayName}", ToastKind.Gallery);
-                StatsChanged?.Invoke();
-            }
-        }
 
         // =================== Mecenazgos ===================
 

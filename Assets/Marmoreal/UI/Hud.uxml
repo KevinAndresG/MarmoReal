@@ -27,6 +27,7 @@
                     <ui:VisualElement name="gallery-fill" class="bar-fill gold" picking-mode="Ignore" />
                 </ui:VisualElement>
                 <ui:Label name="gallery-text" class="small" text="0 / 8 estatuas liberadas" picking-mode="Ignore" />
+                <ui:Label name="encargo" class="encargo hidden" text="" picking-mode="Ignore" />
                 <ui:VisualElement name="monument" class="monument" picking-mode="Ignore">
                     <ui:Label name="monument-title" class="monument-title" text="EL GRAN MONUMENTO  0/3" picking-mode="Ignore" />
                     <ui:VisualElement class="monument-pieces" picking-mode="Ignore">

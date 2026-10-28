@@ -33,7 +33,7 @@ namespace Marmoreal
         VisualElement root, floaterLayer, galleryFill, resFill, resBar, dashFill, toasts, treeOverlay, treeCanvas, modal, title, shop;
         VisualElement powersBar, icorRow, logrosOverlay;
         Label dust, dustRate, essence, statLine, galleryTitle, galleryText, combo, treeEssence, tiName, tiDesc, tiEffect, modalTitle, modalBody, press;
-        Label icor, buffs, banner, treeTitle, logrosFame, musaMarker, contractsLbl;
+        Label icor, buffs, banner, treeTitle, logrosFame, musaMarker, contractsLbl, encargoLbl;
         VisualElement modalCards, modalBox;
         bool holdToasts;
         readonly List<(string, ToastKind)> pendingToasts = new List<(string, ToastKind)>();
@@ -127,7 +127,7 @@ namespace Marmoreal
             Q(out treeBtn, "tree-btn"); Q(out prestigeBtn, "prestige-btn"); Q(out qualityBtn, "quality-btn"); Q(out muteBtn, "mute-btn");
             Q(out resetBtn, "reset-btn"); Q(out tiBuy, "ti-buy"); Q(out modalOk, "modal-ok"); Q(out modalCancel, "modal-cancel"); Q(out modalAlt, "modal-alt"); Q(out treeClose, "tree-close");
             shopToggle = root.Q<Button>("shop-toggle"); objectiveLbl = root.Q<Label>("objective"); menuBtn = root.Q<Button>("menu-btn");
-            Q(out contractsLbl, "contracts"); Q(out modalCards, "modal-cards"); modalBox = root.Q(className: "modal-box");
+            Q(out contractsLbl, "contracts"); encargoLbl = root.Q<Label>("encargo"); Q(out modalCards, "modal-cards"); modalBox = root.Q(className: "modal-box");
             BindCampaign();
             BindRelics();
 
@@ -796,6 +796,12 @@ namespace Marmoreal
             string t = LifeDirector.I ? LifeDirector.I.PanelText() : "";
             contractsLbl.text = t;
             contractsLbl.EnableInClassList("hidden", t.Length == 0);
+            if (encargoLbl == null) return;
+            var ld = LifeDirector.I;
+            string e = ld ? ld.EncargoText() : "";
+            encargoLbl.text = e;
+            encargoLbl.EnableInClassList("hidden", e.Length == 0);
+            encargoLbl.EnableInClassList("urgent", ld && ld.Encargo != null && ld.EncargoTimeLeft < 8f);
         }
 
         void UpdateBuffs(GameManager gm)
@@ -807,7 +813,7 @@ namespace Marmoreal
             if (gm.OverflowTimeLeft > 0) t += (t.Length > 0 ? "     " : "") + $"ONDA INFINITA [F]  {gm.OverflowTimeLeft:0}s";
             if (AllySquad.I && AllySquad.I.LegionTimeLeft > 0) t += (t.Length > 0 ? "     " : "") + $"LEGIÓN  {AllySquad.I.LegionTimeLeft:0}s";
             if (gm.colossusMult > 1f) t += (t.Length > 0 ? "     " : "") + $"COLOSO ×{gm.colossusMult:0} daño";
-            if (gm.InspirationStacks > 0) t += (t.Length > 0 ? "     " : "") + $"INSPIRACIÓN {gm.InspirationStacks}/{gm.MaxInspiration} · daño ×{gm.InspirationDamageMult:0.##}  {gm.InspirationTimeLeft:0}s";
+            if (gm.InspirationStacks > 0) t += (t.Length > 0 ? "     " : "") + $"INSPIRACIÓN {new string('●', gm.InspirationStacks)}{new string('○', Mathf.Max(0, gm.MaxInspiration - gm.InspirationStacks))} · daño ×{gm.InspirationDamageMult:0.##} y polvo ×{1f + gm.config.inspirationDust * gm.InspirationStacks:0.##} · {gm.InspirationTimeLeft:0}s (cada Encargo suma una carga)";
             var ld = LifeDirector.I;
             if (ld && ld.ActiveEvent != null) t += (t.Length > 0 ? "     " : "") + $"{ld.ActiveEvent.displayName.ToUpperInvariant()}  {ld.EventTimeLeft:0}s";
             var boss = MonolithSpawner.I ? MonolithSpawner.I.Boss : null;
@@ -948,8 +954,10 @@ namespace Marmoreal
             var bm = BiomeManager.I;
             var room = bm ? bm.NextFor(gm.S.prestigeCount + 1) : null;
             bool choose = room && bm.CanChoose(gm.S.prestigeCount + 1);
-            string sala = room ? $"\n\nSala siguiente: {room.displayName}{(choose ? "  (elige con CAMBIAR SALA)" : "")}\n{room.tagline}" +
-                (room.trialGallery > 0 && !gm.S.pieces.Contains(room.campaignStage) ? $"\nPrueba de la sala: Galería {Num.Roman(room.trialGallery)}" : "") : "";
+            bool done = bm && bm.Completed(room);
+            string how = choose ? "  (elige con CAMBIAR SALA)" : bm && bm.PendingTrial() ? "  (campaña: siguiente Prueba)" : "";
+            string sala = room ? $"\n\nSala siguiente: {room.displayName}{(done ? "  ✔ YA SUPERADA" : "")}{how}\n{room.tagline}" +
+                (room.trialGallery > 0 && !done ? $"\nPrueba de la sala: Galería {Num.Roman(room.trialGallery)}" : "") : "";
             OpenModal("PULIR LA CANICA",
                 $"Reinicias el Polvo, el Taller y las Galerías.\nConservas la Esencia, el Árbol, el Ícor y el Altar.\n\n" +
                 $"Ícor por pulir: +{Num.F(gm.config.icorPrestigeBase + System.Math.Floor(gm.PrestigeGain / gm.config.icorPrestigeDivisor))}\n" +
@@ -1179,6 +1187,7 @@ namespace Marmoreal
         public void DamageNumber(Vector3 pos, float dmg, bool crit, HitSource src)
         {
             string cls = crit ? "crit" : (src == HitSource.Acolyte || src == HitSource.Ally) ? "acolyte" : (src == HitSource.Shockwave || src == HitSource.Seismic) ? "wave" : src == HitSource.Power ? "power" : null;
+            if (cls == "acolyte" && Random.value > 0.3f) return; // ayudantes: solo 1 de cada ~3 números
             string text = crit ? Num.F(dmg) + "!" : Num.F(dmg);
             Vector3 v = new Vector3(Random.Range(-1f, 1f), 2.5f, Random.Range(-1f, 1f));
             Spawn(pos, text, cls, crit ? 1.1f : 0.8f, v);

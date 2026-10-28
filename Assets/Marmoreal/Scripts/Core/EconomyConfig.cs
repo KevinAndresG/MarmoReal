@@ -308,8 +308,8 @@ namespace Marmoreal
         public float weakPointResonance = 0.25f;
 
         [Header("Maestría del Taller (S11): cada N niveles el efecto se multiplica")]
-        public int masteryEvery = 10;
-        public float masteryMult = 1.5f;
+        public int masteryEvery = 20;
+        public float masteryMult = 1.75f;
         public string[] masteryIds = { "masa", "cincel", "resonancia", "fervor" };
 
         [Header("Encargos e Inspiración (S11)")]

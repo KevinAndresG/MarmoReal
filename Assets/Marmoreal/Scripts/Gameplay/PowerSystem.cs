@@ -628,7 +628,7 @@ namespace Marmoreal
             if (flashBaseColor.r < 0) flashBaseColor = flash.color;
             flash.color = color;
             flash.transform.position = at + Vector3.up * 2f;
-            flash.intensity = Mathf.Max(flash.intensity, flashLumens * flashScale * Mathf.Min(strength, 1f));
+            flash.intensity = Mathf.Max(flash.intensity, flashLumens * flashScale * Mathf.Min(strength, 1f) * 0.25f); // ponytail: destellos al 25% para no deslumbrar
         }
     }
 }

@@ -20,7 +20,7 @@ namespace Marmoreal
         float nextEvent = -1f, eventTimer, meteorTimer;
 
         // Seguimiento de contratos (en memoria; los cumplidos se guardan en GameState.contractsDone)
-        int lastVolatile = -1, chain, lastPowers = -1, bestCombo;
+        int lastVolatile = -1, chain, lastPowers = -1, bestCombo, bestChain, bestBurst;
         float chainTimer;
         readonly Queue<float> powerTimes = new Queue<float>();
 
@@ -178,7 +178,10 @@ namespace Marmoreal
             if (lastPowers < 0 || S.powersUsed < lastPowers) lastPowers = S.powersUsed;
             while (S.powersUsed > lastPowers) { powerTimes.Enqueue(Time.time); lastPowers++; }
             bestCombo = Mathf.Max(bestCombo, gm.Combo);
-            if (S.lifeStatues == 0) bestCombo = gm.Combo; // vida nueva
+            bestChain = Mathf.Max(bestChain, chain);
+            while (powerTimes.Count > 0 && Time.time - powerTimes.Peek() > 10f) powerTimes.Dequeue();
+            bestBurst = Mathf.Max(bestBurst, powerTimes.Count);
+            if (S.lifeStatues == 0) { bestCombo = gm.Combo; bestChain = bestBurst = 0; } // vida nueva
 
             if (!gm.ContractsOpen) return;
             foreach (var id in S.contracts)
@@ -207,15 +210,21 @@ namespace Marmoreal
             return 0;
         }
 
+        int BestOf(ContractDef c) => c.kind == ContractKind.VolatileChain ? bestChain : c.kind == ContractKind.PowerBurst ? bestBurst : Progress(c);
+
+        /// <summary>Encargo activo (fijo bajo la barra de galería hasta cumplirse o caducar).</summary>
+        public string EncargoText()
+        {
+            if (Encargo == null) return "";
+            return $"ENCARGO: {string.Format(Encargo.description, Encargo.target)}   {Mathf.Min(EncargoProgress, Encargo.target)}/{Encargo.target} · {Mathf.CeilToInt(EncargoTimeLeft)} s";
+        }
+
         /// <summary>Texto de la HUD: mutador activo + contratos de la vida.</summary>
         public string PanelText()
         {
             var gm = GameManager.I;
             if (!gm) return "";
             var sb = new System.Text.StringBuilder();
-            if (Encargo != null)
-                sb.Append("ENCARGO  ").Append(string.Format(Encargo.description, Encargo.target))
-                  .AppendLine($"  ({Mathf.Min(EncargoProgress, Encargo.target)}/{Encargo.target}) · {Mathf.CeilToInt(EncargoTimeLeft)} s");
             string mu = gm.MutatorStatus();
             if (mu.Length > 0) sb.Append("MUTADOR  ").AppendLine(mu);
             if (gm.ContractsOpen)
@@ -225,7 +234,12 @@ namespace Marmoreal
                     if (c == null) continue;
                     bool done = gm.S.contractsDone.Contains(id);
                     sb.Append(done ? "✔ " : "◇ ").Append(gm.ContractText(c));
-                    if (!done && c.target > 1) sb.Append($"  ({Mathf.Min(Progress(c), c.target)}/{c.target})");
+                    if (!done && c.target > 1)
+                    {
+                        sb.Append($"  ({Mathf.Min(Progress(c), c.target)}/{c.target})");
+                        // Ventana: el contador vuelve a 0 si pasan 'window' s sin sumar; el récord indica lo cerca que estuviste
+                        if (c.window > 0) sb.Append($" · récord {Mathf.Min(BestOf(c), c.target)} · se reinicia en {c.window:0.#} s");
+                    }
                     sb.AppendLine();
                 }
             return sb.ToString().TrimEnd();

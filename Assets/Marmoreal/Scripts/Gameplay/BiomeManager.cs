@@ -55,6 +55,7 @@ namespace Marmoreal
         /// <summary>¿Hay más de una sala desbloqueada para elegir al Pulir?</summary>
         public bool CanChoose(int newPrestige)
         {
+            if (PendingTrial()) return false; // campaña: siempre a la sala de la siguiente Prueba (elegir solo en Infinito o con todo superado)
             int n = 0;
             if (biomes != null) for (int i = 0; i < biomes.Length; i++) if (Unlocked(i)) n++;
             return n > 1;
@@ -81,22 +82,32 @@ namespace Marmoreal
         public BiomeDef NextFor(int newPrestige)
         {
             if (biomes == null || biomes.Length == 0) return null;
+            var pending = PendingTrial();
+            if (pending) return pending;
             if (pendingChoice >= 0 && pendingChoice < biomes.Length && Unlocked(pendingChoice)) return biomes[pendingChoice];
-            var gm = GameManager.I;
-            BiomeDef pending = null;
             var open = new System.Collections.Generic.List<BiomeDef>();
-            for (int i = 0; i < biomes.Length; i++)
-            {
-                if (!Unlocked(i)) continue;
-                var b = biomes[i];
-                open.Add(b);
-                if (b.trialGallery > 0 && gm && !gm.S.pieces.Contains(b.campaignStage) && (!pending || b.campaignStage < pending.campaignStage)) pending = b;
-            }
-            if (pending && gm && !gm.S.infinite) return pending;
+            for (int i = 0; i < biomes.Length; i++) if (Unlocked(i)) open.Add(biomes[i]);
             if (open.Count > 1) open.Remove(Current);
             if (open.Count == 0) return biomes[0];
             return open[(newPrestige * 7 + 3) % open.Count];
         }
+
+        /// <summary>Campaña (fuera del Infinito): sala desbloqueada con la Prueba pendiente más temprana; null si no queda ninguna.</summary>
+        public BiomeDef PendingTrial()
+        {
+            var gm = GameManager.I;
+            if (!gm || gm.S.infinite || biomes == null) return null;
+            BiomeDef pending = null;
+            for (int i = 0; i < biomes.Length; i++)
+            {
+                var b = biomes[i];
+                if (Unlocked(i) && b.trialGallery > 0 && !gm.S.pieces.Contains(b.campaignStage) && (!pending || b.campaignStage < pending.campaignStage)) pending = b;
+            }
+            return pending;
+        }
+
+        /// <summary>¿Prueba de esta sala ya superada?</summary>
+        public bool Completed(BiomeDef b) => b && GameManager.I && GameManager.I.S.pieces.Contains(b.campaignStage);
 
         /// <summary>Botón del modal de Pulido: pasa a la siguiente sala desbloqueada.</summary>
         public BiomeDef CycleChoice(int newPrestige)
