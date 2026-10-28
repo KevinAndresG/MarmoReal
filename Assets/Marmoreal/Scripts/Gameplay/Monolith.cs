@@ -39,8 +39,11 @@ namespace Marmoreal
         public Color phaseGlow2 = new Color(1f, 0.45f, 0.1f), phaseGlow3 = new Color(1f, 0.08f, 0.04f);
         public float phaseGlowIntensity = 20f;
         [Tooltip("Grieta (punto débil): color y brillo (nits) del trozo marcado; late para llamar la atención")]
-        public Color weakGlowColor = new Color(0.45f, 0.9f, 1f);
+        public Color weakGlowColor = new Color(0.55f, 0.85f, 1f);
         public float weakGlowIntensity = 180f;
+        [Tooltip("Fisura de la grieta: renderer hijo \"Grieta\" del prefab (quad con M_Crack), tamaño relativo al trozo y brillo (sutil a propósito)")]
+        public Renderer crackFx;
+        public float crackScale = 0.95f, crackIntensity = 0.8f;
         /// <summary>Mármol volcánico: al romperse del todo estalla y daña a los bloques vecinos.</summary>
         public bool Volatile { get; private set; }
         public double HP { get; private set; }
@@ -231,13 +234,27 @@ namespace Marmoreal
             if (CurrentState == State.Active && weakIdx >= 0 && chunks[weakIdx].gameObject.activeSelf) PickWeakPoint();
         }
 
+        /// <summary>Grieta: una fisura luminosa fina (quad "Grieta" del prefab, material M_Crack) pegada a la cara exterior del trozo marcado. El trozo no brilla entero.</summary>
         void UpdateWeakGlow()
         {
-            if (weakIdx < 0 || weakIdx >= chunks.Length) return;
+            if (crackFx == null) crackFx = transform.Find("Grieta")?.GetComponent<Renderer>();
+            if (crackFx == null) return;
+            bool on = weakIdx >= 0 && weakIdx < chunks.Length && chunks[weakIdx].gameObject.activeSelf;
+            if (crackFx.enabled != on) crackFx.enabled = on;
+            if (!on) return;
+            var ch = chunks[weakIdx];
+            Bounds b = ch.bounds;
+            Vector3 d = b.center - col.bounds.center; d.y = 0;
+            Vector3 n = Mathf.Abs(d.x) > Mathf.Abs(d.z) ? new Vector3(Mathf.Sign(d.x), 0, 0) : new Vector3(0, 0, Mathf.Sign(d.z == 0 ? 1 : d.z));
+            Vector3 ext = new Vector3(b.extents.x * Mathf.Abs(n.x), 0, b.extents.z * Mathf.Abs(n.z));
+            var t = crackFx.transform;
+            t.position = b.center + n * (ext.x + ext.z + 0.015f);
+            t.rotation = Quaternion.LookRotation(-n, Vector3.up) * Quaternion.Euler(0, 0, weakIdx * 37f);
+            t.localScale = Vector3.one * (Mathf.Min(b.size.x, b.size.z) * crackScale);
             weakMpb ??= new MaterialPropertyBlock(); // se pierde en recargas de dominio
-            float pulse = 0.55f + 0.45f * Mathf.Sin(Time.time * 7f);
-            weakMpb.SetColor(EmissiveColorId, weakGlowColor * (weakGlowIntensity * pulse) + baseGlow);
-            chunks[weakIdx].SetPropertyBlock(weakMpb);
+            float pulse = 0.75f + 0.25f * Mathf.Sin(Time.time * 3f);
+            weakMpb.SetColor("_UnlitColor", weakGlowColor * (crackIntensity * pulse));
+            crackFx.SetPropertyBlock(weakMpb);
         }
 
         void BossPhaseCheck(Vector3 point)
@@ -276,6 +293,7 @@ namespace Marmoreal
                 pending = System.Math.Max(0, pending - heal);
             }
 
+            if (CurrentState != State.Active && crackFx && crackFx.enabled) crackFx.enabled = false;
             switch (CurrentState)
             {
                 case State.Rising:

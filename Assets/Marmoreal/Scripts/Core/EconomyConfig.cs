@@ -313,8 +313,12 @@ namespace Marmoreal
         public string[] masteryIds = { "masa", "cincel", "resonancia", "fervor" };
 
         [Header("Encargos e Inspiración (S11)")]
-        [Tooltip("Segundos entre un Encargo y el siguiente")]
+        [Tooltip("Ya no se usa: los Encargos llegan al azar entre encargoMinGap y encargoMaxGap")]
         public float encargoEvery = 30f;
+        [Tooltip("Margen aleatorio (s) entre un Encargo y el siguiente: nunca a intervalos fijos")]
+        public float encargoMinGap = 40f, encargoMaxGap = 220f;
+        [Tooltip("Probabilidad de que un Encargo fallado vuelva pronto (mitad del margen)")]
+        [Range(0f, 1f)] public float encargoRetryChance = 0.5f;
         [Tooltip("Estatuas liberadas en total antes del primer Encargo (no estorbar el tutorial)")]
         public int encargoMinStatues = 3;
         [Tooltip("Polvo al cumplirlo = segundos de tu polvo/s (mínimo 3 bloques)")]

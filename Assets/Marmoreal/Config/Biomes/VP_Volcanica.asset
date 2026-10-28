@@ -65,10 +65,10 @@ MonoBehaviour:
     m_Value: 1
   colorMode:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0
   color:
     m_OverrideState: 1
-    m_Value: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+    m_Value: {r: 0.8, g: 0.55, b: 0.45, a: 1}
   tint:
     m_OverrideState: 1
     m_Value: {r: 1, g: 1, b: 1, a: 1}
@@ -92,7 +92,7 @@ MonoBehaviour:
     m_Value: 40
   meanFreePath:
     m_OverrideState: 1
-    m_Value: 150
+    m_Value: 240
   enableVolumetricFog:
     m_OverrideState: 1
     m_Value: 0
@@ -159,7 +159,7 @@ MonoBehaviour:
     m_Value: 1
   fixedExposure:
     m_OverrideState: 1
-    m_Value: 9.5
+    m_Value: 9
   compensation:
     m_OverrideState: 1
     m_Value: 0
@@ -504,7 +504,7 @@ MonoBehaviour:
     m_Value: 0
   saturation:
     m_OverrideState: 1
-    m_Value: 6
+    m_Value: 14
 --- !u!114 &3785821769855798520
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -883,13 +883,13 @@ MonoBehaviour:
     m_Value: 0
   top:
     m_OverrideState: 1
-    m_Value: {r: 0.101, g: 0.071, b: 0.104, a: 1}
+    m_Value: {r: 0.34, g: 0.15, b: 0.2, a: 1}
   middle:
     m_OverrideState: 1
-    m_Value: {r: 0.836, g: 0.426, b: 0.281, a: 1}
+    m_Value: {r: 1, g: 0.5, b: 0.24, a: 1}
   bottom:
     m_OverrideState: 1
-    m_Value: {r: 0.136, g: 0.071, b: 0.052, a: 1}
+    m_Value: {r: 0.3, g: 0.15, b: 0.1, a: 1}
   gradientDiffusion:
     m_OverrideState: 1
-    m_Value: 1.6
+    m_Value: 1.2

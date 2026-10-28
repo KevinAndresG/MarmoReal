@@ -41,7 +41,7 @@ namespace Marmoreal
         // ================================================================= Encargos (S11)
         public EncargoDef Encargo { get; private set; }
         public float EncargoTimeLeft => Encargo != null ? Mathf.Max(0, encargoTimer) : 0f;
-        float encargoTimer, nextEncargo = 12f;
+        float encargoTimer, nextEncargo = 25f;
         int encargoBase, encargoCombo;
         string lastEncargo;
 
@@ -62,6 +62,13 @@ namespace Marmoreal
                 if (Encargo == null || !gm) return 0;
                 return Encargo.kind == EncargoKind.Combo ? encargoCombo : Mathf.Max(0, EncargoCounter(gm, Encargo.kind) - encargoBase);
             }
+        }
+
+        /// <summary>Espera aleatoria con margen amplio (sesgada a lo corto, con cola larga) para que nunca sea predecible.</summary>
+        static float RollEncargoGap(GameManager gm, float scale)
+        {
+            float lo = gm.config.encargoMinGap, hi = Mathf.Max(lo + 1f, gm.config.encargoMaxGap);
+            return Mathf.Lerp(lo, hi, Mathf.Pow(Random.value, 1.3f)) * scale;
         }
 
         void UpdateEncargo(GameManager gm)
@@ -90,13 +97,13 @@ namespace Marmoreal
             {
                 var done = Encargo;
                 Encargo = null;
-                nextEncargo = gm.config.encargoEvery;
+                nextEncargo = RollEncargoGap(gm, 1f);
                 gm.CompleteEncargo(done);
             }
             else if (encargoTimer <= 0)
             {
                 Encargo = null;
-                nextEncargo = gm.config.encargoEvery * 0.5f; // fallar no castiga: el siguiente llega antes
+                nextEncargo = RollEncargoGap(gm, Random.value < gm.config.encargoRetryChance ? 0.5f : 1f); // fallar no castiga: puede volver antes
                 AudioFX.I?.Play(Sfx.Deny, 0.35f, 0.9f);
             }
         }
